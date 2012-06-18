@@ -1,5 +1,6 @@
 package decoy;
 
+import sim.Nightwing;
 import topo.AS;
 
 /**
@@ -16,10 +17,12 @@ public class DecoyAS extends AS {
 	 * Flag for the AS deploying decoy routers
 	 */
 	private boolean hostsDecoyRouter;
+	private int traffic; // how many times a packet has gone through this AS
 
 	public DecoyAS(int myASN) {
 		super(myASN);
 		this.hostsDecoyRouter = false;
+		this.traffic = 0;
 	}
 
 	/**
@@ -44,6 +47,13 @@ public class DecoyAS extends AS {
 	public void resetDecoyRouter() {
 		this.hostsDecoyRouter = false;
 	}
+	
+	/**
+	 * Function that increments the traffic variable
+	 */
+	public void addTraffic() {
+		traffic++;
+	}
 
 	/**
 	 * Predicate to test if this AS is currently deploying decoy routers
@@ -53,5 +63,8 @@ public class DecoyAS extends AS {
 	public boolean isDecoy() {
 		return this.hostsDecoyRouter;
 	}
-
+	
+	public int getTraffic(){
+		return traffic;
+	}
 }
