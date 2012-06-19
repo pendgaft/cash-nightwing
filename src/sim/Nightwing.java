@@ -28,7 +28,7 @@ public class Nightwing {
 		 */
 		int mode = 0;
 		int avoidSize = 0;
-		String country = "test";
+		String country = "china";
 		if (args[0].equalsIgnoreCase(Nightwing.FIND_STRING)) {
 			mode = Nightwing.FIND_MODE;
 			country = args[1];
@@ -80,8 +80,8 @@ public class Nightwing {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(country);
 		} else if (mode == Nightwing.ECON_MODE) {
-			TrafficTest simDriver = new TrafficTest();
-			simDriver.test(liveTopo);
+			TrafficTest simDriver = new TrafficTest(liveTopo, prunedTopo);
+			simDriver.runTests(country);
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);

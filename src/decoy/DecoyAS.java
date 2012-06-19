@@ -17,12 +17,14 @@ public class DecoyAS extends AS {
 	 * Flag for the AS deploying decoy routers
 	 */
 	private boolean hostsDecoyRouter;
-	private int traffic; // how many times a packet has gone through this AS
+	private long traffic; // how many times a packet has gone through this AS
+	private long wardenTraffic;
 
 	public DecoyAS(int myASN) {
 		super(myASN);
 		this.hostsDecoyRouter = false;
 		this.traffic = 0;
+		this.wardenTraffic = 0;
 	}
 
 	/**
@@ -54,6 +56,10 @@ public class DecoyAS extends AS {
 	public void addTraffic() {
 		traffic++;
 	}
+	
+	public void addWardenTraffic(){
+		wardenTraffic++;
+	}
 
 	/**
 	 * Predicate to test if this AS is currently deploying decoy routers
@@ -64,7 +70,11 @@ public class DecoyAS extends AS {
 		return this.hostsDecoyRouter;
 	}
 	
-	public int getTraffic(){
+	public long getTraffic(){
 		return traffic;
+	}
+	
+	public long getWardenTraffic() {
+		return wardenTraffic;
 	}
 }
