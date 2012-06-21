@@ -54,7 +54,7 @@ public class DecoyAS extends AS {
 	 * Function that increments the traffic variable
 	 */
 	public void addTraffic() {
-		traffic++;
+		traffic+= this.getIPCount();
 	}
 	
 	public void addWardenTraffic(){
