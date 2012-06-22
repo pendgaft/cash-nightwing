@@ -8,6 +8,7 @@ import decoy.DecoyAS;
 public class TrafficTest {
 	private HashMap<Integer, DecoyAS> activeMap;
 	private HashMap<Integer, DecoyAS> prunedMap;
+	int numIPs;
 	/**
 	 * 
 	 */
@@ -31,23 +32,20 @@ public class TrafficTest {
 		// add up traffic for ASes
 		for(DecoyAS origin : activeMap.values()){
 			for(DecoyAS dest : activeMap.values()){
+				numIPs = origin.getIPCount();
 				if(origin.equals(dest)){
 					continue;
 				} else if(origin.isWardenAS()) {
 					for(int asn : origin.getPath(dest.getASN()).getPath()){
-						activeMap.get(asn).addTraffic();
-						activeMap.get(asn).addWardenTraffic();
+						activeMap.get(asn).addTraffic(numIPs);
+						activeMap.get(asn).addWardenTraffic(numIPs);
 					}
 				} else {
 					for(int asn : origin.getPath(dest.getASN()).getPath()){
-						activeMap.get(asn).addTraffic();
+						activeMap.get(asn).addTraffic(numIPs);
 					}
 				}
 			}
-		}
-		
-		for(DecoyAS as : activeMap.values()){
-			System.out.println("AS " +as.getASN()+ ": " +as.getTraffic());
 		}
 		
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter("logs/"
