@@ -26,7 +26,9 @@ public class BGPMaster {
 		/*
 		 * Build AS map
 		 */
+		System.out.println("1");
 		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(countryFile);
+		System.out.println("1");
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
 
 		/*
@@ -35,6 +37,7 @@ public class BGPMaster {
 		LargeASDecoyPlacer deployer = new LargeASDecoyPlacer(usefulASMap);
 		Set<Integer> avoidSet = deployer.seedNLargest(chinaAvoidanceSize);
 
+		System.out.println("1");
 		/*
 		 * Give everyone their self network
 		 */

@@ -430,6 +430,7 @@ public abstract class AS {
 	public BGPPath getPathToPurged(List<Integer> hookASNs) {
 		List<BGPPath> listPossPaths = new LinkedList<BGPPath>();
 		for (Integer tHook : hookASNs) {
+			if(this.getPath(tHook) == null) continue;
 			listPossPaths.add(this.getPath(tHook));
 		}
 		return this.pathSelection(listPossPaths);

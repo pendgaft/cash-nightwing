@@ -85,4 +85,9 @@ public class DecoyAS extends AS {
 	public long getWardenTraffic() {
 		return wardenTraffic;
 	}
+	
+	public void resetTraffic() {
+		traffic = 0;
+		wardenTraffic = 0;
+	}
 }

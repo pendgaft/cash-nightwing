@@ -15,8 +15,8 @@ import decoy.DecoyAS;
  */
 public class ASTopoParser {
 
-	private static final String AS_REL_FILE = "as-rel.txt";
-	private static final String AS_IP_FILE = "ip-count.csv";
+	private static final String AS_REL_FILE = "asRelations.txt";
+	private static final String AS_IP_FILE = "test-ip.csv";
 
 	public static void main(String args[]) throws IOException {
 		/*
@@ -39,7 +39,7 @@ public class ASTopoParser {
 		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(ASTopoParser.AS_REL_FILE, wardenFile);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap);
-
+		System.out.println("3");
 		return asMap;
 	}
 
@@ -71,15 +71,12 @@ public class ASTopoParser {
 	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile) throws IOException {
 
 		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
-
 		String pollString;
 		StringTokenizer pollToks;
 		int lhsASN, rhsASN, rel;
-
 		BufferedReader fBuff = new BufferedReader(new FileReader(asRelFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
-
 			/*
 			 * ignore blanks
 			 */
@@ -115,7 +112,7 @@ public class ASTopoParser {
 			retMap.get(lhsASN).addRelation(retMap.get(rhsASN), rel);
 		}
 		fBuff.close();
-
+		System.out.println("1");
 		/*
 		 * read the warden AS file, toggle all warden ASes
 		 */
