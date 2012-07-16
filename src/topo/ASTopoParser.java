@@ -15,8 +15,8 @@ import decoy.DecoyAS;
  */
 public class ASTopoParser {
 
-	private static final String AS_REL_FILE = "asRelations.txt";
-	private static final String AS_IP_FILE = "test-ip.csv";
+	private static final String AS_REL_FILE = "as-rel.txt";
+	private static final String AS_IP_FILE = "ip-count.csv";
 
 	public static void main(String args[]) throws IOException {
 		/*
