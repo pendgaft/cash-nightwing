@@ -171,9 +171,10 @@ public class TrafficTest {
 		// write data to files
 		// .csv
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(filename + ".csv"));
-
+		outBuff.write("# ASN,outTraffic, inTraffic, wardenTraffic, totalTraffic\n");
+		
 		for (DecoyAS as : activeMap.values()) {
-			outBuff.write("" + as.getASN() + "," + as.getWardenTraffic() + "," + as.getTraffic() + "\n");
+			outBuff.write("" + as.getASN() + "," + as.getOutTraffic() + "," + as.getInTraffic() + "," + as.getWardenTraffic() + "," + as.getTraffic() + "\n");
 		}
 		outBuff.close();
 
@@ -203,7 +204,7 @@ public class TrafficTest {
 			}
 			if(origin.isWardenAS()){
 				for(int asn : pathASNs){
-					activeMap.get(asn).addWardenTraffic(originIPs);				
+					activeMap.get(asn).addOutTraffic(originIPs);				
 				}
 			}
 
@@ -224,7 +225,7 @@ public class TrafficTest {
 			}
 			if(dest.isWardenAS()){
 				for(int asn : pathASNs){
-					activeMap.get(asn).addWardenTraffic(destIPs);				
+					activeMap.get(asn).addInTraffic(destIPs);				
 				}
 			}
 

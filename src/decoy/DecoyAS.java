@@ -19,12 +19,16 @@ public class DecoyAS extends AS {
 	private boolean hostsDecoyRouter;
 	private long traffic; // how many times a packet has gone through this AS
 	private long wardenTraffic;
+	private long outTraffic; // traffic going out of warden AS
+	private long inTraffic; // traffic going into warden AS
 
 	public DecoyAS(int myASN) {
 		super(myASN);
 		this.hostsDecoyRouter = false;
 		this.traffic = 0;
 		this.wardenTraffic = 0;
+		this.outTraffic = 0;
+		this.inTraffic = 0;
 	}
 
 	/**
@@ -68,7 +72,18 @@ public class DecoyAS extends AS {
 	public void addWardenTraffic(int numIPs) {
 		wardenTraffic += numIPs;
 	}
-
+	
+	// TODO: make in/out work with even weighted ASes
+	public void addOutTraffic(int numIPs) {
+		outTraffic += numIPs;
+		wardenTraffic += numIPs;
+	}
+	
+	public void addInTraffic(int numIPs) {
+		inTraffic += numIPs;
+		wardenTraffic += numIPs;
+	}
+	
 	/**
 	 * Predicate to test if this AS is currently deploying decoy routers
 	 * 
@@ -86,8 +101,18 @@ public class DecoyAS extends AS {
 		return wardenTraffic;
 	}
 	
+	public long getOutTraffic() {
+		return outTraffic;
+	}
+	
+	public long getInTraffic() {
+		return inTraffic;
+	}
+	
 	public void resetTraffic() {
 		traffic = 0;
 		wardenTraffic = 0;
+		outTraffic = 0;
+		inTraffic = 0;
 	}
 }
