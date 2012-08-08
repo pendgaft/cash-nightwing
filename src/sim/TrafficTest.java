@@ -171,7 +171,7 @@ public class TrafficTest {
 		// write data to files
 		// .csv
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(filename + ".csv"));
-		outBuff.write("# ASN,outTraffic, inTraffic, wardenTraffic, totalTraffic\n");
+		outBuff.write("# ASN, outTraffic, inTraffic, wardenTraffic, totalTraffic\n");
 		
 		for (DecoyAS as : activeMap.values()) {
 			outBuff.write("" + as.getASN() + "," + as.getOutTraffic() + "," + as.getInTraffic() + "," + as.getWardenTraffic() + "," + as.getTraffic() + "\n");
