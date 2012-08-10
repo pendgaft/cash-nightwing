@@ -28,7 +28,7 @@ public class Nightwing {
 		 */
 		int mode = 0;
 		int avoidSize = 0;
-		String country = "china";
+		String country = "test";
 		if (args[0].equalsIgnoreCase(Nightwing.FIND_STRING)) {
 			mode = Nightwing.FIND_MODE;
 			country = args[1];

@@ -11,10 +11,6 @@ import util.Stats;
 public class TrafficTest {
 	private HashMap<Integer, DecoyAS> activeMap;
 	private HashMap<Integer, DecoyAS> prunedMap;
-	DecoyAS origin;
-	DecoyAS dest;
-	int originIPs;
-	int destIPs;
 	BGPPath path;
 	int pathLength;
 	List<AS> originGates; // origin peers/providers
@@ -48,7 +44,8 @@ public class TrafficTest {
 		this.originWeighted = originWeighted;
 		this.destWeighted = destWeighted;
 
-		filename = "logs/" + country;
+		filename = "logs/" + country + "_test";
+		/*
 		if(originWeighted) {
 			filename += "_IPW";
 		} else {
@@ -59,14 +56,12 @@ public class TrafficTest {
 		} else {
 			filename += "_to_even";
 		}
-
+		*/
+		
 		// add up traffic for ASes
-		for(DecoyAS originLoop : activeMap.values()) {
-			origin = originLoop;
-			originIPs = origin.getIPCount();
+		for(DecoyAS origin : activeMap.values()) {
 			// active -> active
-			for(DecoyAS destLoop : activeMap.values()) {
-				dest = destLoop;
+			for(DecoyAS dest : activeMap.values()) {
 
 				path = origin.getPath(dest.getASN());
 
@@ -76,11 +71,10 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
-				this.addTraffic();
+				this.addTraffic(origin, dest);
 			}
 			// active -> pruned
-			for(DecoyAS destLoop : prunedMap.values()) {
-				dest = destLoop;
+			for(DecoyAS dest : prunedMap.values()) {
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -97,16 +91,13 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
-				this.addTraffic();
+				this.addTraffic(origin, dest);
 			}
 		}
 
-		for(DecoyAS originLoop : prunedMap.values()) {
-			origin = originLoop;
-			originIPs = origin.getIPCount();
+		for(DecoyAS origin : prunedMap.values()) {
 			// pruned -> active
-			for(DecoyAS destLoop : activeMap.values()) {
-				dest = destLoop;
+			for(DecoyAS dest : activeMap.values()) {
 
 				originGates = new LinkedList<AS>();
 				for(AS as : origin.getProviders()) {
@@ -143,11 +134,10 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
-				this.addTraffic();
+				this.addTraffic(origin, dest);
 			}
 			// pruned -> pruned
-			for(DecoyAS destLoop : prunedMap.values()) {
-				dest = destLoop;
+			for(DecoyAS dest : prunedMap.values()) {
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -164,7 +154,7 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
-				this.addTraffic();
+				this.addTraffic(origin, dest);
 			}
 		}
 
@@ -193,7 +183,11 @@ public class TrafficTest {
 		Stats.printCDF(values, filename + "_wardenCDF.csv");
 	}
 
-	public void addTraffic() {
+	public void addTraffic(DecoyAS origin, DecoyAS dest) {
+		int originIPs = origin.getIPCount();
+		int destIPs = dest.getIPCount();
+		
+		
 		if(origin.equals(dest)) {
 			return;
 		}
@@ -220,12 +214,15 @@ public class TrafficTest {
 		}
 
 		if(destWeighted) {
+			System.out.println("1");
 			for(int asn : pathASNs){
 				activeMap.get(asn).addTraffic(destIPs);				
 			}
 			if(dest.isWardenAS()){
+				System.out.println("3");
 				for(int asn : pathASNs){
-					activeMap.get(asn).addInTraffic(destIPs);				
+					activeMap.get(asn).addInTraffic(destIPs);		
+					System.out.println("2");
 				}
 			}
 
