@@ -554,5 +554,12 @@ public abstract class AS {
 		}
 		return false;
 	}
-
+	
+	public void printRib() {
+		System.out.println("AS " + asn + ":");
+		System.out.println("locRib: " + locRib);
+		System.out.println("inRib: " + inRib);
+		System.out.println("adjInRib: " + adjInRib);
+		System.out.println("adjOutRib: " + adjOutRib);
+	}
 }

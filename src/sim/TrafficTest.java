@@ -56,25 +56,38 @@ public class TrafficTest {
 		} else {
 			filename += "_to_even";
 		}
-		*/
-		
+		 */
+
+		//print Ribs
+		System.out.println("*** Active AS RIBs ***");
+		for(AS as : activeMap.values()) {
+			as.printRib();
+		}
+		System.out.println("*** Pruned AS RIBs ***");
+		for(AS as : prunedMap.values()) {
+			as.printRib();
+		}
 		// add up traffic for ASes
 		for(DecoyAS origin : activeMap.values()) {
+			System.out.println("ORIGIN(active): " + origin.getASN());
 			// active -> active
 			for(DecoyAS dest : activeMap.values()) {
-
+				System.out.println("DEST(active): " + dest.getASN());
 				path = origin.getPath(dest.getASN());
 
 				if(path == null) {
+					System.out.println("No path from " + origin.getASN() + " to " + dest.getASN());
 					continue;
 				} else {
 					pathASNs = path.getPath();
 				}
 
+				this.printInfo(origin, dest, pathASNs);
 				this.addTraffic(origin, dest);
 			}
 			// active -> pruned
 			for(DecoyAS dest : prunedMap.values()) {
+				System.out.println("DEST(pruned): " + dest.getASN());
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -91,14 +104,16 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
+				this.printInfo(origin, dest, pathASNs);
 				this.addTraffic(origin, dest);
 			}
 		}
 
 		for(DecoyAS origin : prunedMap.values()) {
+			System.out.println("ORIGIN (pruned): " + origin.getASN());
 			// pruned -> active
 			for(DecoyAS dest : activeMap.values()) {
-
+				System.out.println("DEST(active): " + dest.getASN());
 				originGates = new LinkedList<AS>();
 				for(AS as : origin.getProviders()) {
 					originGates.add(as);
@@ -129,15 +144,19 @@ public class TrafficTest {
 				}
 
 				if(path == null) {
+					// debug stuff
+					System.out.println("No path from " + origin.getASN() + " to " + dest.getASN());
 					continue;
 				} else {
 					pathASNs = path.getPath();
 				}
 
+				this.printInfo(origin, dest, pathASNs);
 				this.addTraffic(origin, dest);
 			}
 			// pruned -> pruned
 			for(DecoyAS dest : prunedMap.values()) {
+				System.out.println("DEST (pruned): " + dest.getASN());
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -154,6 +173,7 @@ public class TrafficTest {
 					pathASNs = path.getPath();
 				}
 
+				this.printInfo(origin, dest, pathASNs);
 				this.addTraffic(origin, dest);
 			}
 		}
@@ -162,7 +182,7 @@ public class TrafficTest {
 		// .csv
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(filename + ".csv"));
 		outBuff.write("# ASN, outTraffic, inTraffic, wardenTraffic, totalTraffic\n");
-		
+
 		for (DecoyAS as : activeMap.values()) {
 			outBuff.write("" + as.getASN() + "," + as.getOutTraffic() + "," + as.getInTraffic() + "," + as.getWardenTraffic() + "," + as.getTraffic() + "\n");
 		}
@@ -186,8 +206,8 @@ public class TrafficTest {
 	public void addTraffic(DecoyAS origin, DecoyAS dest) {
 		int originIPs = origin.getIPCount();
 		int destIPs = dest.getIPCount();
-		
-		
+
+
 		if(origin.equals(dest)) {
 			return;
 		}
@@ -214,7 +234,6 @@ public class TrafficTest {
 		}
 
 		if(destWeighted) {
-			System.out.println("1");
 			for(int asn : pathASNs){
 				activeMap.get(asn).addTraffic(destIPs);				
 			}
@@ -236,5 +255,13 @@ public class TrafficTest {
 				}
 			}
 		}
+	}
+
+	//prints out info for debugging
+	public void printInfo(DecoyAS origin, DecoyAS dest, List<Integer> pathASNs) { 
+		//System.out.println("=====================");
+		System.out.println("Origin: " + origin.getASN());
+		System.out.println("Dest: " + dest.getASN());
+		System.out.println("PathASNs: " + pathASNs);
 	}
 }

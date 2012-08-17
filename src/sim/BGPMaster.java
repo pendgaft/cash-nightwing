@@ -21,35 +21,28 @@ public class BGPMaster {
 	private static final int WORK_BLOCK_SIZE = 40;
 
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String countryFile) throws IOException {
+	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(
+			int chinaAvoidanceSize, String countryFile) throws IOException {
 
 		/*
 		 * Build AS map
 		 */
-		System.out.println("1");
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(countryFile);
-		System.out.println("1");
-		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser
+				.doNetworkBuild(countryFile);
+		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser
+				.doNetworkPrune(usefulASMap);
 
 		/*
 		 * If we're doing active return path avoidance, setup here
 		 */
 		LargeASDecoyPlacer deployer = new LargeASDecoyPlacer(usefulASMap);
 		Set<Integer> avoidSet = deployer.seedNLargest(chinaAvoidanceSize);
-
-		System.out.println("1");
+		
 		/*
 		 * Give everyone their self network
 		 */
 		for (AS tAS : usefulASMap.values()) {
-			if (tAS.isWardenAS()) {
-				BGPPath tempPath = new BGPPath(tAS.getASN());
-				for(int tAvoid: avoidSet){
-					tempPath.prependASToPath(tAvoid);
-				}
-			} else {
-				tAS.advPath(new BGPPath(tAS.getASN()));
-			}
+			tAS.advPath(new BGPPath(tAS.getASN()));
 		}
 
 		/*
@@ -145,18 +138,19 @@ public class BGPMaster {
 			/*
 			 * A tiny bit of logging
 			 */
-			//			stepCounter++;
-			//			if (stepCounter % 1000 == 0) {
-			//				System.out.println("" + (stepCounter / 1000) + " (1k msgs)");
-			//			}
+			// stepCounter++;
+			// if (stepCounter % 1000 == 0) {
+			// System.out.println("" + (stepCounter / 1000) + " (1k msgs)");
+			// }
 		}
 
 		bgpStartTime = System.currentTimeMillis() - bgpStartTime;
-		System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
+		System.out.println("BGP done, this took: " + (bgpStartTime / 60000)
+				+ " minutes.");
 
 		BGPMaster.verifyConnected(usefulASMap);
 
-		//self.tellDone();
+		// self.tellDone();
 		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
 		retArray[0] = usefulASMap;
 		retArray[1] = prunedASMap;
@@ -212,12 +206,13 @@ public class BGPMaster {
 
 		startTime = System.currentTimeMillis() - startTime;
 		System.out.println("Verification done in: " + startTime);
-		System.out.println("Paths exist for " + workingPaths + " of " + examinedPaths + " possible ("
+		System.out.println("Paths exist for " + workingPaths + " of "
+				+ examinedPaths + " possible ("
 				+ (workingPaths / examinedPaths * 100.0) + "%)");
 	}
 
-	//	private void tellDone() {
-	//		this.workSem.notifyAll();
-	//	}
+	// private void tellDone() {
+	// this.workSem.notifyAll();
+	// }
 
 }
