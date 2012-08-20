@@ -19,6 +19,7 @@ public class TrafficTest {
 	List<Integer> pathASNs;
 	boolean originWeighted;
 	boolean destWeighted;
+	boolean logging;
 	String filename;
 	/**
 	 * 
@@ -40,11 +41,12 @@ public class TrafficTest {
 		this.prunedMap = prunedMap;
 	}
 
-	public void runTests(String country, boolean originWeighted, boolean destWeighted) throws IOException {
+	public void runTests(String country, boolean originWeighted, boolean destWeighted, boolean logging) throws IOException {
 		this.originWeighted = originWeighted;
 		this.destWeighted = destWeighted;
+		this.logging = logging;
 
-		filename = "logs/" + country + "_test";
+		filename = "logs/" + country + "_ioTraffic";
 		/*
 		if(originWeighted) {
 			filename += "_IPW";
@@ -58,21 +60,18 @@ public class TrafficTest {
 		}
 		 */
 
-		//print Ribs
-		System.out.println("*** Active AS RIBs ***");
-		for(AS as : activeMap.values()) {
-			as.printRib();
-		}
-		System.out.println("*** Pruned AS RIBs ***");
-		for(AS as : prunedMap.values()) {
-			as.printRib();
+		if(logging) {
+			//print Ribs
+			
 		}
 		// add up traffic for ASes
 		for(DecoyAS origin : activeMap.values()) {
-			System.out.println("ORIGIN(active): " + origin.getASN());
+			if(logging) System.out.println("ORIGIN(active): " + origin.getASN());
+			
 			// active -> active
 			for(DecoyAS dest : activeMap.values()) {
-				System.out.println("DEST(active): " + dest.getASN());
+				if(logging) System.out.println("DEST(active): " + dest.getASN());
+				
 				path = origin.getPath(dest.getASN());
 
 				if(path == null) {
@@ -87,7 +86,8 @@ public class TrafficTest {
 			}
 			// active -> pruned
 			for(DecoyAS dest : prunedMap.values()) {
-				System.out.println("DEST(pruned): " + dest.getASN());
+				if(logging) System.out.println("DEST(pruned): " + dest.getASN());
+				
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -110,10 +110,12 @@ public class TrafficTest {
 		}
 
 		for(DecoyAS origin : prunedMap.values()) {
-			System.out.println("ORIGIN (pruned): " + origin.getASN());
+			if(logging) System.out.println("ORIGIN (pruned): " + origin.getASN());
+			
 			// pruned -> active
 			for(DecoyAS dest : activeMap.values()) {
-				System.out.println("DEST(active): " + dest.getASN());
+				if(logging) System.out.println("DEST(active): " + dest.getASN());
+				
 				originGates = new LinkedList<AS>();
 				for(AS as : origin.getProviders()) {
 					originGates.add(as);
@@ -145,7 +147,7 @@ public class TrafficTest {
 
 				if(path == null) {
 					// debug stuff
-					System.out.println("No path from " + origin.getASN() + " to " + dest.getASN());
+					if (logging) System.out.println("No path from " + origin.getASN() + " to " + dest.getASN());
 					continue;
 				} else {
 					pathASNs = path.getPath();
@@ -156,7 +158,8 @@ public class TrafficTest {
 			}
 			// pruned -> pruned
 			for(DecoyAS dest : prunedMap.values()) {
-				System.out.println("DEST (pruned): " + dest.getASN());
+				if(logging) System.out.println("DEST (pruned): " + dest.getASN());
+				
 				destGates = new LinkedList<Integer>();
 				for(AS as : dest.getProviders()) {
 					destGates.add(as.getASN());
@@ -238,10 +241,8 @@ public class TrafficTest {
 				activeMap.get(asn).addTraffic(destIPs);				
 			}
 			if(dest.isWardenAS()){
-				System.out.println("3");
 				for(int asn : pathASNs){
-					activeMap.get(asn).addInTraffic(destIPs);		
-					System.out.println("2");
+					activeMap.get(asn).addInTraffic(destIPs);
 				}
 			}
 
@@ -259,9 +260,25 @@ public class TrafficTest {
 
 	//prints out info for debugging
 	public void printInfo(DecoyAS origin, DecoyAS dest, List<Integer> pathASNs) { 
+		if (!logging) return;
+		
 		//System.out.println("=====================");
 		System.out.println("Origin: " + origin.getASN());
 		System.out.println("Dest: " + dest.getASN());
 		System.out.println("PathASNs: " + pathASNs);
+	}
+	
+	// outputs all ASes RIBs for debugging
+	public void printRIBs() {
+		if (!logging) return;
+		
+		System.out.println("*** Active AS RIBs ***");
+		for(AS as : activeMap.values()) {
+			as.printRib();
+		}
+		System.out.println("*** Pruned AS RIBs ***");
+		for(AS as : prunedMap.values()) {
+			as.printRib();
+		}
 	}
 }

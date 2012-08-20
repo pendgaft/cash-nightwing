@@ -81,7 +81,7 @@ public class Nightwing {
 			simDriver.runTests(country);
 		} else if (mode == Nightwing.ECON_MODE) {
 			TrafficTest simDriver = new TrafficTest(liveTopo, prunedTopo);
-			simDriver.runTests(country, true, true);
+			simDriver.runTests(country, true, true, false);
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);

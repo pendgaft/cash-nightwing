@@ -77,13 +77,13 @@ public class DecoyAS extends AS {
 	public void addOutTraffic(int numIPs) {
 		outTraffic += numIPs;
 		wardenTraffic += numIPs;
-		System.out.println("OutTraffic:["+ this.getASN() + "," + numIPs + "]");
+		//System.out.println("OutTraffic:["+ this.getASN() + "," + numIPs + "]");
 	}
 	
 	public void addInTraffic(int numIPs) {
 		inTraffic += numIPs;
 		wardenTraffic += numIPs;
-		System.out.println("InTraffic:["+ this.getASN() + "," + numIPs + "]");
+		//System.out.println("InTraffic:["+ this.getASN() + "," + numIPs + "]");
 	}
 	
 	/**
