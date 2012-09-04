@@ -11,6 +11,7 @@ import topo.AS;
  * @author pendgaft
  * 
  */
+//FIXME - MJS - ADD DOCUMENTATION FOR YOUR FUNCTIONS!
 public class DecoyAS extends AS {
 
 	/**
@@ -61,6 +62,7 @@ public class DecoyAS extends AS {
 		traffic++;
 	}
 	
+	//FIXME - MJS - fix all of these to either use doubles or longs
 	public void addTraffic(int numIPs) {
 		traffic += numIPs;
 	}
@@ -69,6 +71,7 @@ public class DecoyAS extends AS {
 		wardenTraffic++;
 	}
 	
+	//FIXME - MJS - why no diff between in and out warden traffic?
 	public void addWardenTraffic(int numIPs) {
 		wardenTraffic += numIPs;
 	}
@@ -76,12 +79,14 @@ public class DecoyAS extends AS {
 	// TODO: make in/out work with even weighted ASes
 	public void addOutTraffic(int numIPs) {
 		outTraffic += numIPs;
+		//FIXME - MJS - why is this adding warden traffic?
 		wardenTraffic += numIPs;
 		//System.out.println("OutTraffic:["+ this.getASN() + "," + numIPs + "]");
 	}
 	
 	public void addInTraffic(int numIPs) {
 		inTraffic += numIPs;
+		//FIXME - MJS - again, why warden traffic
 		wardenTraffic += numIPs;
 		//System.out.println("InTraffic:["+ this.getASN() + "," + numIPs + "]");
 	}

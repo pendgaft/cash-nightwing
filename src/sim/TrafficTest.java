@@ -9,6 +9,9 @@ import topo.BGPPath;
 import util.Stats;
 
 public class TrafficTest {
+	
+	
+	//FIXME - MJS - make class vars private always 
 	private HashMap<Integer, DecoyAS> activeMap;
 	private HashMap<Integer, DecoyAS> prunedMap;
 	BGPPath path;
@@ -206,6 +209,9 @@ public class TrafficTest {
 		Stats.printCDF(values, filename + "_wardenCDF.csv");
 	}
 
+	//FIXME - MJS - make private
+	//FIXME - MJS - document if/else switches
+	//FIXME - MJS - honestly, just remove the code for non-weighted destinations
 	public void addTraffic(DecoyAS origin, DecoyAS dest) {
 		int originIPs = origin.getIPCount();
 		int destIPs = dest.getIPCount();
@@ -215,6 +221,11 @@ public class TrafficTest {
 			return;
 		}
 
+		//FIXME - MJS - this is incorrect there should be 4 cases, both origin and dest weighted,
+		//one or the other, and lastly neither.  In the first case you need to take into account both
+		//so it should be something along the lines of originIPs * destIPs.  (You can normalize it differently
+		//if you wanted to, or stick to using large whole numbers
+		//FIXME - MJS - but as I just added, honestly, limit this down to one case, both origin and dest weighted
 		if(originWeighted) {
 			for(int asn : pathASNs){
 				activeMap.get(asn).addTraffic(originIPs);				
