@@ -39,6 +39,7 @@ public class ASTopoParser {
 		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(ASTopoParser.AS_REL_FILE, wardenFile);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap);
+
 		return asMap;
 	}
 
@@ -70,12 +71,15 @@ public class ASTopoParser {
 	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile) throws IOException {
 
 		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
+
 		String pollString;
 		StringTokenizer pollToks;
 		int lhsASN, rhsASN, rel;
+
 		BufferedReader fBuff = new BufferedReader(new FileReader(asRelFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
+
 			/*
 			 * ignore blanks
 			 */
@@ -111,6 +115,7 @@ public class ASTopoParser {
 			retMap.get(lhsASN).addRelation(retMap.get(rhsASN), rel);
 		}
 		fBuff.close();
+
 		/*
 		 * read the warden AS file, toggle all warden ASes
 		 */

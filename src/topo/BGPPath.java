@@ -148,7 +148,7 @@ public class BGPPath {
 	}
 
 	public String toString() {
-		String base = "dest: " + this.destASN + " path:";
+		String base = "dst: " + this.destASN + " path:";
 		for (int tAS : this.path) {
 			base = base + " " + tAS;
 		}

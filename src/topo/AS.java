@@ -430,7 +430,6 @@ public abstract class AS {
 	public BGPPath getPathToPurged(List<Integer> hookASNs) {
 		List<BGPPath> listPossPaths = new LinkedList<BGPPath>();
 		for (Integer tHook : hookASNs) {
-			if(this.getPath(tHook) == null) continue;
 			listPossPaths.add(this.getPath(tHook));
 		}
 		return this.pathSelection(listPossPaths);
@@ -554,12 +553,5 @@ public abstract class AS {
 		}
 		return false;
 	}
-	
-	public void printRib() {
-		System.out.println("AS " + asn + ":");
-		System.out.println("locRib: " + locRib);
-		System.out.println("inRib: " + inRib);
-		System.out.println("adjInRib: " + adjInRib);
-		System.out.println("adjOutRib: " + adjOutRib);
-	}
+
 }

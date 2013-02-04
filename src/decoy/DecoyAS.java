@@ -1,6 +1,5 @@
 package decoy;
 
-import sim.Nightwing;
 import topo.AS;
 
 /**
@@ -11,25 +10,16 @@ import topo.AS;
  * @author pendgaft
  * 
  */
-//FIXME - MJS - ADD DOCUMENTATION FOR YOUR FUNCTIONS!
 public class DecoyAS extends AS {
 
 	/**
 	 * Flag for the AS deploying decoy routers
 	 */
 	private boolean hostsDecoyRouter;
-	private long traffic; // how many times a packet has gone through this AS
-	private long wardenTraffic;
-	private long outTraffic; // traffic going out of warden AS
-	private long inTraffic; // traffic going into warden AS
 
 	public DecoyAS(int myASN) {
 		super(myASN);
 		this.hostsDecoyRouter = false;
-		this.traffic = 0;
-		this.wardenTraffic = 0;
-		this.outTraffic = 0;
-		this.inTraffic = 0;
 	}
 
 	/**
@@ -54,43 +44,7 @@ public class DecoyAS extends AS {
 	public void resetDecoyRouter() {
 		this.hostsDecoyRouter = false;
 	}
-	
-	/**
-	 * Function that increments the traffic variable
-	 */
-	public void addTraffic() {
-		traffic++;
-	}
-	
-	//FIXME - MJS - fix all of these to either use doubles or longs
-	public void addTraffic(int numIPs) {
-		traffic += numIPs;
-	}
-	
-	public void addWardenTraffic(){
-		wardenTraffic++;
-	}
-	
-	//FIXME - MJS - why no diff between in and out warden traffic?
-	public void addWardenTraffic(int numIPs) {
-		wardenTraffic += numIPs;
-	}
-	
-	// TODO: make in/out work with even weighted ASes
-	public void addOutTraffic(int numIPs) {
-		outTraffic += numIPs;
-		//FIXME - MJS - why is this adding warden traffic?
-		wardenTraffic += numIPs;
-		//System.out.println("OutTraffic:["+ this.getASN() + "," + numIPs + "]");
-	}
-	
-	public void addInTraffic(int numIPs) {
-		inTraffic += numIPs;
-		//FIXME - MJS - again, why warden traffic
-		wardenTraffic += numIPs;
-		//System.out.println("InTraffic:["+ this.getASN() + "," + numIPs + "]");
-	}
-	
+
 	/**
 	 * Predicate to test if this AS is currently deploying decoy routers
 	 * 
@@ -99,27 +53,5 @@ public class DecoyAS extends AS {
 	public boolean isDecoy() {
 		return this.hostsDecoyRouter;
 	}
-	
-	public long getTraffic(){
-		return traffic;
-	}
-	
-	public long getWardenTraffic() {
-		return wardenTraffic;
-	}
-	
-	public long getOutTraffic() {
-		return outTraffic;
-	}
-	
-	public long getInTraffic() {
-		return inTraffic;
-	}
-	
-	public void resetTraffic() {
-		traffic = 0;
-		wardenTraffic = 0;
-		outTraffic = 0;
-		inTraffic = 0;
-	}
+
 }

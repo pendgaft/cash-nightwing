@@ -265,7 +265,7 @@ public class Rings implements Seeder {
 	}
 
 	/**
-	 * Computes the number of ASes that are NOT behind each ring, in other words,
+	 * Computes the number of ASes that are NOT behind each ring, in otherwords,
 	 * if the ring refused the warden service, this finds the ASes that WOULD
 	 * still be reachable. This result is written to a file. This is reported as
 	 * a fraction all ASes that are NOT the warden or in a given ring that are
@@ -277,7 +277,7 @@ public class Rings implements Seeder {
 	 *            - the name of the country file used for the warden, used to
 	 *            name the output file
 	 * @throws IOException
-	 *             - if there is an issue writing the output
+	 *             - if there is an issue writting the output
 	 */
 	private void computeOutOfShadowSizes(HashMap<Integer, HashSet<AS>> rings,
 			String country) throws IOException {

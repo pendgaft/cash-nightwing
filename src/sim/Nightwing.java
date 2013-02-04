@@ -18,8 +18,6 @@ public class Nightwing {
 	private static final int ACTIVE_MODE = 4;
 	private static final String RING_STRING = "ring";
 	private static final int RING_MODE = 5;
-	private static final String ECON_STRING = "econ";
-	private static final int ECON_MODE = 6;
 
 	public static void main(String[] args) throws IOException {
 
@@ -41,8 +39,6 @@ public class Nightwing {
 			avoidSize = Integer.parseInt(args[1]);
 		} else if (args[0].equalsIgnoreCase(Nightwing.RING_STRING)) {
 			mode = Nightwing.RING_MODE;
-		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_STRING)) {
-			mode = Nightwing.ECON_MODE;
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);
@@ -79,9 +75,6 @@ public class Nightwing {
 		} else if (mode == Nightwing.RING_MODE) {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(country);
-		} else if (mode == Nightwing.ECON_MODE) {
-			TrafficTest simDriver = new TrafficTest(liveTopo, prunedTopo);
-			simDriver.runTests(country, true, true, false);
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
