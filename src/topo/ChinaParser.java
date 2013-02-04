@@ -8,7 +8,7 @@ public class ChinaParser {
 	public static void main(String[] args) throws IOException {
 
 		BufferedReader inBuff = new BufferedReader(new FileReader("rawCountryData.xml"));
-		BufferedWriter outBuff = new BufferedWriter(new FileWriter("syria-as.txt"));
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter("china-as.txt"));
 		Pattern asnPattern = Pattern.compile("<asn>(\\d++)</asn>");
 
 		boolean readRegion = false;
@@ -25,7 +25,7 @@ public class ChinaParser {
 				}
 				
 			} else if (pollString
-					.contains("<country country_code=\"SY\" country_name=\"Syrian Arab Republic\" country_code_is_region=\"0\">")) {
+					.contains("<country country_code=\"CN\" country_name=\"China\" country_code_is_region=\"0\">")) {
 				readRegion = true;
 			}
 
