@@ -3,6 +3,8 @@ package sim;
 import java.util.*;
 import java.io.*;
 
+
+import topo.AS;
 import decoy.DecoyAS;
 import decoy.Rings;
 
@@ -18,9 +20,12 @@ public class Nightwing {
 	private static final int ACTIVE_MODE = 4;
 	private static final String RING_STRING = "ring";
 	private static final int RING_MODE = 5;
+	private static final int TRAFFICSTAT1_MODE = 6;
+	private static final String TRAFFICSTAT1_STRING = "trafficStat1"; 
 
 	public static void main(String[] args) throws IOException {
-
+		System.out.println(args[0]);
+		System.out.println(args[1]);
 		/*
 		 * Figure out mode that we're running
 		 */
@@ -39,6 +44,8 @@ public class Nightwing {
 			avoidSize = Integer.parseInt(args[1]);
 		} else if (args[0].equalsIgnoreCase(Nightwing.RING_STRING)) {
 			mode = Nightwing.RING_MODE;
+		} else if (args[0].equalsIgnoreCase(Nightwing.TRAFFICSTAT1_STRING)) {
+			mode = Nightwing.TRAFFICSTAT1_MODE;
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);
@@ -49,12 +56,24 @@ public class Nightwing {
 		HashMap<Integer, DecoyAS> liveTopo = topoArray[0];
 		HashMap<Integer, DecoyAS> prunedTopo = topoArray[1];
 		System.out.println("Topo built and BGP converged.");
-			
+		
 		/*
 		 * Run the correct mode
 		 */
 		if (mode == Nightwing.FIND_MODE) {
 			FindSim simDriver = new FindSim(liveTopo, prunedTopo);
+			
+			// Print checking
+			/*System.out.println("liveTopo:");
+			for (AS tAS : liveTopo.values() ){
+				System.out.println(tAS.getASN());
+			}
+			System.out.println("prunedTopo:");
+			for (AS tAS : prunedTopo.values() ){
+				System.out.println(tAS.getASN());
+			}*/
+			// done
+			
             simDriver.run(country + "-decoy-hunt-random.csv");
             simDriver.runLargeASOnlyTests(true, country + "-decoy-hunt-single.csv");
             simDriver.runLargeASOnlyTests(false, country + "-decoy-hunt-nlargest.csv");
@@ -75,6 +94,9 @@ public class Nightwing {
 		} else if (mode == Nightwing.RING_MODE) {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(country);
+		} else if (mode == Nightwing.TRAFFICSTAT1_MODE) {
+			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo);
+			stat.runStat();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
