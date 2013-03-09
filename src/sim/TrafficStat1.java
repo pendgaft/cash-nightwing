@@ -83,16 +83,26 @@ public class TrafficStat1 {
 		
 		Collections.sort(countTraffic);
 		
-		int cnt = 0;
+		int i, ptr, cnt = 0;
 		int maxVal = countTraffic.get(totsize-1);
 		statResult = new ArrayList<Double>(maxVal+1);
+		/* ASN starts with 1 */
 		countTraffic.remove(0);
 		--totsize;
 
 		/* just use an inefficient way.. */
-		for (int i = 0; i <= maxVal; ++i) {
+		/*for (int i = 0; i <= maxVal; ++i) {
 			for (int j = 0; j < totsize; ++j)
 				if (countTraffic.get(j) == i) ++cnt;
+			statResult.add(cnt*1.0 / totsize);
+		}*/
+		
+		/* a more efficient way */
+		for (i = 0, ptr = 0; i <= maxVal; ++i) {
+			while (ptr < totsize && countTraffic.get(ptr) <= i) {
+				if (countTraffic.get(ptr) == i) ++cnt;
+				++ptr;
+			}
 			statResult.add(cnt*1.0 / totsize);
 		}
 	}
