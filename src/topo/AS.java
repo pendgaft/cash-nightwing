@@ -21,10 +21,10 @@ public abstract class AS {
 	private Set<AS> providers;
 	private int numberOfIPs;
 
-	private HashMap<Integer, List<BGPPath>> adjInRib;
-	private HashMap<Integer, List<BGPPath>> inRib;
-	private HashMap<Integer, Set<AS>> adjOutRib;
-	private HashMap<Integer, BGPPath> locRib;
+	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
+	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
+	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
+	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
 
 	private Queue<BGPUpdate> incUpdateQueue;
@@ -301,7 +301,7 @@ public abstract class AS {
 	 *            - the possible valid routes
 	 * @return - the "best" of the valid routes by usual BGP metrics
 	 */
-	private BGPPath pathSelection(List<BGPPath> possList) {
+	public BGPPath pathSelection(List<BGPPath> possList) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
 		for (BGPPath tPath : possList) {
@@ -380,6 +380,7 @@ public abstract class AS {
 	 * @return - a constant matching the relationship
 	 */
 	private int getRel(int asn) {
+		//System.out.println("inGetRel from " + this.asn + " to " + asn);
 		for (AS tAS : this.providers) {
 			if (tAS.getASN() == asn) {
 				return -1;
@@ -555,3 +556,4 @@ public abstract class AS {
 	}
 
 }
+
