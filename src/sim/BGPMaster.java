@@ -44,6 +44,7 @@ public class BGPMaster {
 				for(int tAvoid: avoidSet){
 					tempPath.prependASToPath(tAvoid);
 				}
+				tAS.advPath(tempPath);
 			} else {
 				tAS.advPath(new BGPPath(tAS.getASN()));
 			}
