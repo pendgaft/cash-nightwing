@@ -33,14 +33,20 @@ public class TrafficStat1 {
 	/** stores the traffic on each AS in the map */
 	private HashMap<Integer, Double> countTraffic;
 
+	/** stores the traffic of each AS sent from/to the warden ASes */
+	private HashMap<Integer, Double> trafficFromWarden;
+	private HashMap<Integer, Double> trafficToWarden;
+	
 	/**
 	 * store the paths of one purged node from different providers to the same
 	 * destiny in a list
 	 */
 	private HashMap<Integer, List<BGPPath>> pathSets;
-	private String outputFileName1 = "stats1";
-	private String outputFileName2 = "stats2";
-	private String outputFileName3 = "stats3";
+	private String ptpNetworkFile = "ptpNetwork";
+	private String stpNetworkFile = "stpNetwork";
+	private String wholeNetworkFile = "wholeNetwork";
+	private String fromWardenFile = "fromWarden";
+	private String toWardenFile = "toWarden";
 
 	public TrafficStat1(HashMap<Integer, DecoyAS> activeMap,
 			HashMap<Integer, DecoyAS> purgedMap) {
@@ -49,6 +55,8 @@ public class TrafficStat1 {
 		this.activeMap = activeMap;
 		this.purgedMap = purgedMap;
 		countTraffic = new HashMap<Integer, Double>();
+		trafficFromWarden = new HashMap<Integer, Double>();
+		trafficToWarden = new HashMap<Integer, Double>();
 		pathSets = new HashMap<Integer, List<BGPPath>>();
 	}
 
@@ -74,15 +82,58 @@ public class TrafficStat1 {
 	}
 
 	/**
-	 * add the traffic unit to all the nodes on the given path
-	 * 
+	 * the lowest-level operation to stat the traffic sent from/to
+	 * a warden AS. If src is a warden, add from-wardon traffic of tHop,
+	 * if tHop is a wardon, add to-wardon traffic of src.
+	 * @param tHop
+	 * @param amount
+	 * @param src
+	 */
+	public void addWardenTraffic(int tHop, double amount, int src) {
+
+		 /* initialize the ASes */
+		DecoyAS srcAS = null, destAS = null;
+		if (this.activeMap.containsKey(src)) {
+			srcAS = this.activeMap.get(src);
+		} else if (this.purgedMap.containsKey(src)) {
+			srcAS = this.purgedMap.get(src);
+		} else {
+			// not possible actually..
+		}
+		if (this.activeMap.containsKey(tHop)) {
+			destAS = this.activeMap.get(tHop);
+		} else if (this.purgedMap.containsKey(tHop)) {
+			destAS = this.purgedMap.get(tHop);
+		} else {
+			// not possible actually..
+		}
+		/* for each AS on the path, add its from-warden traffic if src is warden */
+		if (srcAS.isWardenAS()) {
+			if (trafficFromWarden.containsKey(tHop))
+				trafficFromWarden.put(tHop, trafficFromWarden.get(tHop) + amount);
+			else
+				trafficFromWarden.put(tHop, amount);
+		}
+		/* for the src AS, add its to-warden traffic if thop is warden */
+		if (destAS.isWardenAS()) {
+			if (trafficToWarden.containsKey(src))
+				trafficToWarden.put(src, trafficToWarden.get(srcAS) + amount);
+			else
+				trafficToWarden.put(src, amount);
+		}
+	}
+	
+	/**
+	 * add the weighted traffic to all ASes on the given path
+	 * and stat the warden traffic at the same time
 	 * @param path
 	 *            the path to add traffic unit
 	 */
-	public void addTrafficOnThePath(BGPPath path, double amount) {
+	public void addTrafficOnThePath(BGPPath path, double amount, int src) {
 		for (int tHop : path.getPath()) {
 			System.out.print(" to " + tHop);// !!
 			addWeightedTraffic(tHop, amount);
+			addWardenTraffic(tHop, amount, src);
 		}
 		System.out.println();// !!
 	}
@@ -127,6 +178,7 @@ public class TrafficStat1 {
 	 * the traffic of all the paths starting from the given AS in activeMap to
 	 * all ASes in the activeMap
 	 * 
+	 * also stat the from/to-warden traffic at the same time
 	 * @param tAS
 	 *            the AS to start from
 	 */
@@ -140,7 +192,7 @@ public class TrafficStat1 {
 			
 			/* if the path exists, do the statistic */
 			double amount = tAS.getIPCount();
-			addTrafficOnThePath(tpath, amount);
+			addTrafficOnThePath(tpath, amount, tAS.getASN());
 		}
 	}
 
@@ -149,6 +201,7 @@ public class TrafficStat1 {
 	 * activeMap to all ASes in the purgedMap To get to the purged ASes, get all
 	 * the providers of that ASes, and getPathToPurged will pick a best path.
 	 * 
+	 * also stat the from/to-warden traffic at the same time
 	 * @param tAS
 	 *            the AS to start from
 	 */
@@ -161,9 +214,10 @@ public class TrafficStat1 {
 				continue;
 
 			double amount = tAS.getIPCount();
-			addTrafficOnThePath(tpath, amount);
-			/* add the traffic unit to the last node */
+			addTrafficOnThePath(tpath, amount, tAS.getASN());
+			/* add the traffic unit to the last AS on the purged network */
 			addWeightedTraffic(purgedAS.getASN(), amount);
+			addWardenTraffic(purgedAS.getASN(), amount, tAS.getASN());
 			System.out.println(" to " + purgedAS.getASN());// !!
 		}
 	}
@@ -171,6 +225,8 @@ public class TrafficStat1 {
 	/**
 	 * count the traffic of paths starting from activeMap ending at either
 	 * activeMap or purgedMap
+	 * 
+	 * also stat the from/to-warden traffic at the same time
 	 **/
 	public void statActiveMap() {
 
@@ -235,7 +291,7 @@ public class TrafficStat1 {
 						pathSets.get(tASN));
 				/* stat the traffic on the path */
 				double amount = tAS.getIPCount();
-				addTrafficOnThePath(tpath, amount);
+				addTrafficOnThePath(tpath, amount, t1ASN);
 			}
 		}
 	}
@@ -286,8 +342,9 @@ public class TrafficStat1 {
 					continue;
 
 				double amount = t1AS.getIPCount();
-				addTrafficOnThePath(tpath, amount);
+				addTrafficOnThePath(tpath, amount, t1ASN);
 				addWeightedTraffic(t2ASN, amount);
+				addWardenTraffic(t2ASN, amount, t1ASN);
 				System.out.println(" to " + t2ASN);// !!
 			}
 		}
@@ -336,16 +393,16 @@ public class TrafficStat1 {
 	 * graph for each AS
 	 * @throws IOException
 	 */
-	public List<Double> statTrafficOnPToNetwork() throws IOException {
+	public List<Double> statTrafficOnPToPNetwork() throws IOException {
 		
 		statActiveMap();
 		statPurgedMap();
 
 		List<Double> statResult = new ArrayList<Double>(countTraffic.values());
 		System.out.println("resultList: " + statResult);
-		Stats.printCDF(statResult, outputFileName1);
+		Stats.printCDF(statResult, ptpNetworkFile);
 		System.out.println("The result of peer-to-peer traffic network CDF statistic" +
-					" is written into file: " + outputFileName1 + ".\n");
+					" is written into file: " + ptpNetworkFile + ".\n");
 		
 		return statResult;
 	}
@@ -379,10 +436,10 @@ public class TrafficStat1 {
 			double traffic = trafFromOneSuperAS * getASTrafficRatio(tAS);
 			statResult.add(traffic);
 		}
-		Stats.printCDF(statResult, outputFileName2);
+		Stats.printCDF(statResult, stpNetworkFile);
 		System.out.println("The result of the traffic from super AS to regular ASes" +
 				"CDF statistic is written into file: "
-				+ outputFileName2 + ".\n");
+				+ stpNetworkFile + ".\n");
 		
 		return statResult;
 	}
@@ -400,7 +457,7 @@ public class TrafficStat1 {
 	 * @return
 	 * @throws IOException
 	 */
-	public List<Double> statTotalTraff(List<Double> p2p, List<Double> s2p) throws IOException {
+	public List<Double> statTotalTraffic(List<Double> p2p, List<Double> s2p) throws IOException {
 		
 		List<Double> statResult = new ArrayList<Double>();
 		for (int i = 0; i < p2p.size(); ++i) {
@@ -408,21 +465,45 @@ public class TrafficStat1 {
 		}
 		
 		System.out.println("resultList: " + statResult);
-		Stats.printCDF(statResult, outputFileName3);
+		Stats.printCDF(statResult, wholeNetworkFile);
 		System.out.println("The result of total traffic flowing through each AS" +
-					" CDF statistic is written into file: "	+ outputFileName3 + ".\n");
+					" CDF statistic is written into file: "	+ wholeNetworkFile + ".\n");
 		
 		return statResult;
 	}
 	
+	/**
+	 * draw two CDF graphs for the traffic sent from/to the wardens
+	 * based on the traffic on the whole peer-to-peer network.
+	 * @throws IOException
+	 */
+	public void statFromToWardenTraffic() throws IOException {
+		
+		//statActiveMap();
+		//statPurgedMap();
+		
+		List<Double> fromWardenTrafftic = new ArrayList<Double>(trafficFromWarden.values());
+		List<Double> ToWardenTrafftic = new ArrayList<Double>(trafficToWarden.values());
+		
+		System.out.println("resultList: " + fromWardenTrafftic);
+		Stats.printCDF(fromWardenTrafftic, fromWardenFile);
+		System.out.println("The result of the traffic sent from warden CDF statistic" +
+					" is written into file: " + fromWardenFile + ".\n");
+		
+		System.out.println("resultList: " + ToWardenTrafftic);
+		Stats.printCDF(ToWardenTrafftic, toWardenFile);
+		System.out.println("The result of the traffic sent to warden CDF statistic" +
+					" is written into file: " + toWardenFile + ".\n");
+	}
+	
 	public void runStat() throws IOException {
 
-		List<Double> p2p = statTrafficOnPToNetwork();
+		List<Double> p2p = statTrafficOnPToPNetwork();
 		List<Double> s2p = statTrafficFromSuperAS();
 		
-		statTotalTraff(p2p, s2p);
+		statTotalTraffic(p2p, s2p);
+		
+		statFromToWardenTraffic();
 	}
 }
-
-// git push
 
