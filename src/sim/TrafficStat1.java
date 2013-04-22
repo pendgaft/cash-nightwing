@@ -17,6 +17,14 @@ import decoy.DecoyAS;
  */
 
 public class TrafficStat1 {
+	
+	/** the total amount of traffic on the peer-to-peer network over 
+	 * the total amount of traffic from super ASes to peer-to-peer network */
+	private static final double ratio = 0.4;
+	private static final int superASNum = 3;
+	
+	private double totalTraffic;
+	
 	/** Stores the active (routing) portion of the topology */
 	private HashMap<Integer, DecoyAS> activeMap;
 	/** Stores the pruned portion of the topology */
@@ -30,11 +38,14 @@ public class TrafficStat1 {
 	 * destiny in a list
 	 */
 	private HashMap<Integer, List<BGPPath>> pathSets;
-	private String outputFileName = "stats1";
+	private String outputFileName1 = "stats1";
+	private String outputFileName2 = "stats2";
+	private String outputFileName3 = "stats3";
 
 	public TrafficStat1(HashMap<Integer, DecoyAS> activeMap,
 			HashMap<Integer, DecoyAS> purgedMap) {
 
+		this.totalTraffic = 0;
 		this.activeMap = activeMap;
 		this.purgedMap = purgedMap;
 		countTraffic = new HashMap<Integer, Double>();
@@ -294,19 +305,124 @@ public class TrafficStat1 {
 
 	}
 
-	public void runStat() throws IOException {
-
+	/**
+	 * calculate the total amount of traffic flowing
+	 * on the peer to peer network.
+	 */
+	public void setTotalTraffic() {
+		for (double amount : countTraffic.values()) {
+			this.totalTraffic += amount;
+		}
+	}
+	
+	/**
+	 * @return the total amount of traffic flowing on the peer to peer network.
+	 */
+	public double getTotalTraffic() {
+		return this.totalTraffic;
+	}
+	
+	/**
+	 * return the ratio of a given regular AS to the total amount
+	 * of traffic flowing on the peer-to-peer network.
+	 * @return
+	 */
+	public double getASTrafficRatio(int AS) {
+		return this.countTraffic.get(AS) / this.getTotalTraffic();
+	}
+	
+	/**
+	 * calculate the traffic on peer-to-peer network, and draw the CDF
+	 * graph for each AS
+	 * @throws IOException
+	 */
+	public List<Double> statTrafficOnPToNetwork() throws IOException {
+		
 		statActiveMap();
 		statPurgedMap();
 
 		List<Double> statResult = new ArrayList<Double>(countTraffic.values());
 		System.out.println("resultList: " + statResult);
-		Stats.printCDF(statResult, outputFileName);
+		Stats.printCDF(statResult, outputFileName1);
+		System.out.println("The result of peer-to-peer traffic network CDF statistic" +
+					" is written into file: " + outputFileName1 + ".\n");
+		
+		return statResult;
+	}
+	
+	/**
+	 * calculate the amount of traffic flowing from superAS to each AS
+	 * based on the total traffic on the peer-to-peer network and the 
+	 * estimated ratio of total traffic on the peer-to-peer network and
+	 * the total amount traffic flowing from all superASes.
+	 * 
+	 *  the traffic of each super AS is equally split in this case.
+	 *  
+	 *  finally draw the CDF graph of the amount of traffic flowing from 
+	 *  one superAS to all regular ASes.
+	 *  
+	 *   the amount of traffic to each regular AS is estimated based on
+	 *   the peer-to-peer network, which is the total amount traffic of
+	 *   a super AS times the ratio of the traffic flowing over the regular 
+	 *   to the total amount of traffic on the peer-to-peer network 
+	 * @throws IOException 
+	 */
+	public List<Double> statTrafficFromSuperAS() throws IOException {
+		
+		setTotalTraffic();
+		System.out.println("tot traf on peer-to-peer network: " + getTotalTraffic());
+		
+		double superASTraf = getTotalTraffic() / TrafficStat1.ratio;
+		double trafFromOneSuperAS = superASTraf / TrafficStat1.superASNum;
+		List<Double> statResult = new ArrayList<Double>();
+		for (int tAS : this.countTraffic.keySet()) {
+			double traffic = trafFromOneSuperAS * getASTrafficRatio(tAS);
+			statResult.add(traffic);
+		}
+		Stats.printCDF(statResult, outputFileName2);
+		System.out.println("The result of the traffic from super AS to regular ASes" +
+				"CDF statistic is written into file: "
+				+ outputFileName2 + ".\n");
+		
+		return statResult;
+	}
+	
+	/**
+	 * stat the total traffic flowing through each AS which includes
+	 * the traffic of peer-to-peer network and the traffic from
+	 * super ASes. 
+	 * 
+	 * the indexes corresponding to the AS number of the two lists should be 
+	 * matched, since we are using the same hash map in the same manner, so we 
+	 * can add up the two lists directly.
+	 * @param p2p
+	 * @param s2p
+	 * @return
+	 * @throws IOException
+	 */
+	public List<Double> statTotalTraff(List<Double> p2p, List<Double> s2p) throws IOException {
+		
+		List<Double> statResult = new ArrayList<Double>();
+		for (int i = 0; i < p2p.size(); ++i) {
+			statResult.add(p2p.get(i) + s2p.get(i)*TrafficStat1.superASNum);
+		}
+		
+		System.out.println("resultList: " + statResult);
+		Stats.printCDF(statResult, outputFileName3);
+		System.out.println("The result of total traffic flowing through each AS" +
+					" CDF statistic is written into file: "	+ outputFileName3 + ".\n");
+		
+		return statResult;
+	}
+	
+	public void runStat() throws IOException {
 
-		System.out
-				.println("The result of the CDF statistic is written into file: "
-						+ outputFileName + ".");
+		List<Double> p2p = statTrafficOnPToNetwork();
+		List<Double> s2p = statTrafficFromSuperAS();
+		
+		statTotalTraff(p2p, s2p);
 	}
 }
 
 // git push
+
