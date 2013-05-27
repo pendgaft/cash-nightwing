@@ -21,20 +21,40 @@ public class BGPMaster {
 	private static final int WORK_BLOCK_SIZE = 40;
 
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String countryFile) throws IOException {
+	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String countryFile, String superASFile) throws IOException {
 
 		/*
 		 * Build AS map
 		 */
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(countryFile);
+		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(countryFile, superASFile);
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
 
 		/*
 		 * If we're doing active return path avoidance, setup here
 		 */
+		
+		// Print checking
+		/*System.out.println("ASes in useful ASMap");
+		for (AS tAS : usefulASMap.values() ){
+			System.out.println(tAS.getASN());
+		}
+		System.out.println("ASes in useful ASMap done");*/
+		// done
+		
 		LargeASDecoyPlacer deployer = new LargeASDecoyPlacer(usefulASMap);
 		Set<Integer> avoidSet = deployer.seedNLargest(chinaAvoidanceSize);
-
+		
+		// Print checking
+		System.out.println("decoy ASes:");
+		for (int tAvoid : avoidSet) {
+			System.out.println(tAvoid);
+		}
+		System.out.println("All decoy ASes");
+		if (avoidSet.isEmpty()) {
+			System.out.println("empty set");
+		}
+		// done
+		
 		/*
 		 * Give everyone their self network
 		 */
@@ -195,15 +215,20 @@ public class BGPMaster {
 
 		double examinedPaths = 0.0;
 		double workingPaths = 0.0;
+		//int cnt = 0;
 		for (DecoyAS tAS : transitAS.values()) {
 			for (DecoyAS tDest : transitAS.values()) {
+				//System.out.println(tAS.getASN() + " to " + tDest.getASN());
+				//cnt++;
 				if (tDest.getASN() == tAS.getASN()) {
 					continue;
 				}
 
 				examinedPaths++;
+				//System.out.println("examined path");
 				if (tAS.getPath(tDest.getASN()) != null) {
 					workingPaths++;
+					//System.out.println("working path");
 				}
 			}
 		}
@@ -212,6 +237,7 @@ public class BGPMaster {
 		System.out.println("Verification done in: " + startTime);
 		System.out.println("Paths exist for " + workingPaths + " of " + examinedPaths + " possible ("
 				+ (workingPaths / examinedPaths * 100.0) + "%)");
+		//System.out.println(cnt);
 	}
 
 	//	private void tellDone() {

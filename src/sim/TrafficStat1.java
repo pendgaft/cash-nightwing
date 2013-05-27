@@ -20,7 +20,7 @@ public class TrafficStat1 {
 	
 	/** the total amount of traffic on the peer-to-peer network over 
 	 * the total amount of traffic from super ASes to peer-to-peer network */
-	private static final double ratio = 0.4;
+	private static final double ratio_P2POverS2P = 0.4;
 	private static final int superASNum = 3;
 	
 	private double totalTraffic;
@@ -42,10 +42,16 @@ public class TrafficStat1 {
 	 * destiny in a list
 	 */
 	private HashMap<Integer, List<BGPPath>> pathSets;
+	
+	/** stores the CDF statistic result of peer-to-peer traffic network */
 	private String ptpNetworkFile = "ptpNetwork";
+	/** stores the CDF statistic result of the traffic from super AS to regular ASes */
 	private String stpNetworkFile = "stpNetwork";
+	/** stores the CDF statistic result of total traffic flowing through each AS */
 	private String wholeNetworkFile = "wholeNetwork";
+	/** stores the CDF statistic result of the traffic sent from warden */
 	private String fromWardenFile = "fromWarden";
+	/** stores the CDF statistic result of the traffic sent to warden */
 	private String toWardenFile = "toWarden";
 
 	public TrafficStat1(HashMap<Integer, DecoyAS> activeMap,
@@ -91,7 +97,7 @@ public class TrafficStat1 {
 	 */
 	public void addWardenTraffic(int tHop, double amount, int src) {
 
-		 /* initialize the ASes */
+		/* initialize the temporal src and dest ASes */
 		DecoyAS srcAS = null, destAS = null;
 		if (this.activeMap.containsKey(src)) {
 			srcAS = this.activeMap.get(src);
@@ -100,6 +106,7 @@ public class TrafficStat1 {
 		} else {
 			// not possible actually..
 		}
+		
 		if (this.activeMap.containsKey(tHop)) {
 			destAS = this.activeMap.get(tHop);
 		} else if (this.purgedMap.containsKey(tHop)) {
@@ -107,6 +114,7 @@ public class TrafficStat1 {
 		} else {
 			// not possible actually..
 		}
+		
 		/* for each AS on the path, add its from-warden traffic if src is warden */
 		if (srcAS.isWardenAS()) {
 			if (trafficFromWarden.containsKey(tHop))
@@ -114,7 +122,7 @@ public class TrafficStat1 {
 			else
 				trafficFromWarden.put(tHop, amount);
 		}
-		/* for the src AS, add its to-warden traffic if thop is warden */
+		/* for the src AS, add its to-warden traffic if dest is warden */
 		if (destAS.isWardenAS()) {
 			if (trafficToWarden.containsKey(src))
 				trafficToWarden.put(src, trafficToWarden.get(srcAS) + amount);
@@ -401,7 +409,7 @@ public class TrafficStat1 {
 		List<Double> statResult = new ArrayList<Double>(countTraffic.values());
 		System.out.println("resultList: " + statResult);
 		Stats.printCDF(statResult, ptpNetworkFile);
-		System.out.println("The result of peer-to-peer traffic network CDF statistic" +
+		System.out.println("The result of the peer-to-peer traffic network CDF statistic" +
 					" is written into file: " + ptpNetworkFile + ".\n");
 		
 		return statResult;
@@ -427,17 +435,33 @@ public class TrafficStat1 {
 	public List<Double> statTrafficFromSuperAS() throws IOException {
 		
 		setTotalTraffic();
-		System.out.println("tot traf on peer-to-peer network: " + getTotalTraffic());
+		System.out.println("the total traffic on peer-to-peer network: " + getTotalTraffic());
 		
-		double superASTraf = getTotalTraffic() / TrafficStat1.ratio;
+		DecoyAS tdAS = null;
+		double superASTraf = getTotalTraffic() / TrafficStat1.ratio_P2POverS2P;
 		double trafFromOneSuperAS = superASTraf / TrafficStat1.superASNum;
 		List<Double> statResult = new ArrayList<Double>();
+		
 		for (int tAS : this.countTraffic.keySet()) {
-			double traffic = trafFromOneSuperAS * getASTrafficRatio(tAS);
-			statResult.add(traffic);
+			if (this.activeMap.containsKey(tAS))
+				tdAS = this.activeMap.get(tAS);
+			else if (this.purgedMap.containsKey(tAS))
+				tdAS = this.purgedMap.get(tAS);
+			else {
+				// not possible
+			}
+			/* only add traffic to regular ASes. add zeros to super AS?? */
+			if (!tdAS.isSuperAS()) {
+				double traffic = trafFromOneSuperAS * getASTrafficRatio(tAS);
+				statResult.add(traffic);
+			}
+			else
+				statResult.add(0.0);
 		}
+
+		System.out.println("resultList: " + statResult);
 		Stats.printCDF(statResult, stpNetworkFile);
-		System.out.println("The result of the traffic from super AS to regular ASes" +
+		System.out.println("The result of the traffic from super AS to regular ASes " +
 				"CDF statistic is written into file: "
 				+ stpNetworkFile + ".\n");
 		
@@ -466,7 +490,7 @@ public class TrafficStat1 {
 		
 		System.out.println("resultList: " + statResult);
 		Stats.printCDF(statResult, wholeNetworkFile);
-		System.out.println("The result of total traffic flowing through each AS" +
+		System.out.println("The result of the total traffic flowing through each AS" +
 					" CDF statistic is written into file: "	+ wholeNetworkFile + ".\n");
 		
 		return statResult;
@@ -506,4 +530,3 @@ public class TrafficStat1 {
 		statFromToWardenTraffic();
 	}
 }
-

@@ -37,7 +37,12 @@ public class BGPPath {
 
 		return false;
 	}
-
+	/**
+	 * Reverse the order of the nodes on the path
+	 */
+	public void reversePath() {
+		Collections.reverse(path);
+	}
 	/**
 	 * Returns the path length in ASes
 	 * 

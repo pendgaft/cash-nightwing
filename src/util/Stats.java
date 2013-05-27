@@ -134,7 +134,9 @@ public class Stats {
 		for (int counter = 0; counter < vals.size(); counter++) {
 			currStep += fracStep;
 			if (counter >= vals.size() - 1 || vals.get(counter) != vals.get(counter + 1)) {
+			//if (vals.get(counter) != vals.get(counter + 1) && counter <= vals.size() + 1) {
 				outFile.write("" + currStep + "," + vals.get(counter) + "\n");
+				System.out.print("" + currStep + "," + vals.get(counter) + "\n");
 			}
 		}
 

@@ -1,12 +1,14 @@
 package sim;
 
+
 import java.util.*;
 import java.io.*;
 
-
 import topo.AS;
-import decoy.DecoyAS;
-import decoy.Rings;
+
+/*import decoy.DecoyAS;
+import decoy.Rings;*/
+import decoy.*;
 
 public class Nightwing {
 
@@ -52,27 +54,34 @@ public class Nightwing {
 		}
 		System.out.println("Mode: " + args[0] + " on country " + country + " looks good, building topo.");
 
-		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt");		
+		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt", country + "-superAS.txt");		
 		HashMap<Integer, DecoyAS> liveTopo = topoArray[0];
 		HashMap<Integer, DecoyAS> prunedTopo = topoArray[1];
 		System.out.println("Topo built and BGP converged.");
+		
+		// Print checking
+		System.out.println("liveTopo:");
+		for (AS tAS : liveTopo.values() ){
+			System.out.println(tAS.getASN());
+		}
+		System.out.println("prunedTopo:");
+		for (AS tAS : prunedTopo.values() ){
+			System.out.println(tAS.getASN());
+		}
+		
+		System.out.println("live ip count:");
+		for (AS tAS : liveTopo.values())
+			System.out.println(tAS.getASN() + ", " + tAS.getIPCount());
+		System.out.println("pruned ip count:");
+		for (AS tAS : prunedTopo.values())
+			System.out.println(tAS.getASN() + ", " + tAS.getIPCount());
+		// done
 		
 		/*
 		 * Run the correct mode
 		 */
 		if (mode == Nightwing.FIND_MODE) {
 			FindSim simDriver = new FindSim(liveTopo, prunedTopo);
-			
-			// Print checking
-			/*System.out.println("liveTopo:");
-			for (AS tAS : liveTopo.values() ){
-				System.out.println(tAS.getASN());
-			}
-			System.out.println("prunedTopo:");
-			for (AS tAS : prunedTopo.values() ){
-				System.out.println(tAS.getASN());
-			}*/
-			// done
 			
             simDriver.run(country + "-decoy-hunt-random.csv");
             simDriver.runLargeASOnlyTests(true, country + "-decoy-hunt-single.csv");

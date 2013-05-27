@@ -16,10 +16,16 @@ public class DecoyAS extends AS {
 	 * Flag for the AS deploying decoy routers
 	 */
 	private boolean hostsDecoyRouter;
+	
+	/**
+	 * Flag for the super AS
+	 */
+	private boolean isSuperAS;
 
 	public DecoyAS(int myASN) {
 		super(myASN);
 		this.hostsDecoyRouter = false;
+		this.isSuperAS = false;
 	}
 
 	/**
@@ -52,6 +58,29 @@ public class DecoyAS extends AS {
 	 */
 	public boolean isDecoy() {
 		return this.hostsDecoyRouter;
+	}
+	
+	/**
+	 * Function that turns this AS object into a super AS
+	 */
+	public void toggleSupperAS() {		
+		this.isSuperAS = true;
+	}
+	
+	/**
+	 * Function that resets the decoy routing flag to false
+	 */
+	public void resetSuperAS() {
+		this.isSuperAS = false;
+	}
+	
+	/**
+	 * Predicate to test if this AS is super AS
+	 * 
+	 * @return - true if the AS is super AS, false otherwise
+	 */
+	public boolean isSuperAS() {
+		return this.isSuperAS;
 	}
 
 }

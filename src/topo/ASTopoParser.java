@@ -3,6 +3,7 @@ package topo;
 import java.util.*;
 import java.util.regex.*;
 import java.io.*;
+import java.net.URL;
 
 import decoy.DecoyAS;
 
@@ -16,6 +17,7 @@ import decoy.DecoyAS;
 public class ASTopoParser {
 
 	private static final String AS_REL_FILE = "as-rel.txt";
+	//private static final String AS_REL_FILE = "/home/JavaWorkspace/test/src/as-rel.txt";
 	private static final String AS_IP_FILE = "ip-count.csv";
 
 	public static void main(String args[]) throws IOException {
@@ -34,9 +36,9 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading any config file
 	 */
-	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile) throws IOException {
+	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile, String superASFile) throws IOException {
 
-		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(ASTopoParser.AS_REL_FILE, wardenFile);
+		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(ASTopoParser.AS_REL_FILE, wardenFile, superASFile);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap);
 
@@ -68,7 +70,7 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading either config file
 	 */
-	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile) throws IOException {
+	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile) throws IOException {
 
 		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
 
@@ -76,9 +78,12 @@ public class ASTopoParser {
 		StringTokenizer pollToks;
 		int lhsASN, rhsASN, rel;
 
+		System.out.println(asRelFile);
+		
 		BufferedReader fBuff = new BufferedReader(new FileReader(asRelFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
+			System.out.println(pollString);
 
 			/*
 			 * ignore blanks
@@ -125,6 +130,20 @@ public class ASTopoParser {
 			if (pollString.length() > 0) {
 				int asn = Integer.parseInt(pollString);
 				retMap.get(asn).toggleWardenAS();
+			}
+		}
+		fBuff.close();
+		
+		/*
+		 * read the super AS file, toggle all super ASes
+		 */
+		fBuff = new BufferedReader(new FileReader(superASFile));
+		while (fBuff.ready()) {
+			pollString = fBuff.readLine().trim();
+			if (pollString.length() > 0) {
+				int asn = Integer.parseInt(pollString);
+				System.out.println("superAS: " + asn);
+				retMap.get(asn).toggleSupperAS();
 			}
 		}
 		fBuff.close();
