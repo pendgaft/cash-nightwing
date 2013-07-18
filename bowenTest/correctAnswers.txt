@@ -1,0 +1,5 @@
+AS, total traffic, from warden traffic
+1, 280, 50
+2, 590, 105
+3, 165, 0
+4, 25, 5
