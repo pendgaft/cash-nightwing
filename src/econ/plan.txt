@@ -1,0 +1,11 @@
+
+Ok, in principle, this is simple.  We get the amount of traffic that flows between two ASes, then
+get who is the customer of who.  Afterthat we do some math.....
+
+The amount of traffic gets multiplied by the cost, then there is actually some amount of guess work as to a scaling
+  --Smaller ISPs charge more "per byte" than larger ISPs
+  
+It should be noted that the amount of traffic that transits the link is all that matters, not the direction.
+
+
+
