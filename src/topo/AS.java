@@ -20,6 +20,14 @@ public abstract class AS {
 	private Set<AS> peers;
 	private Set<AS> providers;
 	private int numberOfIPs;
+	/** the percentage of ip count in the all normal ASes */
+	private double ipPercentage;
+	/** the amount of traffic sent from each super AS */
+	private double trafficFromSuperAS;
+	/** the total amount of traffic that goes through the AS */
+	private double totalTraffic;
+	/** the amount of traffic that goes from warden */
+	private double wardenTraffic;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
 	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
@@ -35,6 +43,10 @@ public abstract class AS {
 
 	public AS(int myASN) {
 		this.asn = myASN;
+		this.ipPercentage = 0;
+		this.trafficFromSuperAS = 0;
+		this.totalTraffic = 0;
+		this.wardenTraffic = 0;
 		this.wardenAS = false;
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
@@ -67,6 +79,41 @@ public abstract class AS {
 	 */
 	public int getIPCount() {
 		return this.numberOfIPs;
+	}
+	
+	/**
+	 * sets the percentage of ipCount in the total normal ASes' ipCount
+	 * @param ipP
+	 */
+	public void setIPPercentage(double ipP) {
+		this.ipPercentage = ipP;
+	}
+	
+	/**
+	 * fetches the ipCount percentage
+	 * @return
+	 */
+	public double getIPPercentage() {
+		return this.ipPercentage;
+	}
+	
+	/**
+	 * sets the amount of traffic sent from a single super AS
+	 * which is determined by the total amount of traffic from
+	 * the super ASes and the ipCount percentage of each AS.
+	 * @param traffic
+	 */
+	public void setTrafficFromEachSuperAS(double traffic) {
+		this.trafficFromSuperAS = traffic;
+	}
+	
+	/**
+	 * fetches the amount of traffic sent from a single super AS
+	 * to each AS.
+	 * @return
+	 */
+	public double getTrafficFromEachSuperAS() {
+		return this.trafficFromSuperAS;
 	}
 
 	/**
@@ -555,4 +602,37 @@ public abstract class AS {
 		return false;
 	}
 
+	/**
+	 * fetches the total traffic goes through the AS 
+	 * @return
+	 */
+	public double getTotalTraffic() {
+		return totalTraffic;
+	}
+
+	/**
+	 * add traffic on the total traffic goes through the AS
+	 * @param traffic
+	 */
+	public void addOnTotalTraffic(double traffic) {
+		this.totalTraffic += traffic;
+	}
+
+	/**
+	 * fetches the traffic goes from warden ASes 
+	 * @return
+	 */
+	public double getTrafficFromWarden() {
+		return wardenTraffic;
+	}
+
+	/**
+	 * add traffic on the traffic goes from the warden AS
+	 * @param wardenTraffic
+	 */
+	public void addOnTrafficFromWarden(double wardenTraffic) {
+		this.wardenTraffic += wardenTraffic;
+	}
+
 }
+

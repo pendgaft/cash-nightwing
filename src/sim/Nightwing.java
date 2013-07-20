@@ -54,7 +54,8 @@ public class Nightwing {
 		}
 		System.out.println("Mode: " + args[0] + " on country " + country + " looks good, building topo.");
 
-		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt", country + "-superAS.txt");		
+		//HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt", country + "-superAS.txt");		
+		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, "warden-test.txt", "superAS-test.txt");
 		HashMap<Integer, DecoyAS> liveTopo = topoArray[0];
 		HashMap<Integer, DecoyAS> prunedTopo = topoArray[1];
 		System.out.println("Topo built and BGP converged.");
@@ -113,3 +114,4 @@ public class Nightwing {
 
 	}
 }
+
