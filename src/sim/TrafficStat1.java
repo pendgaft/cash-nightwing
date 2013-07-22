@@ -22,8 +22,7 @@ public class TrafficStat1 {
 	 * the total amount of traffic on the peer-to-peer network over the total
 	 * amount of traffic from super ASes to peer-to-peer network
 	 */
-	private static final String IPCountFile = "ip-count-test.csv";
-	private static final String TrafficSpiltFile = "trafficSplit-test.csv"; 
+	private String trafficSplitFile;
 
 	/** the total amount of traffic flowing on the peer to peer network */
 	private double totalP2PTraffic;
@@ -68,12 +67,13 @@ public class TrafficStat1 {
 	private List<DecoyAS> superASList;
 	
 	public TrafficStat1(HashMap<Integer, DecoyAS> activeMap,
-			HashMap<Integer, DecoyAS> purgedMap) {
+			HashMap<Integer, DecoyAS> purgedMap, String trafficSplitFile) {
 
 		this.totalP2PTraffic = 0;
 		this.superASNum = 0;
 		this.activeMap = activeMap;
 		this.purgedMap = purgedMap;
+		this.trafficSplitFile = trafficSplitFile;
 		countTraffic = new HashMap<Integer, Double>();
 		trafficFromWarden = new HashMap<Integer, Double>();
 		trafficToWarden = new HashMap<Integer, Double>();
@@ -472,7 +472,7 @@ public class TrafficStat1 {
 		int ips[] = new int[this.activeMap.size() + this.purgedMap.size()];
 		String pollString;
 		
-		BufferedReader fBuff = new BufferedReader(new FileReader(this.IPCountFile));
+		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.IP_COUNT_FILE));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
 			//System.out.println(pollString);
@@ -611,7 +611,7 @@ public class TrafficStat1 {
 		 * read the traffic split file, and calculate the 
 		 * traffic flowing from the superAS to normal ASes
 		 */
-		BufferedReader fBuff = new BufferedReader(new FileReader(this.TrafficSpiltFile));
+		BufferedReader fBuff = new BufferedReader(new FileReader(this.trafficSplitFile));
 		while (fBuff.ready()) {
 			if (cnt == 2) {
 				System.out.println("WRONG TRAFFIC SPLIT FILE!!");

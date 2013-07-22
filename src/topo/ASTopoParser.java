@@ -1,11 +1,10 @@
 package topo;
 
 import java.util.*;
-import java.util.regex.*;
 import java.io.*;
-import java.net.URL;
 
 import decoy.DecoyAS;
+import sim.Constants;
 
 /**
  * Class made up of static methods used to build the topology used by the
@@ -15,10 +14,6 @@ import decoy.DecoyAS;
  * 
  */
 public class ASTopoParser {
-
-	private static final String AS_REL_FILE = "as-rel.txt";
-	//private static final String AS_REL_FILE = "/home/JavaWorkspace/test/src/as-rel.txt";
-	private static final String AS_IP_FILE = "ip-count.csv";
 
 	public static void main(String args[]) throws IOException {
 		/*
@@ -36,9 +31,9 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading any config file
 	 */
-	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile, String superASFile) throws IOException {
+	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile) throws IOException {
 
-		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(ASTopoParser.AS_REL_FILE, wardenFile, superASFile);
+		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile, Constants.SUPER_AS_FILE);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap);
 
@@ -161,14 +156,15 @@ public class ASTopoParser {
 	 *             - if there is an issue reading from the IP count file
 	 */
 	private static void parseIPScoreFile(HashMap<Integer, DecoyAS> asMap) throws IOException {
-		BufferedReader fBuff = new BufferedReader(new FileReader(ASTopoParser.AS_IP_FILE));
-		Pattern csvPattern = Pattern.compile("(\\d+),(\\d+)");
+		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.IP_COUNT_FILE));
 		while (fBuff.ready()) {
-			String pollString = fBuff.readLine();
-			Matcher tMatch = csvPattern.matcher(pollString);
-			tMatch.find();
-			int tAS = Integer.parseInt(tMatch.group(1));
-			int score = Integer.parseInt(tMatch.group(2));
+			String pollString = fBuff.readLine().trim();
+			if(pollString.length() == 0 || pollString.charAt(0) == '#'){
+				continue;
+			}
+			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, ",");
+			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
+			int score = Integer.parseInt(tokenizerTokens.nextToken());
 			asMap.get(tAS).setIPCount(score);
 		}
 		fBuff.close();

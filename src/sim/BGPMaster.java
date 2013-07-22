@@ -21,12 +21,12 @@ public class BGPMaster {
 	private static final int WORK_BLOCK_SIZE = 40;
 
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String countryFile, String superASFile) throws IOException {
+	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String wardenFile) throws IOException {
 
 		/*
 		 * Build AS map
 		 */
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(countryFile, superASFile);
+		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
 
 		/*
@@ -112,7 +112,6 @@ public class BGPMaster {
 		long bgpStartTime = System.currentTimeMillis();
 		System.out.println("Starting up the BGP processing.");
 
-		int stepCounter = 0;
 		boolean stuffToDo = true;
 		boolean skipToMRAI = false;
 		while (stuffToDo) {
