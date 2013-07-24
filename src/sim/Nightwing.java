@@ -25,6 +25,12 @@ public class Nightwing {
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
 
 	public static void main(String[] args) throws IOException {
+		
+		if(args.length < 2){
+			System.out.println("Usage: ./Nightwing <mode> <wardenFile> <mode specific configs....>");
+			return;
+		}
+		
 		/*
 		 * Figure out mode that we're running
 		 */
@@ -45,6 +51,10 @@ public class Nightwing {
 			mode = Nightwing.RING_MODE;
 		} else if (args[0].equalsIgnoreCase(Nightwing.TRAFFICSTAT1_STRING)) {
 			mode = Nightwing.TRAFFICSTAT1_MODE;
+			if(args.length != 3){
+				System.out.println("Traffic mode usage: ./Nightwing <mode> <warden file> <traffic split file>");
+				return;
+			}
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);

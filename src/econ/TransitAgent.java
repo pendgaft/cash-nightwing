@@ -47,5 +47,5 @@ public interface TransitAgent {
 	 * @return - the amount of traffic in our very arbitrary "units" that
 	 *         traveled from THIS AS to otherASN this round
 	 */
-	public double getTrafficFromMeToAS(int otherASN);
+	public double getTrafficOverLinkBetween(int otherASN);
 }
