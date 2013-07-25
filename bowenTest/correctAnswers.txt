@@ -3,3 +3,12 @@ AS, total traffic, from warden traffic
 2, 590, 105
 3, 165, 0
 4, 25, 5
+
+
+Per Link: Total Load, From Warden Load
+AS 1 -> AS 2 : 160, 0
+AS 2 -> AS 1 : 280, 50
+AS 2 -> AS 3 : 165, 0
+AS 3 -> AS 2 : 105, 105
+AS 2 -> AS 4 : 20, 5
+AS 4 -> AS 2 : 325, 0
