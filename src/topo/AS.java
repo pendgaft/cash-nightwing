@@ -3,6 +3,8 @@ package topo;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import econ.TransitAgent;
+
 /**
  * Class that does two things. First, it deals with the topology bookkeeping the
  * simulator needs to do. Second, it handles BGP processing. So as you might
@@ -12,13 +14,15 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author pendgaft
  * 
  */
-public abstract class AS {
+public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
-	private Set<AS> customers;
-	private Set<AS> peers;
-	private Set<AS> providers;
+	public Set<AS> customers; //!!
+	public Set<AS> peers;
+	public Set<AS> providers;
+	public Set<Integer> neighbors;
+	
 	private int numberOfIPs;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
@@ -29,13 +33,16 @@ public abstract class AS {
 	/** the amount of traffic that goes from warden */
 	private double wardenTraffic;
 
-	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
-	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
-	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
-	private HashMap<Integer, BGPPath> locRib;// best path
+	public HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
+	public HashMap<Integer, List<BGPPath>> inRib; // all pathes
+	public HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
+	public HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
 
 	private Queue<BGPUpdate> incUpdateQueue;
+	
+	/* store the traffic over each neighbor */
+	private HashMap<Integer, Double> trafficOverNeighbors;
 
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
@@ -51,6 +58,7 @@ public abstract class AS {
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
 		this.providers = new HashSet<AS>();
+		this.neighbors = new HashSet<Integer>();
 
 		this.adjInRib = new HashMap<Integer, List<BGPPath>>();
 		this.inRib = new HashMap<Integer, List<BGPPath>>();
@@ -59,6 +67,8 @@ public abstract class AS {
 
 		this.incUpdateQueue = new LinkedBlockingQueue<BGPUpdate>();
 		this.dirtyDest = new HashSet<Integer>();
+		
+		this.trafficOverNeighbors = new HashMap<Integer, Double>();
 	}
 
 	/**
@@ -427,7 +437,7 @@ public abstract class AS {
 	 * @return - a constant matching the relationship
 	 */
 	private int getRel(int asn) {
-		//System.out.println("inGetRel from " + this.asn + " to " + asn);
+
 		for (AS tAS : this.providers) {
 			if (tAS.getASN() == asn) {
 				return -1;
@@ -633,6 +643,93 @@ public abstract class AS {
 	public void addOnTrafficFromWarden(double wardenTraffic) {
 		this.wardenTraffic += wardenTraffic;
 	}
+	
+	/**
+	 * Fetches the relationship THIS AS has with the other AS. To be clear if I
+	 * am his provider, this should return provider, if I am his customer, this
+	 * should return customer, etc...
+	 * 
+	 * @param otherASN
+	 *            - the other AS that we are interested in THIS object's
+	 *            relationship with
+	 * @return - AS.PROVIDER if THIS AS is the provider of otherASN, AS.CUSTOMER
+	 *         if THIS AS is the customer of otherASN, AS.PEER if they are peers
+	 */
+	public int getRelationship(int otherASN) {
+		
+		for (AS tAS : this.providers) {
+			if (tAS.getASN() == asn) {
+				return AS.CUSTOMER_CODE;
+			}
+		}
+		for (AS tAS : this.peers) {
+			if (tAS.getASN() == asn) {
+				return AS.CUSTOMER_CODE;
+			}
+		}
+		for (AS tAS : this.customers) {
+			if (tAS.getASN() == asn) {
+				return AS.PROIVDER_CODE;
+			}
+		}
 
+		if (otherASN == this.asn) {
+			return 2;
+		}
+		
+		throw new RuntimeException("asked for relation on non-adj/non-self asn, depending on sim "
+				+ "this might be expected, if you're not, you should prob restart this sim...!");
+	}
+
+	/**
+	 * Fetches the set of ASNs that THIS AS is directly connected to regardless
+	 * of relationship.
+	 * 
+	 * @return the set of all ASNs THIS AS is directly connected to
+	 */
+	public Set<Integer> getNeighbors() {
+		
+		for (AS tAS : this.providers) {
+			this.neighbors.add(tAS.getASN());
+		}
+		for (AS tAS : this.customers) {
+			this.neighbors.add(tAS.getASN());
+		}
+		for (AS tAS : this.peers) {
+			this.neighbors.add(tAS.getASN());
+		}
+		
+		return this.neighbors;
+	}
+
+	/**
+	 * Fetches the amount of traffic that flows from THIS AS to otherASN. This
+	 * is NOT the bi-directional traffic on the link, this is simply the traffic
+	 * that flows from THIS to otherASN
+	 * 
+	 * @param otherASN
+	 *            - the ASN of the neighbor that we want to find out how much
+	 *            traffic flows from us to them
+	 * @return - the amount of traffic in our very arbitrary "units" that
+	 *         traveled from THIS AS to otherASN this round
+	 */
+	public double getTrafficOverLinkBetween(int otherASN) {
+		
+		if (this.trafficOverNeighbors.containsKey(otherASN)) {
+			return this.trafficOverNeighbors.get(otherASN);
+		} else {
+			return 0;
+		}
+	}
+	
+	public void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
+		if (this.trafficOverNeighbors.containsKey(neighbor)) {
+			double currentTraffic = this.trafficOverNeighbors.get(neighbor);
+			this.trafficOverNeighbors.put(neighbor, currentTraffic+amountOfTraffic);
+		} else {
+			this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
+		}
+	}
 }
+
 
