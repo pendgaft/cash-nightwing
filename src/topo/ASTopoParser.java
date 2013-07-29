@@ -213,7 +213,7 @@ public class ASTopoParser {
 				continue;
 			}
 
-			if (tAS.getCustomerCount() == 0) {
+			if (tAS.getNonPrunedCustomerCount() == 0) {
 				purgeMap.put(tAS.getASN(), tAS);
 			}
 		}

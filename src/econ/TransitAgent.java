@@ -34,7 +34,7 @@ public interface TransitAgent {
 	 * 
 	 * @return the set of all ASNs THIS AS is directly connected to
 	 */
-	public Set<Integer> getNeighbors();
+	public Set<Integer> getActiveNeighbors();
 
 	/**
 	 * Fetches the amount of traffic that flows from THIS AS to otherASN. This

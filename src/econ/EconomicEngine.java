@@ -3,16 +3,11 @@ package econ;
 import java.util.*;
 
 import topo.AS;
-import decoy.DecoyAS;
 
 public class EconomicEngine {
 
 	private HashMap<Integer, EconomicAgent> theTopo;
 	private HashMap<Integer, Double> cashForThisRound;
-
-	public EconomicEngine(HashMap<Integer, DecoyAS> activeTopo, HashMap<Integer, DecoyAS> prunedTopo) {
-
-	}
 
 	public EconomicEngine(HashMap<Integer, EconomicAgent> fullTopo) {
 		this.theTopo = fullTopo;
@@ -54,7 +49,7 @@ public class EconomicEngine {
 	private void runMoneyTransfer() {
 		for (Integer tASN : this.theTopo.keySet()) {
 			EconomicAgent tAgent = this.theTopo.get(tASN);
-			for (int tNeighbor : tAgent.getNeighbors()) {
+			for (int tNeighbor : tAgent.getActiveNeighbors()) {
 				
 				int relation = tAgent.getRelationship(tNeighbor);
 				if (relation == AS.PEER_CODE) {

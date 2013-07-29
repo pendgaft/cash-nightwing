@@ -74,13 +74,13 @@ public class TrafficStat1 {
 				System.out.println("AS: " + tAS.getASN());
 				System.out.println("adjInRib: " + tAS.adjInRib + "\n adjOutRib: "
 						+ tAS.adjOutRib + "\n inRib: " + tAS.inRib + "\n locRib: " + tAS.locRib
-						+ "\nprovider: " + tAS.providers + "\n peer: " + tAS.peers + "\n customers" + tAS.customers);
+						+ "\nprovider: " + tAS.getProviders() + "\n peer: " + tAS.getPeers() + "\n customers" + tAS.getCustomers());
 			}
 			for (DecoyAS tAS: this.purgedMap.values()) {
 				System.out.println("AS: " + tAS.getASN());
 				System.out.println("adjInRib: " + tAS.adjInRib + "\n adjOutRib: "
 						+ tAS.adjOutRib + "\n inRib: " + tAS.inRib + "\n locRib: " + tAS.locRib
-						+ "\nprovider: " + tAS.providers + "\n peer: " + tAS.peers + "\n customers" + tAS.customers);
+						+ "\nprovider: " + tAS.getProviders() + "\n peer: " + tAS.getPeers() + "\n customers" + tAS.getCustomers());
 			}
 		}
 	}

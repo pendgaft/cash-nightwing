@@ -18,11 +18,12 @@ public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
-	public Set<AS> customers; //!!
-	public Set<AS> peers;
-	public Set<AS> providers;
-	public Set<Integer> neighbors;
-	
+	private Set<AS> customers; // !!
+	private Set<AS> peers;
+	private Set<AS> providers;
+	private Set<Integer> neighbors;
+	private Set<Integer> purgedNeighbors;
+
 	private int numberOfIPs;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
@@ -33,14 +34,15 @@ public abstract class AS implements TransitAgent {
 	/** the amount of traffic that goes from warden */
 	private double wardenTraffic;
 
-	public HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
+	public HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
+														// adjancey
 	public HashMap<Integer, List<BGPPath>> inRib; // all pathes
 	public HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	public HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
 
 	private Queue<BGPUpdate> incUpdateQueue;
-	
+
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
 
@@ -59,6 +61,7 @@ public abstract class AS implements TransitAgent {
 		this.peers = new HashSet<AS>();
 		this.providers = new HashSet<AS>();
 		this.neighbors = new HashSet<Integer>();
+		this.purgedNeighbors = new HashSet<Integer>();
 
 		this.adjInRib = new HashMap<Integer, List<BGPPath>>();
 		this.inRib = new HashMap<Integer, List<BGPPath>>();
@@ -67,7 +70,7 @@ public abstract class AS implements TransitAgent {
 
 		this.incUpdateQueue = new LinkedBlockingQueue<BGPUpdate>();
 		this.dirtyDest = new HashSet<Integer>();
-		
+
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
 	}
 
@@ -90,36 +93,39 @@ public abstract class AS implements TransitAgent {
 	public int getIPCount() {
 		return this.numberOfIPs;
 	}
-	
+
 	/**
 	 * sets the percentage of ipCount in the total normal ASes' ipCount
+	 * 
 	 * @param ipP
 	 */
 	public void setIPPercentage(double ipP) {
 		this.ipPercentage = ipP;
 	}
-	
+
 	/**
 	 * fetches the ipCount percentage
+	 * 
 	 * @return
 	 */
 	public double getIPPercentage() {
 		return this.ipPercentage;
 	}
-	
+
 	/**
-	 * sets the amount of traffic sent from a single super AS
-	 * which is determined by the total amount of traffic from
-	 * the super ASes and the ipCount percentage of each AS.
+	 * sets the amount of traffic sent from a single super AS which is
+	 * determined by the total amount of traffic from the super ASes and the
+	 * ipCount percentage of each AS.
+	 * 
 	 * @param traffic
 	 */
 	public void setTrafficFromEachSuperAS(double traffic) {
 		this.trafficFromSuperAS = traffic;
 	}
-	
+
 	/**
-	 * fetches the amount of traffic sent from a single super AS
-	 * to each AS.
+	 * fetches the amount of traffic sent from a single super AS to each AS.
+	 * 
 	 * @return
 	 */
 	public double getTrafficFromEachSuperAS() {
@@ -174,12 +180,15 @@ public abstract class AS implements TransitAgent {
 	public void purgeRelations() {
 		for (AS tCust : this.customers) {
 			tCust.providers.remove(this);
+			tCust.purgedNeighbors.add(this.asn);
 		}
 		for (AS tProv : this.providers) {
 			tProv.customers.remove(this);
+			tProv.purgedNeighbors.add(this.asn);
 		}
 		for (AS tPeer : this.peers) {
 			tPeer.peers.remove(this);
+			tPeer.purgedNeighbors.add(this.asn);
 		}
 	}
 
@@ -562,7 +571,7 @@ public abstract class AS implements TransitAgent {
 	 * 
 	 * @return - the number of customers this AS has in the current topology
 	 */
-	public int getCustomerCount() {
+	public int getNonPrunedCustomerCount() {
 		return this.customers.size();
 	}
 
@@ -613,7 +622,8 @@ public abstract class AS implements TransitAgent {
 	}
 
 	/**
-	 * fetches the total traffic goes through the AS 
+	 * fetches the total traffic goes through the AS
+	 * 
 	 * @return
 	 */
 	public double getTotalTraffic() {
@@ -622,6 +632,7 @@ public abstract class AS implements TransitAgent {
 
 	/**
 	 * add traffic on the total traffic goes through the AS
+	 * 
 	 * @param traffic
 	 */
 	public void addOnTotalTraffic(double traffic) {
@@ -629,7 +640,8 @@ public abstract class AS implements TransitAgent {
 	}
 
 	/**
-	 * fetches the traffic goes from warden ASes 
+	 * fetches the traffic goes from warden ASes
+	 * 
 	 * @return
 	 */
 	public double getTrafficFromWarden() {
@@ -638,12 +650,13 @@ public abstract class AS implements TransitAgent {
 
 	/**
 	 * add traffic on the traffic goes from the warden AS
+	 * 
 	 * @param wardenTraffic
 	 */
 	public void addOnTrafficFromWarden(double wardenTraffic) {
 		this.wardenTraffic += wardenTraffic;
 	}
-	
+
 	/**
 	 * Fetches the relationship THIS AS has with the other AS. To be clear if I
 	 * am his provider, this should return provider, if I am his customer, this
@@ -656,7 +669,7 @@ public abstract class AS implements TransitAgent {
 	 *         if THIS AS is the customer of otherASN, AS.PEER if they are peers
 	 */
 	public int getRelationship(int otherASN) {
-		
+
 		for (AS tAS : this.providers) {
 			if (tAS.getASN() == asn) {
 				return AS.CUSTOMER_CODE;
@@ -676,19 +689,19 @@ public abstract class AS implements TransitAgent {
 		if (otherASN == this.asn) {
 			return 2;
 		}
-		
+
 		throw new RuntimeException("asked for relation on non-adj/non-self asn, depending on sim "
 				+ "this might be expected, if you're not, you should prob restart this sim...!");
 	}
 
 	/**
 	 * Fetches the set of ASNs that THIS AS is directly connected to regardless
-	 * of relationship.
+	 * of relationship which are part of the active routing topology.
 	 * 
 	 * @return the set of all ASNs THIS AS is directly connected to
 	 */
-	public Set<Integer> getNeighbors() {
-		
+	public Set<Integer> getActiveNeighbors() {
+
 		for (AS tAS : this.providers) {
 			this.neighbors.add(tAS.getASN());
 		}
@@ -698,8 +711,18 @@ public abstract class AS implements TransitAgent {
 		for (AS tAS : this.peers) {
 			this.neighbors.add(tAS.getASN());
 		}
-		
+
 		return this.neighbors;
+	}
+
+	/**
+	 * Fetches the set of all ASNs for ASes that are part of the purged topo
+	 * which are adjacent to this AS
+	 * 
+	 * @return
+	 */
+	public Set<Integer> getPurgedNeighbors() {
+		return this.purgedNeighbors;
 	}
 
 	/**
@@ -714,22 +737,20 @@ public abstract class AS implements TransitAgent {
 	 *         traveled from THIS AS to otherASN this round
 	 */
 	public double getTrafficOverLinkBetween(int otherASN) {
-		
+
 		if (this.trafficOverNeighbors.containsKey(otherASN)) {
 			return this.trafficOverNeighbors.get(otherASN);
 		} else {
 			return 0;
 		}
 	}
-	
+
 	public void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
 		if (this.trafficOverNeighbors.containsKey(neighbor)) {
 			double currentTraffic = this.trafficOverNeighbors.get(neighbor);
-			this.trafficOverNeighbors.put(neighbor, currentTraffic+amountOfTraffic);
+			this.trafficOverNeighbors.put(neighbor, currentTraffic + amountOfTraffic);
 		} else {
 			this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
 		}
 	}
 }
-
-
