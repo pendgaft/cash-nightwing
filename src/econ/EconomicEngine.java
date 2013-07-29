@@ -49,7 +49,7 @@ public class EconomicEngine {
 	private void runMoneyTransfer() {
 		for (Integer tASN : this.theTopo.keySet()) {
 			EconomicAgent tAgent = this.theTopo.get(tASN);
-			for (int tNeighbor : tAgent.getActiveNeighbors()) {
+			for (int tNeighbor : tAgent.getNeighbors()) {
 				
 				int relation = tAgent.getRelationship(tNeighbor);
 				if (relation == AS.PEER_CODE) {
