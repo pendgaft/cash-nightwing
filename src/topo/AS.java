@@ -18,11 +18,12 @@ public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
-	private Set<AS> customers; // !!
+	private Set<AS> customers;
 	private Set<AS> peers;
 	private Set<AS> providers;
-	private Set<Integer> neighbors;
+	private Set<Integer> activeNeighbors;
 	private Set<Integer> purgedNeighbors;
+	private Set<Integer> neighbors;
 
 	private int numberOfIPs;
 	/** the percentage of ip count in the all normal ASes */
@@ -60,8 +61,9 @@ public abstract class AS implements TransitAgent {
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
 		this.providers = new HashSet<AS>();
-		this.neighbors = new HashSet<Integer>();
+		this.activeNeighbors = new HashSet<Integer>();
 		this.purgedNeighbors = new HashSet<Integer>();
+		this.neighbors = new HashSet<Integer>();
 
 		this.adjInRib = new HashMap<Integer, List<BGPPath>>();
 		this.inRib = new HashMap<Integer, List<BGPPath>>();
@@ -703,16 +705,16 @@ public abstract class AS implements TransitAgent {
 	public Set<Integer> getActiveNeighbors() {
 
 		for (AS tAS : this.providers) {
-			this.neighbors.add(tAS.getASN());
+			this.activeNeighbors.add(tAS.getASN());
 		}
 		for (AS tAS : this.customers) {
-			this.neighbors.add(tAS.getASN());
+			this.activeNeighbors.add(tAS.getASN());
 		}
 		for (AS tAS : this.peers) {
-			this.neighbors.add(tAS.getASN());
+			this.activeNeighbors.add(tAS.getASN());
 		}
 
-		return this.neighbors;
+		return this.activeNeighbors;
 	}
 
 	/**
@@ -723,6 +725,17 @@ public abstract class AS implements TransitAgent {
 	 */
 	public Set<Integer> getPurgedNeighbors() {
 		return this.purgedNeighbors;
+	}
+	
+	/**
+	 * Fetches the set of all ASNs for ASes that are directly connected to it
+	 * on both active and purged topo
+	 */
+	public Set<Integer> getNeighbors() {
+		this.neighbors.addAll(this.activeNeighbors);
+		this.neighbors.addAll(this.purgedNeighbors);
+		
+		return this.neighbors;
 	}
 
 	/**
@@ -745,6 +758,12 @@ public abstract class AS implements TransitAgent {
 		}
 	}
 
+	/**
+	 * update the traffic flowing over its given neighbor which is stored
+	 * in a special map
+	 * @param neighbor
+	 * @param amountOfTraffic
+	 */
 	public void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
 		if (this.trafficOverNeighbors.containsKey(neighbor)) {
 			double currentTraffic = this.trafficOverNeighbors.get(neighbor);
