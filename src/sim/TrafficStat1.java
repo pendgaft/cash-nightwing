@@ -64,8 +64,6 @@ public class TrafficStat1 {
 
 		this.statTrafficOnPToPNetwork();
 		this.statTrafficFromSuperAS();
-		
-		this.statLinkBasisTrafficFlow();
 
 		testResults();
 		
@@ -138,125 +136,6 @@ public class TrafficStat1 {
 		trafficFromSuperASToNormalAS();
 	}
  
-	/**
-	 * stat the traffic flowing from each AS to its neighbors, for each neighbor,
-	 * the value need to be accumulated by the traffic coming from other ASes and
-	 * just passing it.
-	 * 
-	 * basically the stat includes active to active, active to purged, purged to active,
-	 * and purged to purged. But how about super AS?? should be counted?
-	 */
-	private void statLinkBasisTrafficFlow() {
-		
-		this.statLinkBasisFromActiveMap();
-		this.statLinkBasisFromPurgedMap();
-
-	}
-
-	/**
-	 * stat traffic in link basis, accumulate the traffic for the neighbors
-	 * of each AS. basically, if a path A B C D flowing from A to D, 
-	 * then A add B as its neighbor with traffic of A's ip amount times D's ip amount. 
-	 * same for B, C is added as its neighbor with traffic of A's ip amount times D's ip amount. 
-	 * this function finishes flows from active to active and 
-	 * active to purged
-	 */
-	private void statLinkBasisFromActiveMap() {
-		
-		for (DecoyAS tsrcActiveAS : this.activeMap.values()) {
-			// active to active
-			for (DecoyAS tdestActiveAS : this.activeMap.values()) {
-				if (tsrcActiveAS.getASN() == tdestActiveAS.getASN())
-					continue;
-				
-				BGPPath tpath = tsrcActiveAS.getPath(tdestActiveAS.getASN());
-				this.addTrafficOnTheLinkBasisPath(tpath, tsrcActiveAS, tdestActiveAS, false);
-			}
-			// active to purged
-			for (DecoyAS tdestPurgedAS : this.purgedMap.values()) {
-				
-				// the active AS is directly connected to the purged AS
-				if (tdestPurgedAS.getProviders().contains(tsrcActiveAS)) {
-					double amountOfTraffic = tsrcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
-					tsrcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
-					continue;
-				}
-				
-				List<Integer> hookASNs = getProvidersList(tdestPurgedAS.getProviders());
-				BGPPath tpath = tsrcActiveAS.getPathToPurged(hookASNs);
-				
-				if (tpath == null)
-					continue;
-				
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcActiveAS, tdestPurgedAS, false);								
-			}
-		}
-	}
-	
-	/**
-	 * stat traffic in link basis, accumulate the traffic for the neighbors
-	 * of each AS. basically, if a path A B C D flowing from A to D, 
-	 * then A add B as its neighbor with traffic of A's ip amount times D's ip amount. 
-	 * same for B, C is added as its neighbor with traffic of A's ip amount times D's ip amount. 
-	 * this function finishes flows from purged to active and 
-	 * purged to purged
-	 */
-	private void statLinkBasisFromPurgedMap() {
-		
-		HashMap<Integer, List<BGPPath>> pathSets = new HashMap<Integer, List<BGPPath>>();
-		for (DecoyAS tsrcPurgedAS : this.purgedMap.values()) {
-			Set<AS> providers = tsrcPurgedAS.getProviders();
-			// purged to active
-			pathSets.clear();
-			for (AS pAS : providers) {
-				for (DecoyAS tdestActiveAS : this.activeMap.values()) {
-					
-					/* get path from the provider to the activeMap */					
-					BGPPath tpath = pAS.getPath(tdestActiveAS.getASN());
-					if (tpath == null)
-						continue;
-					BGPPath cpath = tpath.deepCopy();
-					cpath.prependASToPath(pAS.getASN());
-					/* put the path into container. */
-					TrafficStat1.addToPathSets(pathSets, tdestActiveAS.getASN(), cpath);
-				}
-				/* get best path from the pathSets and do the traffic stat */
-				for (int tdestASN : pathSets.keySet()) {
-					/* get the best path from the pathSets by calling pathSelection */
-					BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestASN));
-					if (tpath == null)
-						continue;
-					this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestASN), false);
-				}
-			}
-		
-			// purged to purged
-			pathSets.clear();
-			for (AS providerAS : providers) {
-				for (DecoyAS tdestPurgedAS : this.purgedMap.values()) {
-					if (tsrcPurgedAS.getASN() == tdestPurgedAS.getASN())
-						continue;
-					List<Integer> destinationProividerList = getProvidersList(tdestPurgedAS.getProviders());
-
-					BGPPath tpath = providerAS.getPathToPurged(destinationProividerList);
-					if (tpath == null)
-						continue;
-					BGPPath cpath = tpath.deepCopy();
-					cpath.prependASToPath(providerAS.getASN());
-
-					/* put the path into container. */
-					TrafficStat1.addToPathSets(pathSets, tdestPurgedAS.getASN(), cpath);
-				}
-				for (int tdestASN : pathSets.keySet()) {
-					BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestASN));
-					if (tpath == null)
-						continue;
-					this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestASN), false);
-				}
-			}
-		}	
-	}
-
 	/**
 	 * for each current AS on the path, add its next hop as its neighbor with the traffic
 	 * amount equals to srcAS's ip count times destAS's ip count
@@ -422,6 +301,8 @@ public class TrafficStat1 {
 	 * activeMap or purgedMap
 	 * 
 	 * also stat the from/to-warden traffic at the same time
+	 * 
+	 * stat the link basis traffic flow at the same time
 	 **/
 	private void statActiveMap() {
 
@@ -439,18 +320,21 @@ public class TrafficStat1 {
 	 * the traffic of all the paths starting from the given AS in activeMap to
 	 * all ASes in the activeMap
 	 * 
-	 * also stat the from/to-warden traffic at the same time
+	 * also  stat traffic in link basis, accumulate the traffic for the neighbors
+	 * of each AS. basically, if a path A B C D flowing from A to D, 
+	 * then A add B as its neighbor with traffic of A's ip amount times D's ip amount. 
+	 * same for B, C is added as its neighbor with traffic of A's ip amount times D's ip amount.
 	 * 
-	 * @param srcAS
+	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
-	private void activeToActive(DecoyAS srcAS) {
+	private void activeToActive(DecoyAS srcActiveAS) {
 
-		for (DecoyAS destAS: this.activeMap.values()) {
+		for (DecoyAS tdestActiveAS: this.activeMap.values()) {
 			/*
 			 * Don't send traffic to yourself
 			 */
-			if (srcAS.getASN() == destAS.getASN()) {
+			if (srcActiveAS.getASN() == tdestActiveAS.getASN()) {
 				continue;
 			}
 			
@@ -458,13 +342,13 @@ public class TrafficStat1 {
 			 * Fetch the actual path object, deal with the odd case in which it
 			 * does not exist
 			 */
-			BGPPath tpath = srcAS.getPath(destAS.getASN());
+			BGPPath tpath = srcActiveAS.getPath(tdestActiveAS.getASN());
 			if (tpath == null)
 				continue;
 
 			/* if the path exists, do the statistic */
-			this.addTrafficOnThePath(tpath, srcAS, destAS);
-			//this.addTrafficOnTheLinkBasisPath(tpath, srcAS, destAS);
+			this.addTrafficOnThePath(tpath, srcActiveAS, tdestActiveAS);
+			this.addTrafficOnTheLinkBasisPath(tpath, srcActiveAS, tdestActiveAS, false);
 		}
 	}
 
@@ -475,19 +359,27 @@ public class TrafficStat1 {
 	 * 
 	 * also stat the from/to-warden traffic at the same time
 	 * 
-	 * @param tAS
+	 * stat the link basis traffic flow at the same time
+	 * 
+	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
-	private void activeToPurged(DecoyAS tAS) {
+	private void activeToPurged(DecoyAS srcActiveAS) {
 
-		for (DecoyAS purgedAS : this.purgedMap.values()) {
-			List<Integer> hookASNs = getProvidersList(purgedAS.getProviders());
-			BGPPath tpath = tAS.getPathToPurged(hookASNs);
+		for (DecoyAS tdestPurgedAS : this.purgedMap.values()) {
+			List<Integer> hookASNs = getProvidersList(tdestPurgedAS.getProviders());
+			BGPPath tpath = srcActiveAS.getPathToPurged(hookASNs);
 			if (tpath == null)
 				continue;
 
-			this.addTrafficOnThePathAndPurged(tpath, tAS, purgedAS);
-			//this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tAS, purgedAS);
+			this.addTrafficOnThePathAndPurged(tpath, srcActiveAS, tdestPurgedAS);
+			
+			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
+				double amountOfTraffic = srcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
+				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
+				continue;
+			}
+			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcActiveAS, tdestPurgedAS, false);
 		}
 	}
 
@@ -500,21 +392,22 @@ public class TrafficStat1 {
 	 * Get the providers of the purged AS, then get all the paths from the
 	 * providers to other ASes in activeMap, and temporarily store in the
 	 * container, then get the best path from the pathSet, and do the statistic.
+	 * 
+	 * stat the link basis traffic flow at the same time
 	 */
 	private void purgedToActive() {
 
 		HashMap<Integer, List<BGPPath>> pathSets = new HashMap<Integer, List<BGPPath>>();
-		for (int t1ASN : this.purgedMap.keySet()) {
+		for (DecoyAS tsrcPurgedAS : this.purgedMap.values()) {
 			/* empty the temporary container */
 			pathSets.clear();
-			DecoyAS tAS = this.purgedMap.get(t1ASN);
 
 			/* get the path through the providers of nodes in purgedMap */
-			Set<AS> providers = tAS.getProviders();
+			Set<AS> providers = tsrcPurgedAS.getProviders();
 			for (AS pAS : providers) {
-				for (int t2ASN : this.activeMap.keySet()) {
+				for (int tdestActiveASN : this.activeMap.keySet()) {
 					/* get path from the provider to the activeMap */
-					BGPPath tpath = pAS.getPath(t2ASN);
+					BGPPath tpath = pAS.getPath(tdestActiveASN);
 					if (tpath == null)
 						continue;
 
@@ -527,17 +420,17 @@ public class TrafficStat1 {
 					cpath.prependASToPath(pAS.getASN());
 
 					/* put the path into container. */
-					TrafficStat1.addToPathSets(pathSets, t2ASN, cpath);
+					TrafficStat1.addToPathSets(pathSets, tdestActiveASN, cpath);
 				}
 			}
 
 			/* get best path from the pathSets and do the traffic stat */
-			for (int destinationASN : pathSets.keySet()) {
+			for (int tdestActiveASN : pathSets.keySet()) {
 				/* get the best path from the pathSets by calling pathSelection */
-				BGPPath tpath = this.purgedMap.get(t1ASN).pathSelection(pathSets.get(destinationASN));
+				BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestActiveASN));
 				/* stat the traffic on the path */
-				this.addTrafficOnThePath(tpath, tAS, this.fullTopology.get(destinationASN));
-				//this.addTrafficOnTheLinkBasisPath(tpath, tAS, this.fullTopology.get(destinationASN));//!
+				this.addTrafficOnThePath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN));
+				this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN), false);
 			}
 		}
 	}
@@ -549,29 +442,31 @@ public class TrafficStat1 {
 	 * Get the providers of the purged AS, then get the paths to the providers
 	 * of other purged ASes, then get the best path of all of those by calling
 	 * pathSelection(), and do the statistic.
+	 * 
+	 * stat the link basis traffic flow at the same time
 	 */
 	private void purgedToPurged() {
 		/* path from purged AS t1ASN to purged AS t2ASN */
 		HashMap<Integer, List<BGPPath>> pathSets = new HashMap<Integer, List<BGPPath>>();
-		for (int t1ASN : this.purgedMap.keySet()) {
+		//for (int t1ASN : this.purgedMap.keySet()) {
+		for (DecoyAS tsrcPurgedAS : this.purgedMap.values()) {
 			/* empty the temporary container */
 			pathSets.clear();
 
-			DecoyAS t1AS = this.purgedMap.get(t1ASN);
 			/* get the providers of the AS in purgedMap */
-			List<Integer> p1List = getProvidersList(t1AS.getProviders());
+			List<Integer> p1List = getProvidersList(tsrcPurgedAS.getProviders());
 			/* get paths from the provider to the other ASes in purgedMap */
 			for (int providerASN : p1List) {
 				AS providerAS = this.activeMap.get(providerASN);
 
-				for (int destASN : this.purgedMap.keySet()) {
+				for (int tdestPurgedASN : this.purgedMap.keySet()) {
 					/*
 					 * Don't send traffic to ourself
 					 */
-					if (t1ASN == destASN)
+					if (tsrcPurgedAS.getASN() == tdestPurgedASN)
 						continue;
 
-					AS destAS = this.purgedMap.get(destASN);
+					AS destAS = this.purgedMap.get(tdestPurgedASN);
 					List<Integer> destinationProividerList = getProvidersList(destAS.getProviders());
 
 					BGPPath tpath = providerAS.getPathToPurged(destinationProividerList);
@@ -581,18 +476,18 @@ public class TrafficStat1 {
 					cpath.prependASToPath(providerAS.getASN());
 
 					/* put the path into container. */
-					TrafficStat1.addToPathSets(pathSets, destASN, cpath);
+					TrafficStat1.addToPathSets(pathSets, tdestPurgedASN, cpath);
 				}
 			}
 
 			/* select the best path and do the traffic stat */
-			for (int t2ASN : pathSets.keySet()) {
-				BGPPath tpath = t1AS.pathSelection(pathSets.get(t2ASN));
+			for (int tdestPurgedASN : pathSets.keySet()) {
+				BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestPurgedASN));
 				if (tpath == null)
 					continue;
 
-				this.addTrafficOnThePathAndPurged(tpath, t1AS, this.fullTopology.get(t2ASN));
-				//this.addTrafficOnTheLinkBasisPathAndPurged(tpath, t1AS, this.fullTopology.get(t2ASN));//!
+				this.addTrafficOnThePathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN));
+				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN), false);
 			}
 		}
 	}
@@ -600,6 +495,8 @@ public class TrafficStat1 {
 	/**
 	 * count the traffic of paths starting from purgedMap ending at either
 	 * activeMap or purgedMap
+	 * 
+	 * stat the link basis traffic flow at the same time
 	 **/
 	private void statPurgedMap() {
 		this.purgedToActive();
@@ -816,7 +713,7 @@ public class TrafficStat1 {
 				BGPPath tpath = this.purgedMap.get(tsrcASN).pathSelection(pathSets.get(tdestASN));
 				/* stat the traffic on the path */
 				this.addSuperASTrafficOnThePath(tpath, srcSuperAS, this.fullTopology.get(tdestASN));
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN), true);
+				this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, this.fullTopology.get(tdestASN), true);
 			}
 		}
 
@@ -946,8 +843,7 @@ public class TrafficStat1 {
 		statTrafficFromSuperASPurgedToActive();
 		statFromTrafficSuperASPurgedToPurged();
 
-		for (int tASN : this.activeMap.keySet()) {
-			DecoyAS tAS = this.activeMap.get(tASN);
+		for (DecoyAS tAS : this.activeMap.values()) {
 			if (!tAS.isSuperAS())
 				continue;
 			
