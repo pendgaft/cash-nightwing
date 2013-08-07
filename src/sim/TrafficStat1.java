@@ -36,6 +36,8 @@ public class TrafficStat1 {
 	private HashMap<Integer, DecoyAS> fullTopology;
 
 	private static final boolean DEBUG = true;
+	private static final boolean FROMSUPERAS = true;
+	private static final boolean NOTFROMSUPERAS = false;
 
 	/** stores normal ASes and super ASes */
 	private List<DecoyAS> normalASList;
@@ -81,6 +83,13 @@ public class TrafficStat1 {
 						+ "\nprovider: " + tAS.getProviders() + "\n peer: " + tAS.getPeers() + "\n customers" + tAS.getCustomers());
 			}
 		}
+		
+		/*for (DecoyAS tAS : this.fullTopology.values()) {
+			System.out.println(tAS.getASN());
+			for (DecoyAS destAS : this.fullTopology.values()) {
+				System.out.println(" to " + tAS.getPath(destAS.getASN()));
+			}
+		}*/
 	}
 
 	/**
@@ -153,6 +162,10 @@ public class TrafficStat1 {
 			amountOfTraffic = srcAS.getIPCount() * destAS.getIPCount();
 		}
 		
+		// no traffic between super ASes
+		if (fromSuperAS && destAS.isSuperAS()) {
+			return 0;
+		}
 		// add the first
 		srcAS.updateTrafficOverOneNeighbor(tpath.getNextHop(), amountOfTraffic);
 		
@@ -213,13 +226,13 @@ public class TrafficStat1 {
 	 * @param path
 	 *            the path to add traffic unit
 	 */
-	private double addTrafficOnThePath(BGPPath path, DecoyAS sourceAS, DecoyAS destAS) {
+	private double addTrafficOnThePath(BGPPath path, DecoyAS srcAS, DecoyAS destAS) {
 		
-		double amountOfTraffic = sourceAS.getIPCount() * destAS.getIPCount();
+		double amountOfTraffic = srcAS.getIPCount() * destAS.getIPCount();
 		for (int tHop : path.getPath()) {
 			DecoyAS tAS = this.fullTopology.get(tHop);
 			tAS.addOnTotalTraffic(amountOfTraffic);
-			this.addTrafficFromWarden(tHop, amountOfTraffic, sourceAS.getASN());
+			this.addTrafficFromWarden(tHop, amountOfTraffic, srcAS.getASN());
 		}
 		
 		return amountOfTraffic;
@@ -230,14 +243,14 @@ public class TrafficStat1 {
 	 * warden traffic at the same time. since the ASes on the purged map
 	 * are not in BGPPath path, so need to be added manually.
 	 * @param path
-	 * @param sourceAS
+	 * @param srcAS
 	 * @param destAS
 	 */
-	private void addTrafficOnThePathAndPurged(BGPPath path, DecoyAS sourceAS, DecoyAS destAS) {
+	private void addTrafficOnThePathAndPurged(BGPPath path, DecoyAS srcAS, DecoyAS destAS) {
 		
-		double amountOfTraffic = this.addTrafficOnThePath(path, sourceAS, destAS);
+		double amountOfTraffic = this.addTrafficOnThePath(path, srcAS, destAS);
 		destAS.addOnTotalTraffic(amountOfTraffic);
-		this.addTrafficFromWarden(destAS.getASN(), amountOfTraffic, sourceAS.getASN());
+		this.addTrafficFromWarden(destAS.getASN(), amountOfTraffic, srcAS.getASN());
 	}
 	
 	private double addSuperASTrafficOnThePath(BGPPath path, DecoyAS superAS, DecoyAS destAS) {
@@ -348,7 +361,7 @@ public class TrafficStat1 {
 
 			/* if the path exists, do the statistic */
 			this.addTrafficOnThePath(tpath, srcActiveAS, tdestActiveAS);
-			this.addTrafficOnTheLinkBasisPath(tpath, srcActiveAS, tdestActiveAS, false);
+			this.addTrafficOnTheLinkBasisPath(tpath, srcActiveAS, tdestActiveAS, TrafficStat1.NOTFROMSUPERAS);
 		}
 	}
 
@@ -379,7 +392,7 @@ public class TrafficStat1 {
 				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
 				continue;
 			}
-			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcActiveAS, tdestPurgedAS, false);
+			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcActiveAS, tdestPurgedAS, TrafficStat1.NOTFROMSUPERAS);
 		}
 	}
 
@@ -430,7 +443,7 @@ public class TrafficStat1 {
 				BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestActiveASN));
 				/* stat the traffic on the path */
 				this.addTrafficOnThePath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN));
-				this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN), false);
+				this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN), TrafficStat1.NOTFROMSUPERAS);
 			}
 		}
 	}
@@ -487,7 +500,7 @@ public class TrafficStat1 {
 					continue;
 
 				this.addTrafficOnThePathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN));
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN), false);
+				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN), TrafficStat1.NOTFROMSUPERAS);
 			}
 		}
 	}
@@ -713,7 +726,7 @@ public class TrafficStat1 {
 				BGPPath tpath = this.purgedMap.get(tsrcASN).pathSelection(pathSets.get(tdestASN));
 				/* stat the traffic on the path */
 				this.addSuperASTrafficOnThePath(tpath, srcSuperAS, this.fullTopology.get(tdestASN));
-				this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, this.fullTopology.get(tdestASN), true);
+				this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, this.fullTopology.get(tdestASN), TrafficStat1.FROMSUPERAS);
 			}
 		}
 
@@ -777,7 +790,7 @@ public class TrafficStat1 {
 
 				/* the traffic of the destiny AS from each super AS */
 				this.addSuperASTrafficOnThePathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN));
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN), true);
+				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN), TrafficStat1.FROMSUPERAS);
 			}
 		}
 	}
@@ -800,8 +813,9 @@ public class TrafficStat1 {
 				continue;
 
 			/* if the path exists, do the statistic */
-			this.addTrafficOnThePath(tpath, srcSuperAS, tDestActiveAS);
-			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, tDestActiveAS, true);
+			//this.addTrafficOnThePath(tpath, srcSuperAS, tDestActiveAS);
+			this.addSuperASTrafficOnThePath(tpath, srcSuperAS, tDestActiveAS);
+			this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, tDestActiveAS, TrafficStat1.FROMSUPERAS);
 		}
 
 	}
@@ -824,8 +838,9 @@ public class TrafficStat1 {
 			if (tpath == null)
 				continue;
 
-			this.addTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
-			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, tDestPurgedAS, true);
+			//this.addTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
+			this.addSuperASTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
+			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, tDestPurgedAS, TrafficStat1.FROMSUPERAS);
 		}
 
 	}
