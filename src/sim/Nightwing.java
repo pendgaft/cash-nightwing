@@ -8,6 +8,7 @@ import topo.AS;
 /*import decoy.DecoyAS;
  import decoy.Rings;*/
 import decoy.*;
+import econ.EconomicEngine;
 
 public class Nightwing {
 
@@ -23,14 +24,16 @@ public class Nightwing {
 	private static final int RING_MODE = 5;
 	private static final int TRAFFICSTAT1_MODE = 6;
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
+	private static final int ECON_PHASE_1 = 7;
+	private static final String ECON_P1_STRING = "econ1";
 
 	public static void main(String[] args) throws IOException {
-		
-		if(args.length < 2){
+
+		if (args.length < 2) {
 			System.out.println("Usage: ./Nightwing <mode> <wardenFile> <mode specific configs....>");
 			return;
 		}
-		
+
 		/*
 		 * Figure out mode that we're running
 		 */
@@ -51,10 +54,12 @@ public class Nightwing {
 			mode = Nightwing.RING_MODE;
 		} else if (args[0].equalsIgnoreCase(Nightwing.TRAFFICSTAT1_STRING)) {
 			mode = Nightwing.TRAFFICSTAT1_MODE;
-			if(args.length != 3){
+			if (args.length != 3) {
 				System.out.println("Traffic mode usage: ./Nightwing <mode> <warden file> <traffic split file>");
 				return;
 			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
+			mode = Nightwing.ECON_PHASE_1;
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);
@@ -116,6 +121,14 @@ public class Nightwing {
 		} else if (mode == Nightwing.TRAFFICSTAT1_MODE) {
 			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
 			stat.runStat();
+		} else if (mode == Nightwing.ECON_PHASE_1) {
+			/*
+			 * Build the traffic stat object, and then actually flow the traffic
+			 * through the network
+			 */
+			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
+			stat.runStat();
+			EconomicEngine econEngine = new EconomicEngine();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);

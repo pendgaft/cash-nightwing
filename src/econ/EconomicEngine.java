@@ -9,6 +9,9 @@ public class EconomicEngine {
 	private HashMap<Integer, EconomicAgent> theTopo;
 	private HashMap<Integer, Double> cashForThisRound;
 
+	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
+	private static final double COST_PER_MBYTE = 1.0;
+	
 	public EconomicEngine(HashMap<Integer, EconomicAgent> fullTopo) {
 		this.theTopo = fullTopo;
 	}
@@ -73,7 +76,7 @@ public class EconomicEngine {
 	}
 
 	private double buildScaleFactor(EconomicAgent lhs, EconomicAgent rhs, int relation) {
-		return 1.0;
+		return EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
 	}
 
 	private void resetForNewRound() {

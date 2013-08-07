@@ -1,5 +1,7 @@
 package econ;
 
+import decoy.DecoyAS;
+
 /**
  * The extension of TransitAgent into an interface that actually does economic
  * behavior. While TransitAgent simply deals with who sent data to who and who
@@ -9,8 +11,14 @@ package econ;
  * @author pendgaft
  * 
  */
-public interface EconomicAgent extends TransitAgent {
+public abstract class EconomicAgent implements TransitAgent {
 
+	protected DecoyAS parent;
+	
+	public EconomicAgent(DecoyAS parentAS){
+		this.parent = parentAS;
+	}
+	
 	/**
 	 * Method for pushing to the AS type object exactly how much money it made
 	 * or lost this round
@@ -18,7 +26,7 @@ public interface EconomicAgent extends TransitAgent {
 	 * @param moneyEarned
 	 *            - the amount of money gained or lost this past round
 	 */
-	public void reportMoneyEarned(double moneyEarned);
+	public abstract void reportMoneyEarned(double moneyEarned);
 
 	/**
 	 * Function that prompts the AS like object to make any changes to its
@@ -27,7 +35,7 @@ public interface EconomicAgent extends TransitAgent {
 	 * anything, it should just stage changes, the finalize function will do the
 	 * actual pushing of changes.
 	 */
-	public void makeAdustments();
+	public abstract void makeAdustments();
 
 	/**
 	 * Method for informing the AS type object to do any logging for this round,
