@@ -1,5 +1,7 @@
 package econ;
 
+import java.util.Set;
+import java.io.BufferedWriter;
 import decoy.DecoyAS;
 
 /**
@@ -14,9 +16,11 @@ import decoy.DecoyAS;
 public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
+	protected BufferedWriter logStream;
 	
-	public EconomicAgent(DecoyAS parentAS){
+	public EconomicAgent(DecoyAS parentAS, BufferedWriter log){
 		this.parent = parentAS;
+		this.logStream = log;
 	}
 	
 	/**
@@ -44,7 +48,7 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * different files.
 	 * 
 	 */
-	public void doRoundLogging();
+	public abstract void doRoundLogging();
 
 	/**
 	 * Function that takes the changes staged by the makeAdjustments function
@@ -52,5 +56,21 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * "weirdness" from some ASes getting to see what other ASes are going to do
 	 * ahead of time.
 	 */
-	public void finalizeRoundAdjustments();
+	public abstract void finalizeRoundAdjustments();
+	
+	public int getRelationship(int otherASN){
+		return this.parent.getRelationship(otherASN);
+	}
+	
+	public Set<Integer> getNeighbors(){
+		return this.parent.getNeighbors();
+	}
+	
+	public double getTrafficOverLinkBetween(int otherASN){
+		return this.parent.getTrafficOverLinkBetween(otherASN);
+	}
+	
+	public boolean isPurged(){
+		return this.parent.isPurged();
+	}
 }

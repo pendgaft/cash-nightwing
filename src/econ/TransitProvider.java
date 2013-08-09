@@ -1,51 +1,60 @@
 package econ;
 
-import java.util.Set;
+import java.io.*;
+import java.util.Random;
+
+import decoy.DecoyAS;
 
 public class TransitProvider extends EconomicAgent {
 
-	private 
-	
-	@Override
+	public enum DECOY_STRAT {
+		RAND, NEVER
+	}
+
+	private double moneyEarned;
+	private boolean turnOnDR;
+	private TransitProvider.DECOY_STRAT myStrat;
+
+	private static final double FLIPCHANCE = 0.05;
+	private static Random rng = new Random();
+
+	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TransitProvider.DECOY_STRAT strat) {
+		super(parentAS, log);
+		this.moneyEarned = 0.0;
+		this.myStrat = strat;
+		this.turnOnDR = false;
+	}
+
 	public void doRoundLogging() {
-		// TODO Auto-generated method stub
-
+		try {
+			this.logStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.parent.isDecoy()
+					+ "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
-	@Override
 	public void finalizeRoundAdjustments() {
-		// TODO Auto-generated method stub
-
+		this.parent.resetDecoyRouter();
+		if (this.turnOnDR) {
+			this.parent.toggleDecoyRouter();
+		}
+		this.turnOnDR = false;
 	}
 
-	@Override
 	public void makeAdustments() {
-		// TODO Auto-generated method stub
-
+		if (this.myStrat == TransitProvider.DECOY_STRAT.RAND) {
+			if (TransitProvider.rng.nextDouble() < TransitProvider.FLIPCHANCE) {
+				this.turnOnDR = true;
+			}
+		} else if(this.myStrat == TransitProvider.DECOY_STRAT.NEVER){
+			this.turnOnDR = false;
+		}
 	}
 
-	@Override
 	public void reportMoneyEarned(double moneyEarned) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
-	public Set<Integer> getNeighbors() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public int getRelationship(int otherASN) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public double getTrafficOverLinkBetween(int otherASN) {
-		// TODO Auto-generated method stub
-		return 0;
+		this.moneyEarned = moneyEarned;
 	}
 
 }

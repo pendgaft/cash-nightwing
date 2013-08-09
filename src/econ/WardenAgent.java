@@ -1,38 +1,41 @@
 package econ;
 
-import java.util.Set;
+import java.io.*;
+
 import decoy.DecoyAS;
 
 public class WardenAgent extends EconomicAgent {
 
-	private DecoyAS parent;
 	
-	public WardenAgent(DecoyAS parentObject){
-		this.parent = parentObject;
+	public WardenAgent(DecoyAS parentObject, BufferedWriter log){
+		super(parentObject, log);
+		if(!parentObject.isWardenAS()){
+			throw new IllegalArgumentException("Passed a non warden DecoyAS object to WardenAgent constructor.");
+		}
 	}
 	
 	@Override
 	public void doRoundLogging() {
-		// TODO Auto-generated method stub
+		// TODO Log the number of dirty paths we're using
 
 	}
 
 	@Override
 	public void finalizeRoundAdjustments() {
-		// TODO Auto-generated method stub
+		// TODO route around as many decoys as we can find
 
 	}
 
 	@Override
 	public void makeAdustments() {
-		// TODO Auto-generated method stub
+		// TODO do hunting for decoy routers here
 
 	}
 
-	@Override
 	public void reportMoneyEarned(double moneyEarned) {
-		// TODO Auto-generated method stub
-
+		/*
+		 * Currently warden ASes don't care about money
+		 */
 	}
 
 
