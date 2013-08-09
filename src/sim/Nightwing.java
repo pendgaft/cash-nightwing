@@ -128,7 +128,9 @@ public class Nightwing {
 			 */
 			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
 			stat.runStat();
-			EconomicEngine econEngine = new EconomicEngine();
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
+			econEngine.driveEconomicTurn();
+			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
