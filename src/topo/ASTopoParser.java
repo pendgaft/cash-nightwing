@@ -135,6 +135,9 @@ public class ASTopoParser {
 		fBuff = new BufferedReader(new FileReader(superASFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
+			if(pollString.charAt(0) == '#'){
+				continue;
+			}
 			if (pollString.length() > 0) {
 				int asn = Integer.parseInt(pollString);
 				System.out.println("superAS: " + asn);
