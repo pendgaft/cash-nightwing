@@ -18,12 +18,11 @@ public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
+	private boolean purged;
 	private Set<AS> customers;
 	private Set<AS> peers;
 	private Set<AS> providers;
-	private Set<Integer> activeNeighbors;
 	private Set<Integer> purgedNeighbors;
-	private Set<Integer> neighbors;
 
 	private int numberOfIPs;
 	/** the percentage of ip count in the all normal ASes */
@@ -58,12 +57,11 @@ public abstract class AS implements TransitAgent {
 		this.totalTraffic = 0;
 		this.wardenTraffic = 0;
 		this.wardenAS = false;
+		this.purged = false;
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
 		this.providers = new HashSet<AS>();
-		this.activeNeighbors = new HashSet<Integer>();
 		this.purgedNeighbors = new HashSet<Integer>();
-		this.neighbors = new HashSet<Integer>();
 
 		this.adjInRib = new HashMap<Integer, List<BGPPath>>();
 		this.inRib = new HashMap<Integer, List<BGPPath>>();
@@ -180,6 +178,7 @@ public abstract class AS implements TransitAgent {
 	 * Remove all references to this as object from other AS objects
 	 */
 	public void purgeRelations() {
+		this.purged = true;
 		for (AS tCust : this.customers) {
 			tCust.providers.remove(this);
 			tCust.purgedNeighbors.add(this.asn);
@@ -192,6 +191,10 @@ public abstract class AS implements TransitAgent {
 			tPeer.peers.remove(this);
 			tPeer.purgedNeighbors.add(this.asn);
 		}
+	}
+	
+	public boolean isPurged(){
+		return this.purged;
 	}
 
 	/**
@@ -673,17 +676,17 @@ public abstract class AS implements TransitAgent {
 	public int getRelationship(int otherASN) {
 
 		for (AS tAS : this.providers) {
-			if (tAS.getASN() == asn) {
+			if (tAS.getASN() == otherASN) {
 				return AS.CUSTOMER_CODE;
 			}
 		}
 		for (AS tAS : this.peers) {
-			if (tAS.getASN() == asn) {
-				return AS.CUSTOMER_CODE;
+			if (tAS.getASN() == otherASN) {
+				return AS.PEER_CODE;
 			}
 		}
 		for (AS tAS : this.customers) {
-			if (tAS.getASN() == asn) {
+			if (tAS.getASN() == otherASN) {
 				return AS.PROIVDER_CODE;
 			}
 		}
@@ -692,7 +695,7 @@ public abstract class AS implements TransitAgent {
 			return 2;
 		}
 
-		throw new RuntimeException("asked for relation on non-adj/non-self asn, depending on sim "
+		throw new IllegalArgumentException("asked for relation on non-adj/non-self asn, depending on sim "
 				+ "this might be expected, if you're not, you should prob restart this sim...!");
 	}
 
@@ -703,18 +706,19 @@ public abstract class AS implements TransitAgent {
 	 * @return the set of all ASNs THIS AS is directly connected to
 	 */
 	public Set<Integer> getActiveNeighbors() {
+		HashSet<Integer> retSet = new HashSet<Integer>();
 
 		for (AS tAS : this.providers) {
-			this.activeNeighbors.add(tAS.getASN());
+			retSet.add(tAS.getASN());
 		}
 		for (AS tAS : this.customers) {
-			this.activeNeighbors.add(tAS.getASN());
+			retSet.add(tAS.getASN());
 		}
 		for (AS tAS : this.peers) {
-			this.activeNeighbors.add(tAS.getASN());
+			retSet.add(tAS.getASN());
 		}
 
-		return this.activeNeighbors;
+		return retSet;
 	}
 
 	/**
@@ -732,10 +736,11 @@ public abstract class AS implements TransitAgent {
 	 * on both active and purged topo
 	 */
 	public Set<Integer> getNeighbors() {
-		this.neighbors.addAll(this.activeNeighbors);
-		this.neighbors.addAll(this.purgedNeighbors);
+		HashSet<Integer> retSet = new HashSet<Integer>();
+		retSet.addAll(this.getActiveNeighbors());
+		retSet.addAll(this.purgedNeighbors);
 		
-		return this.neighbors;
+		return retSet;
 	}
 
 	/**
