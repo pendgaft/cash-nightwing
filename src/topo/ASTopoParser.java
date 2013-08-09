@@ -135,6 +135,9 @@ public class ASTopoParser {
 		fBuff = new BufferedReader(new FileReader(superASFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
+			/*
+			 * Ignore comments
+			 */
 			if(pollString.charAt(0) == '#'){
 				continue;
 			}
