@@ -1,5 +1,7 @@
 package topo;
 
+import java.io.Serializable;
+
 /**
  * Class that represents a BGP update message. In C this would be a struct that
  * contains a union based on if it is an explicit withdrawal or an advertisement
@@ -7,8 +9,13 @@ package topo;
  * @author pendgaft
  * 
  */
-public class BGPUpdate {
+public class BGPUpdate implements Serializable{
 
+	/**
+	 *  Serialization ID 
+	 */
+	private static final long serialVersionUID = 4978430406501402116L;
+	
 	private int withdrawlDest;
 	private AS withrdawlSource;
 	private BGPPath path;

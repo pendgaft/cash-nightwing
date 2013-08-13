@@ -4,6 +4,7 @@ import java.util.*;
 import java.io.*;
 
 import topo.AS;
+import topo.SerializationMaster;
 
 /*import decoy.DecoyAS;
  import decoy.Rings;*/
@@ -60,14 +61,28 @@ public class Nightwing {
 		}
 		System.out.println("Mode: " + args[0] + " on warden country " + wardenFile + " looks good, building topo.");
 
-		// HashMap<Integer, DecoyAS>[] topoArray =
-		// BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt", country
-		// + "-superAS.txt");
-		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(wardenFile);
-		HashMap<Integer, DecoyAS> liveTopo = topoArray[0];
-		HashMap<Integer, DecoyAS> prunedTopo = topoArray[1];
-		System.out.println("Topo built and BGP converged.");
-
+		HashMap<Integer, DecoyAS> liveTopo = null;
+		HashMap<Integer, DecoyAS> prunedTopo = null;
+		
+		/*
+		 * Serialization control
+		 */
+		SerializationMaster serialControl = new SerializationMaster(wardenFile);
+		if(serialControl.hasValidSerialFile()){
+			System.out.println("Valid serial file exists, skipping fresh build.");
+			liveTopo = serialControl.loadActiveMap();
+			prunedTopo = serialControl.loadPrunedMap();
+			System.out.println("Topology loaded from serial file.");
+		}else{
+			System.out.println("No serial file exists, building topology from scratch.");
+			HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(wardenFile);
+			liveTopo = topoArray[0];
+			prunedTopo = topoArray[1];
+			System.out.println("Topo built and BGP converged.");	
+			serialControl.buildSerializationFile(liveTopo, prunedTopo);
+			System.out.println("Topology saved to serial file.");
+		}
+		
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {

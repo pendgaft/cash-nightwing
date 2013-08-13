@@ -1,5 +1,6 @@
 package topo;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -8,8 +9,13 @@ import java.util.*;
  * @author pendgaft
  * 
  */
-public class BGPPath {
+public class BGPPath implements Serializable{
 
+	/**
+	 *  Serialization ID 
+	 */
+	private static final long serialVersionUID = 5527061905060650245L;
+	
 	private int destASN;
 	private LinkedList<Integer> path;
 

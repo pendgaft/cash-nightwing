@@ -1,5 +1,7 @@
 package decoy;
 
+import java.io.Serializable;
+
 import topo.AS;
 
 /**
@@ -10,7 +12,12 @@ import topo.AS;
  * @author pendgaft
  * 
  */
-public class DecoyAS extends AS {
+public class DecoyAS extends AS implements Serializable{
+
+	/**
+	 * Serialization ID
+	 */
+	private static final long serialVersionUID = 212255951735594960L;
 
 	/**
 	 * Flag for the AS deploying decoy routers

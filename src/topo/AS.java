@@ -3,6 +3,8 @@ package topo;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import java.io.Serializable;
+
 import econ.TransitAgent;
 
 /**
@@ -14,8 +16,13 @@ import econ.TransitAgent;
  * @author pendgaft
  * 
  */
-public abstract class AS implements TransitAgent {
+public abstract class AS implements TransitAgent, Serializable {
 
+	/**
+	 * Serialization ID 
+	 */
+	private static final long serialVersionUID = 2218701368397505673L;
+	
 	private int asn;
 	private boolean wardenAS;
 	private boolean activeAvoidance;
