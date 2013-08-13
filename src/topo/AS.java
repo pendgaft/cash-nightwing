@@ -18,6 +18,8 @@ public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
+	private boolean activeAvoidance;
+	private Set<Integer> avoidSet;
 	private boolean purged;
 	private Set<AS> customers;
 	private Set<AS> peers;
@@ -34,11 +36,11 @@ public abstract class AS implements TransitAgent {
 	/** the amount of traffic that goes from warden */
 	private double wardenTraffic;
 
-	public HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
+	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 														// adjancey
-	public HashMap<Integer, List<BGPPath>> inRib; // all pathes
-	public HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
-	public HashMap<Integer, BGPPath> locRib;// best path
+	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
+	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
+	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
 
 	private Queue<BGPUpdate> incUpdateQueue;
@@ -57,6 +59,7 @@ public abstract class AS implements TransitAgent {
 		this.totalTraffic = 0;
 		this.wardenTraffic = 0;
 		this.wardenAS = false;
+		this.activeAvoidance = false;
 		this.purged = false;
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
@@ -192,8 +195,8 @@ public abstract class AS implements TransitAgent {
 			tPeer.purgedNeighbors.add(this.asn);
 		}
 	}
-	
-	public boolean isPurged(){
+
+	public boolean isPurged() {
 		return this.purged;
 	}
 
@@ -271,6 +274,14 @@ public abstract class AS implements TransitAgent {
 		}
 
 		recalcBestPath(dest);
+	}
+	
+	public void rescanBGPTable(){
+		//XXX logging
+		System.out.println("Rescanning bgp table.");
+		for(int tDest: this.locRib.keySet()){
+			this.recalcBestPath(tDest);
+		}
 	}
 
 	/**
@@ -364,6 +375,26 @@ public abstract class AS implements TransitAgent {
 		}
 	}
 
+	public BGPPath pathSelection(List<BGPPath> possList) {
+		/*
+		 * If we're not doing active avoidance of decoy routers, just find the
+		 * best path and move on w/ life
+		 */
+		if (!this.activeAvoidance) {
+			return this.internalPathSelection(possList, false);
+		}
+
+		/*
+		 * If we are doing active avoidance, jump around the decoy routers if we
+		 * can, if not don't lose connectivity
+		 */
+		BGPPath avoidPath = this.internalPathSelection(possList, true);
+		if (avoidPath != null) {
+			return avoidPath;
+		}
+		return this.internalPathSelection(possList, false);
+	}
+
 	/**
 	 * Method that handles actual BGP path selection. Slightly abbreviated, does
 	 * AS relation, path length, then tie break.
@@ -372,10 +403,14 @@ public abstract class AS implements TransitAgent {
 	 *            - the possible valid routes
 	 * @return - the "best" of the valid routes by usual BGP metrics
 	 */
-	public BGPPath pathSelection(List<BGPPath> possList) {
+	private BGPPath internalPathSelection(List<BGPPath> possList, boolean avoidDecoys) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
 		for (BGPPath tPath : possList) {
+			if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
+				continue;
+			}
+
 			if (currentBest == null) {
 				currentBest = tPath;
 				currentRel = this.getRel(currentBest.getNextHop());
@@ -596,6 +631,17 @@ public abstract class AS implements TransitAgent {
 		return this.wardenAS;
 	}
 
+	public void turnOnActiveAvoidance(Set<Integer> avoidList) {
+		if (!this.isWardenAS()) {
+			throw new IllegalStateException("Attempted to toggle avoidance on non-warden.");
+		}
+
+		//XXX logging
+		System.out.println("avoiding: " + avoidList);
+		this.activeAvoidance = true;
+		this.avoidSet = avoidList;
+	}
+
 	/**
 	 * Predicate to test if this AS is connected to the warden. An AS that is
 	 * part of the warden is of course trivially connected to the warden
@@ -730,16 +776,16 @@ public abstract class AS implements TransitAgent {
 	public Set<Integer> getPurgedNeighbors() {
 		return this.purgedNeighbors;
 	}
-	
+
 	/**
-	 * Fetches the set of all ASNs for ASes that are directly connected to it
-	 * on both active and purged topo
+	 * Fetches the set of all ASNs for ASes that are directly connected to it on
+	 * both active and purged topo
 	 */
 	public Set<Integer> getNeighbors() {
 		HashSet<Integer> retSet = new HashSet<Integer>();
 		retSet.addAll(this.getActiveNeighbors());
 		retSet.addAll(this.purgedNeighbors);
-		
+
 		return retSet;
 	}
 
@@ -764,8 +810,9 @@ public abstract class AS implements TransitAgent {
 	}
 
 	/**
-	 * update the traffic flowing over its given neighbor which is stored
-	 * in a special map
+	 * update the traffic flowing over its given neighbor which is stored in a
+	 * special map
+	 * 
 	 * @param neighbor
 	 * @param amountOfTraffic
 	 */
@@ -776,5 +823,9 @@ public abstract class AS implements TransitAgent {
 		} else {
 			this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
 		}
+	}
+	
+	public void resetTraffic(){
+		this.trafficOverNeighbors.clear();
 	}
 }

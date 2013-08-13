@@ -48,4 +48,10 @@ public interface TransitAgent {
 	 *         traveled from THIS AS to otherASN this round
 	 */
 	public double getTrafficOverLinkBetween(int otherASN);
+
+	/**
+	 * Resets the amount of traffic that has followed through this AS, used to
+	 * reset before a new round.
+	 */
+	public void resetTraffic();
 }

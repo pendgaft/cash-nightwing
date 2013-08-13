@@ -18,8 +18,6 @@ public class Nightwing {
 	private static final int REPEAT_MODE = 2;
 	private static final String ASYM_STRING = "asym";
 	private static final int ASYM_MODE = 3;
-	private static final String ACTIVE_AVOID_STRING = "avoid";
-	private static final int ACTIVE_MODE = 4;
 	private static final String RING_STRING = "ring";
 	private static final int RING_MODE = 5;
 	private static final int TRAFFICSTAT1_MODE = 6;
@@ -38,7 +36,6 @@ public class Nightwing {
 		 * Figure out mode that we're running
 		 */
 		int mode = 0;
-		int avoidSize = 0;
 		String wardenFile = args[1];
 		if (args[0].equalsIgnoreCase(Nightwing.FIND_STRING)) {
 			mode = Nightwing.FIND_MODE;
@@ -47,9 +44,6 @@ public class Nightwing {
 			mode = Nightwing.REPEAT_MODE;
 		} else if (args[0].equalsIgnoreCase(Nightwing.ASYM_STRING)) {
 			mode = Nightwing.ASYM_MODE;
-		} else if (args[0].equalsIgnoreCase(Nightwing.ACTIVE_AVOID_STRING)) {
-			mode = Nightwing.ACTIVE_MODE;
-			avoidSize = Integer.parseInt(args[1]);
 		} else if (args[0].equalsIgnoreCase(Nightwing.RING_STRING)) {
 			mode = Nightwing.RING_MODE;
 		} else if (args[0].equalsIgnoreCase(Nightwing.TRAFFICSTAT1_STRING)) {
@@ -69,7 +63,7 @@ public class Nightwing {
 		// HashMap<Integer, DecoyAS>[] topoArray =
 		// BGPMaster.buildBGPConnection(avoidSize, country + "-as.txt", country
 		// + "-superAS.txt");
-		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(avoidSize, wardenFile);
+		HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(wardenFile);
 		HashMap<Integer, DecoyAS> liveTopo = topoArray[0];
 		HashMap<Integer, DecoyAS> prunedTopo = topoArray[1];
 		System.out.println("Topo built and BGP converged.");
@@ -112,9 +106,6 @@ public class Nightwing {
 		} else if (mode == Nightwing.ASYM_MODE) {
 			PathAsym simDriver = new PathAsym(liveTopo, prunedTopo);
 			simDriver.buildPathSymCDF();
-		} else if (mode == Nightwing.ACTIVE_MODE) {
-			FindSim simDriver = new FindSim(liveTopo, prunedTopo);
-			simDriver.runActive(avoidSize);
 		} else if (mode == Nightwing.RING_MODE) {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(wardenFile);
@@ -127,9 +118,14 @@ public class Nightwing {
 			 * through the network
 			 */
 			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
-			stat.runStat();
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
-			econEngine.driveEconomicTurn();
+			/*
+			 * Do the actual rounds of simulation
+			 */
+			for(int counter = 0; counter < 3; counter++){
+				stat.runStat();
+				econEngine.driveEconomicTurn();	
+			}
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);

@@ -18,6 +18,8 @@ public class TransitProvider extends EconomicAgent {
 	private static final double FLIPCHANCE = 0.05;
 	private static Random rng = new Random();
 
+	private static final boolean TESTING = true;
+
 	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TransitProvider.DECOY_STRAT strat) {
 		super(parentAS, log);
 		this.moneyEarned = 0.0;
@@ -44,11 +46,20 @@ public class TransitProvider extends EconomicAgent {
 	}
 
 	public void makeAdustments() {
+		if (TransitProvider.TESTING) {
+			if (this.parent.getASN() == 2) {
+				this.turnOnDR = true;
+			} else {
+				this.turnOnDR = false;
+			}
+			return;
+		}
+
 		if (this.myStrat == TransitProvider.DECOY_STRAT.RAND) {
 			if (TransitProvider.rng.nextDouble() < TransitProvider.FLIPCHANCE) {
 				this.turnOnDR = true;
 			}
-		} else if(this.myStrat == TransitProvider.DECOY_STRAT.NEVER){
+		} else if (this.myStrat == TransitProvider.DECOY_STRAT.NEVER) {
 			this.turnOnDR = false;
 		}
 	}

@@ -73,4 +73,8 @@ public abstract class EconomicAgent implements TransitAgent {
 	public boolean isPurged(){
 		return this.parent.isPurged();
 	}
+	
+	public void resetTraffic(){
+		this.parent.resetTraffic();
+	}
 }

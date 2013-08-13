@@ -28,7 +28,7 @@ public class BGPPath {
 	 * @return - true if at least one of the ASNs found in testASNs is in the
 	 *         path, false otherwise
 	 */
-	public boolean containsAnyOf(HashSet<Integer> testASNs) {
+	public boolean containsAnyOf(Set<Integer> testASNs) {
 		for (int tHop : this.path) {
 			if (testASNs.contains(tHop)) {
 				return true;

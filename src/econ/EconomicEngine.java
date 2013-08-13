@@ -5,11 +5,13 @@ import java.io.*;
 
 import decoy.DecoyAS;
 
+import sim.BGPMaster;
 import topo.AS;
 
 public class EconomicEngine {
 
 	private HashMap<Integer, EconomicAgent> theTopo;
+	private HashMap<Integer, DecoyAS> activeTopology;
 	private HashMap<Integer, Double> cashForThisRound;
 
 	private BufferedWriter wardenOut;
@@ -18,9 +20,12 @@ public class EconomicEngine {
 	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
 	private static final double COST_PER_MBYTE = 1.0;
 
+	private static final String ROUND_TERMINATOR = "***\n";
+
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
+		this.activeTopology = activeMap;
 
 		try {
 			this.wardenOut = new BufferedWriter(new FileWriter("logs/warden.log"));
@@ -36,7 +41,7 @@ public class EconomicEngine {
 		}
 		for (DecoyAS tAS : activeMap.values()) {
 			if (tAS.isWardenAS()) {
-				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut));
+				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut,
 						TransitProvider.DECOY_STRAT.RAND));
@@ -57,17 +62,17 @@ public class EconomicEngine {
 		}
 
 		/*
-		 * Let the agents ponder thier move
-		 */
-		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).makeAdustments();
-		}
-
-		/*
 		 * Time to do a bit of logging....
 		 */
 		for (int tASN : this.theTopo.keySet()) {
 			this.theTopo.get(tASN).doRoundLogging();
+		}
+		
+		/*
+		 * Let the agents ponder their move
+		 */
+		for (int tASN : this.theTopo.keySet()) {
+			this.theTopo.get(tASN).makeAdustments();
 		}
 
 		/*
@@ -75,6 +80,22 @@ public class EconomicEngine {
 		 */
 		for (int tASN : this.theTopo.keySet()) {
 			this.theTopo.get(tASN).finalizeRoundAdjustments();
+		}
+
+		/*
+		 * Do a fresh round of BGPProcessing
+		 */
+		BGPMaster.driveBGPProcessing(this.activeTopology);
+
+		/*
+		 * Write the round terminators to logging files
+		 */
+		try {
+			this.wardenOut.write(EconomicEngine.ROUND_TERMINATOR);
+			this.transitOut.write(EconomicEngine.ROUND_TERMINATOR);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
 		}
 	}
 
@@ -97,11 +118,11 @@ public class EconomicEngine {
 				try {
 					relation = tAgent.getRelationship(tNeighbor);
 				} catch (IllegalArgumentException e) {
-					if(tAgent.isPurged()){
+					if (tAgent.isPurged()) {
 						relation = AS.CUSTOMER_CODE;
-					}else if(this.theTopo.get(tNeighbor).isPurged()){
+					} else if (this.theTopo.get(tNeighbor).isPurged()) {
 						relation = AS.PROIVDER_CODE;
-					} else{
+					} else {
 						throw e;
 					}
 				}

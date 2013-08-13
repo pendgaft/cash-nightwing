@@ -5,7 +5,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import decoy.DecoyAS;
-import decoy.LargeASDecoyPlacer;
 import topo.AS;
 import topo.ASTopoParser;
 import topo.BGPPath;
@@ -21,7 +20,7 @@ public class BGPMaster {
 	private static final int WORK_BLOCK_SIZE = 40;
 
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(int chinaAvoidanceSize, String wardenFile) throws IOException {
+	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(String wardenFile) throws IOException {
 
 		/*
 		 * Build AS map
@@ -29,54 +28,33 @@ public class BGPMaster {
 		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
 
-		/*
-		 * If we're doing active return path avoidance, setup here
-		 */
-		
-		// Print checking
-		/*System.out.println("ASes in useful ASMap");
-		for (AS tAS : usefulASMap.values() ){
-			System.out.println(tAS.getASN());
-		}
-		System.out.println("ASes in useful ASMap done");*/
-		// done
-		
-		LargeASDecoyPlacer deployer = new LargeASDecoyPlacer(usefulASMap);
-		Set<Integer> avoidSet = deployer.seedNLargest(chinaAvoidanceSize);
-		
-		// Print checking
-		System.out.println("decoy ASes:");
-		for (int tAvoid : avoidSet) {
-			System.out.println(tAvoid);
-		}
-		System.out.println("All decoy ASes");
-		if (avoidSet.isEmpty()) {
-			System.out.println("empty set");
-		}
-		// done
 		
 		/*
 		 * Give everyone their self network
 		 */
 		for (AS tAS : usefulASMap.values()) {
-			if (tAS.isWardenAS()) {
-				BGPPath tempPath = new BGPPath(tAS.getASN());
-				for(int tAvoid: avoidSet){
-					tempPath.prependASToPath(tAvoid);
-				}
-				tAS.advPath(tempPath);
-			} else {
-				tAS.advPath(new BGPPath(tAS.getASN()));
-			}
+			tAS.advPath(new BGPPath(tAS.getASN()));
 		}
 
+		BGPMaster.driveBGPProcessing(usefulASMap);
+
+		BGPMaster.verifyConnected(usefulASMap);
+
+		//self.tellDone();
+		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
+		retArray[0] = usefulASMap;
+		retArray[1] = prunedASMap;
+		return retArray;
+	}
+	
+	public static void driveBGPProcessing(HashMap<Integer, DecoyAS> activeMap){
 		/*
 		 * dole out ases into blocks
 		 */
 		List<Set<AS>> asBlocks = new LinkedList<Set<AS>>();
 		int currentBlockSize = 0;
 		Set<AS> currentSet = new HashSet<AS>();
-		for (AS tAS : usefulASMap.values()) {
+		for (AS tAS : activeMap.values()) {
 			currentSet.add(tAS);
 			currentBlockSize++;
 
@@ -137,7 +115,7 @@ public class BGPMaster {
 			/*
 			 * check if nodes still have stuff to do
 			 */
-			for (AS tAS : usefulASMap.values()) {
+			for (AS tAS : activeMap.values()) {
 				if (tAS.hasWorkToDo()) {
 					stuffToDo = true;
 				}
@@ -152,7 +130,7 @@ public class BGPMaster {
 			 * point
 			 */
 			if (!stuffToDo && skipToMRAI) {
-				for (AS tAS : usefulASMap.values()) {
+				for (AS tAS : activeMap.values()) {
 					tAS.mraiExpire();
 				}
 				skipToMRAI = false;
@@ -170,14 +148,6 @@ public class BGPMaster {
 
 		bgpStartTime = System.currentTimeMillis() - bgpStartTime;
 		System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
-
-		BGPMaster.verifyConnected(usefulASMap);
-
-		//self.tellDone();
-		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
-		retArray[0] = usefulASMap;
-		retArray[1] = prunedASMap;
-		return retArray;
 	}
 
 	public BGPMaster(int blockCount) {
