@@ -63,26 +63,17 @@ public class TrafficStat1 {
 	}
 
 	public void runStat() throws IOException {
+		/*
+		 * Clear out the values from last round
+		 */
+		for(DecoyAS tAS: this.fullTopology.values()){
+			tAS.resetTraffic();
+		}
 
 		this.statTrafficOnPToPNetwork();
 		this.statTrafficFromSuperAS();
 
 		testResults();
-		
-		if (Constants.DEBUG) {
-			for (DecoyAS tAS: this.activeMap.values()) {
-				System.out.println("AS: " + tAS.getASN());
-				System.out.println("adjInRib: " + tAS.adjInRib + "\n adjOutRib: "
-						+ tAS.adjOutRib + "\n inRib: " + tAS.inRib + "\n locRib: " + tAS.locRib
-						+ "\nprovider: " + tAS.getProviders() + "\n peer: " + tAS.getPeers() + "\n customers" + tAS.getCustomers());
-			}
-			for (DecoyAS tAS: this.purgedMap.values()) {
-				System.out.println("AS: " + tAS.getASN());
-				System.out.println("adjInRib: " + tAS.adjInRib + "\n adjOutRib: "
-						+ tAS.adjOutRib + "\n inRib: " + tAS.inRib + "\n locRib: " + tAS.locRib
-						+ "\nprovider: " + tAS.getProviders() + "\n peer: " + tAS.getPeers() + "\n customers" + tAS.getCustomers());
-			}
-		}
 		
 		/*for (DecoyAS tAS : this.fullTopology.values()) {
 			System.out.println(tAS.getASN());
