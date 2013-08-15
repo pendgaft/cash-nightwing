@@ -25,8 +25,6 @@ public class TrafficStat1 {
 
 	/** the total amount of traffic flowing on the peer to peer network */
 	private double totalP2PTraffic;
-	/** the number of super ASes */
-	private int superASNum;
 
 	/** Stores the active (routing) portion of the topology */
 	private HashMap<Integer, DecoyAS> activeMap;
@@ -47,7 +45,6 @@ public class TrafficStat1 {
 			String trafficSplitFile) {
 
 		this.totalP2PTraffic = 0;
-		this.superASNum = 0;
 		this.activeMap = activeMap;
 		this.purgedMap = purgedMap;
 		this.fullTopology = new HashMap<Integer, DecoyAS>();
@@ -60,13 +57,20 @@ public class TrafficStat1 {
 		this.trafficSplitFile = trafficSplitFile;
 		normalASList = new ArrayList<DecoyAS>();
 		superASList = new ArrayList<DecoyAS>();
+
+		try {
+			this.statTotalP2PTraffic();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 	}
 
 	public void runStat() throws IOException {
 		/*
 		 * Clear out the values from last round
 		 */
-		for(DecoyAS tAS: this.fullTopology.values()){
+		for (DecoyAS tAS : this.fullTopology.values()) {
 			tAS.resetTraffic();
 		}
 
@@ -74,13 +78,13 @@ public class TrafficStat1 {
 		this.statTrafficFromSuperAS();
 
 		testResults();
-		
-		/*for (DecoyAS tAS : this.fullTopology.values()) {
-			System.out.println(tAS.getASN());
-			for (DecoyAS destAS : this.fullTopology.values()) {
-				System.out.println(" to " + tAS.getPath(destAS.getASN()));
-			}
-		}*/
+
+		/*
+		 * for (DecoyAS tAS : this.fullTopology.values()) {
+		 * System.out.println(tAS.getASN()); for (DecoyAS destAS :
+		 * this.fullTopology.values()) { System.out.println(" to " +
+		 * tAS.getPath(destAS.getASN())); } }
+		 */
 	}
 
 	/**
@@ -123,7 +127,6 @@ public class TrafficStat1 {
 	 */
 	private void statTrafficFromSuperAS() throws IOException {
 
-		statTotalP2PTraffic();
 		System.out.println("The total traffic on peer-to-peer network: " + getTotalP2PTraffic());
 
 		/*
@@ -135,60 +138,62 @@ public class TrafficStat1 {
 
 		trafficFromSuperASToNormalAS();
 	}
- 
+
 	/**
-	 * for each current AS on the path, add its next hop as its neighbor with the traffic
-	 * amount equals to srcAS's ip count times destAS's ip count
+	 * for each current AS on the path, add its next hop as its neighbor with
+	 * the traffic amount equals to srcAS's ip count times destAS's ip count
+	 * 
 	 * @param tpath
 	 * @param srcAS
 	 * @param destAS
 	 * @return
 	 */
 	private double addTrafficOnTheLinkBasisPath(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS, boolean fromSuperAS) {
-		
+
 		double amountOfTraffic = 0;
 		if (fromSuperAS) {
 			amountOfTraffic = destAS.getTrafficFromEachSuperAS();
 		} else {
 			amountOfTraffic = srcAS.getIPCount() * destAS.getIPCount();
 		}
-		
+
 		// no traffic between super ASes
 		if (fromSuperAS && destAS.isSuperAS()) {
 			return 0;
 		}
 		// add the first
 		srcAS.updateTrafficOverOneNeighbor(tpath.getNextHop(), amountOfTraffic);
-		
+
 		List<Integer> pathList = tpath.getPath();
 		if (pathList.size() != 1) {
 			// add on the path
-			for (int tASN = 0; tASN < pathList.size()-1; ++tASN) {
+			for (int tASN = 0; tASN < pathList.size() - 1; ++tASN) {
 				DecoyAS currentAS = this.fullTopology.get(pathList.get(tASN));
-				DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN+1));
+				DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
 				currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic);
 			}
 		}
-		
+
 		return amountOfTraffic;
 	}
-	
+
 	/**
-	 * does the same thing as addTrafficOnTheLinkBasisPath(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS),
-	 * only difference is that the path doesn't contain the AS on the purged map, so need to add them
-	 * manually.
+	 * does the same thing as addTrafficOnTheLinkBasisPath(BGPPath tpath,
+	 * DecoyAS srcAS, DecoyAS destAS), only difference is that the path doesn't
+	 * contain the AS on the purged map, so need to add them manually.
+	 * 
 	 * @param tpath
 	 * @param srcAS
 	 * @param destPurgedAS
 	 */
-	private void addTrafficOnTheLinkBasisPathAndPurged(BGPPath tpath,
-			DecoyAS srcAS, DecoyAS destPurgedAS, boolean fromSuperAS) {
+	private void addTrafficOnTheLinkBasisPathAndPurged(BGPPath tpath, DecoyAS srcAS, DecoyAS destPurgedAS,
+			boolean fromSuperAS) {
 
 		double amountOfTraffic = this.addTrafficOnTheLinkBasisPath(tpath, srcAS, destPurgedAS, fromSuperAS);
 		// tpath doesn't contain the destiny AS on the purged map, so add the traffic on it manually 
 		List<Integer> pathList = tpath.getPath();
-		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size()-1));
-		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);		
+		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
+		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);
 	}
 
 	/**
@@ -218,46 +223,47 @@ public class TrafficStat1 {
 	 *            the path to add traffic unit
 	 */
 	private double addTrafficOnThePath(BGPPath path, DecoyAS srcAS, DecoyAS destAS) {
-		
+
 		double amountOfTraffic = srcAS.getIPCount() * destAS.getIPCount();
 		for (int tHop : path.getPath()) {
 			DecoyAS tAS = this.fullTopology.get(tHop);
 			tAS.addOnTotalTraffic(amountOfTraffic);
 			this.addTrafficFromWarden(tHop, amountOfTraffic, srcAS.getASN());
 		}
-		
+
 		return amountOfTraffic;
 	}
 
 	/**
 	 * add the weighted traffic to all ASes on the given path and stat the
-	 * warden traffic at the same time. since the ASes on the purged map
-	 * are not in BGPPath path, so need to be added manually.
+	 * warden traffic at the same time. since the ASes on the purged map are not
+	 * in BGPPath path, so need to be added manually.
+	 * 
 	 * @param path
 	 * @param srcAS
 	 * @param destAS
 	 */
 	private void addTrafficOnThePathAndPurged(BGPPath path, DecoyAS srcAS, DecoyAS destAS) {
-		
+
 		double amountOfTraffic = this.addTrafficOnThePath(path, srcAS, destAS);
 		destAS.addOnTotalTraffic(amountOfTraffic);
 		this.addTrafficFromWarden(destAS.getASN(), amountOfTraffic, srcAS.getASN());
 	}
-	
+
 	private double addSuperASTrafficOnThePath(BGPPath path, DecoyAS superAS, DecoyAS destAS) {
-		
+
 		double amountOfTraffic = destAS.getTrafficFromEachSuperAS();
 		for (int tHop : path.getPath()) {
 			DecoyAS tAS = this.fullTopology.get(tHop);
 			tAS.addOnTotalTraffic(amountOfTraffic);
 			this.addTrafficFromWarden(tHop, amountOfTraffic, superAS.getASN());
 		}
-		
+
 		return amountOfTraffic;
 	}
-	
+
 	private void addSuperASTrafficOnThePathAndPurged(BGPPath path, DecoyAS superAS, DecoyAS destAS) {
-		
+
 		double amountOfTraffic = this.addSuperASTrafficOnThePath(path, superAS, destAS);
 		destAS.addOnTotalTraffic(amountOfTraffic);
 		this.addTrafficFromWarden(destAS.getASN(), amountOfTraffic, superAS.getASN());
@@ -273,7 +279,7 @@ public class TrafficStat1 {
 	 *            a path to the key AS
 	 */
 	private static void addToPathSets(HashMap<Integer, List<BGPPath>> pathSets, int key, BGPPath path) {
-		
+
 		if (pathSets.containsKey(key)) {
 			List<BGPPath> tList = pathSets.get(key);
 			tList.add(path);
@@ -299,7 +305,7 @@ public class TrafficStat1 {
 		}
 		return pList;
 	}
-	
+
 	/**
 	 * count the traffic of paths starting from activeMap ending at either
 	 * activeMap or purgedMap
@@ -324,24 +330,25 @@ public class TrafficStat1 {
 	 * the traffic of all the paths starting from the given AS in activeMap to
 	 * all ASes in the activeMap
 	 * 
-	 * also  stat traffic in link basis, accumulate the traffic for the neighbors
-	 * of each AS. basically, if a path A B C D flowing from A to D, 
-	 * then A add B as its neighbor with traffic of A's ip amount times D's ip amount. 
-	 * same for B, C is added as its neighbor with traffic of A's ip amount times D's ip amount.
+	 * also stat traffic in link basis, accumulate the traffic for the neighbors
+	 * of each AS. basically, if a path A B C D flowing from A to D, then A add
+	 * B as its neighbor with traffic of A's ip amount times D's ip amount. same
+	 * for B, C is added as its neighbor with traffic of A's ip amount times D's
+	 * ip amount.
 	 * 
 	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
 	private void activeToActive(DecoyAS srcActiveAS) {
 
-		for (DecoyAS tdestActiveAS: this.activeMap.values()) {
+		for (DecoyAS tdestActiveAS : this.activeMap.values()) {
 			/*
 			 * Don't send traffic to yourself
 			 */
 			if (srcActiveAS.getASN() == tdestActiveAS.getASN()) {
 				continue;
 			}
-			
+
 			/*
 			 * Fetch the actual path object, deal with the odd case in which it
 			 * does not exist
@@ -377,7 +384,7 @@ public class TrafficStat1 {
 				continue;
 
 			this.addTrafficOnThePathAndPurged(tpath, srcActiveAS, tdestPurgedAS);
-			
+
 			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
 				double amountOfTraffic = srcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
 				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
@@ -386,8 +393,6 @@ public class TrafficStat1 {
 			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcActiveAS, tdestPurgedAS, TrafficStat1.NOTFROMSUPERAS);
 		}
 	}
-
-
 
 	/**
 	 * count the traffic of all the paths starting from every AS in purgedMap to
@@ -434,7 +439,8 @@ public class TrafficStat1 {
 				BGPPath tpath = tsrcPurgedAS.pathSelection(pathSets.get(tdestActiveASN));
 				/* stat the traffic on the path */
 				this.addTrafficOnThePath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN));
-				this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN), TrafficStat1.NOTFROMSUPERAS);
+				this.addTrafficOnTheLinkBasisPath(tpath, tsrcPurgedAS, this.fullTopology.get(tdestActiveASN),
+						TrafficStat1.NOTFROMSUPERAS);
 			}
 		}
 	}
@@ -491,7 +497,8 @@ public class TrafficStat1 {
 					continue;
 
 				this.addTrafficOnThePathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN));
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN), TrafficStat1.NOTFROMSUPERAS);
+				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, tsrcPurgedAS, this.fullTopology.get(tdestPurgedASN),
+						TrafficStat1.NOTFROMSUPERAS);
 			}
 		}
 	}
@@ -571,7 +578,7 @@ public class TrafficStat1 {
 	 * @param totalTrafficFromSuperASes
 	 */
 	private void groupASesAndCalcTrafficForNormalAS(double totalTrafficFromSuperASes) {
-
+		int superASNum = 0;
 		double totalIPCounts = 0;
 		for (DecoyAS tAS : this.activeMap.values()) {
 			if (!tAS.isSuperAS()) {
@@ -579,7 +586,7 @@ public class TrafficStat1 {
 				totalIPCounts += tAS.getIPCount();
 			} else {
 				this.superASList.add(tAS);
-				++this.superASNum;
+				superASNum++;
 			}
 		}
 		for (DecoyAS tAS : this.purgedMap.values()) {
@@ -588,12 +595,12 @@ public class TrafficStat1 {
 				totalIPCounts += tAS.getIPCount();
 			} else {
 				this.superASList.add(tAS);
-				++this.superASNum;
+				superASNum++;
 			}
 		}
 
 		/* calculate the percentage */
-		double trafficFromOneSuperAS = totalTrafficFromSuperASes / this.superASNum;
+		double trafficFromOneSuperAS = totalTrafficFromSuperASes / superASNum;
 		for (DecoyAS tAS : this.normalASList) {
 			tAS.setIPPercentage(tAS.getIPCount() / totalIPCounts);
 			tAS.setTrafficFromEachSuperAS(tAS.getIPCount() / totalIPCounts * trafficFromOneSuperAS);
@@ -717,7 +724,8 @@ public class TrafficStat1 {
 				BGPPath tpath = this.purgedMap.get(tsrcASN).pathSelection(pathSets.get(tdestASN));
 				/* stat the traffic on the path */
 				this.addSuperASTrafficOnThePath(tpath, srcSuperAS, this.fullTopology.get(tdestASN));
-				this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, this.fullTopology.get(tdestASN), TrafficStat1.FROMSUPERAS);
+				this.addTrafficOnTheLinkBasisPath(tpath, srcSuperAS, this.fullTopology.get(tdestASN),
+						TrafficStat1.FROMSUPERAS);
 			}
 		}
 
@@ -781,7 +789,8 @@ public class TrafficStat1 {
 
 				/* the traffic of the destiny AS from each super AS */
 				this.addSuperASTrafficOnThePathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN));
-				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN), TrafficStat1.FROMSUPERAS);
+				this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, this.fullTopology.get(tdestASN),
+						TrafficStat1.FROMSUPERAS);
 			}
 		}
 	}
@@ -852,7 +861,7 @@ public class TrafficStat1 {
 		for (DecoyAS tAS : this.activeMap.values()) {
 			if (!tAS.isSuperAS())
 				continue;
-			
+
 			/* traffic from tAS which is in the activeMap to activeMap */
 			statTrafficFromSuperASActiveToActive(tAS);
 
@@ -874,7 +883,7 @@ public class TrafficStat1 {
 		for (DecoyAS tAS : this.purgedMap.values()) {
 			System.out.println(tAS.getASN() + ", " + tAS.getTotalTraffic() + ", " + tAS.getTrafficFromWarden());
 		}
-		
+
 		System.out.println("\nShowResults: traffic flowing to neighbors");
 		System.out.println("AS, neighbor AS, total traffic");
 		for (DecoyAS tAS : this.fullTopology.values()) {
@@ -882,8 +891,7 @@ public class TrafficStat1 {
 				System.out.println(tAS.getASN() + ", " + tASN + ", " + tAS.getTrafficOverLinkBetween(tASN));
 			}
 			System.out.println();
-					
+
 		}
 	}
 }
-
