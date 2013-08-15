@@ -22,7 +22,7 @@ public class EconomicEngine {
 
 	private static final String ROUND_TERMINATOR = "***\n";
 
-	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
+	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap, double flipChance) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
@@ -35,6 +35,7 @@ public class EconomicEngine {
 			System.exit(-1);
 		}
 
+		TransitProvider.setFlipChance(flipChance);
 		for (DecoyAS tAS : prunedMap.values()) {
 			this.theTopo
 					.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, TransitProvider.DECOY_STRAT.NEVER));

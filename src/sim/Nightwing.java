@@ -55,6 +55,10 @@ public class Nightwing {
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
+			if(args.length != 4){
+				System.out.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <decoy conversion chance>");
+				return;
+			}
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);
@@ -133,11 +137,11 @@ public class Nightwing {
 			 * through the network
 			 */
 			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
-			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, Double.parseDouble(args[3]));
 			/*
 			 * Do the actual rounds of simulation
 			 */
-			for(int counter = 0; counter < 3; counter++){
+			for(int counter = 0; counter < 7; counter++){
 				stat.runStat();
 				econEngine.driveEconomicTurn();	
 			}

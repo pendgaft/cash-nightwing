@@ -12,19 +12,25 @@ public class TransitProvider extends EconomicAgent {
 	}
 
 	private double moneyEarned;
-	private boolean turnOnDR;
+	private boolean flipDecoyState;
+	private int lockIn;
 	private TransitProvider.DECOY_STRAT myStrat;
 
-	private static final double FLIPCHANCE = 0.05;
+	private static double FLIPCHANCE = 0.00;
 	private static Random rng = new Random();
 
 	private static final boolean TESTING = true;
+
+	public static void setFlipChance(double chance) {
+		TransitProvider.FLIPCHANCE = chance;
+	}
 
 	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TransitProvider.DECOY_STRAT strat) {
 		super(parentAS, log);
 		this.moneyEarned = 0.0;
 		this.myStrat = strat;
-		this.turnOnDR = false;
+		this.flipDecoyState = false;
+		this.lockIn = 0;
 	}
 
 	public void doRoundLogging() {
@@ -38,29 +44,44 @@ public class TransitProvider extends EconomicAgent {
 	}
 
 	public void finalizeRoundAdjustments() {
-		this.parent.resetDecoyRouter();
-		if (this.turnOnDR) {
-			this.parent.toggleDecoyRouter();
+
+		if (this.flipDecoyState) {
+			if (!this.parent.isDecoy()) {
+				this.parent.toggleDecoyRouter();
+			} else {
+				this.parent.resetDecoyRouter();
+			}
 		}
-		this.turnOnDR = false;
+		this.flipDecoyState = false;
 	}
 
 	public void makeAdustments() {
+		if (this.lockIn > 0) {
+			this.lockIn--;
+			if(this.lockIn == 0 && this.parent.isDecoy()){
+				this.flipDecoyState = true;
+			}
+			return;
+		}
+
 		if (TransitProvider.TESTING) {
 			if (this.parent.getASN() == 2) {
-				this.turnOnDR = true;
+				this.flipDecoyState = true;
 			} else {
-				this.turnOnDR = false;
+				this.flipDecoyState = false;
 			}
+
+			this.lockIn = 2;
 			return;
 		}
 
 		if (this.myStrat == TransitProvider.DECOY_STRAT.RAND) {
 			if (TransitProvider.rng.nextDouble() < TransitProvider.FLIPCHANCE) {
-				this.turnOnDR = true;
+				this.flipDecoyState = true;
 			}
+			this.lockIn = 2;
 		} else if (this.myStrat == TransitProvider.DECOY_STRAT.NEVER) {
-			this.turnOnDR = false;
+			this.flipDecoyState = false;
 		}
 	}
 
