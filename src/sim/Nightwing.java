@@ -28,6 +28,9 @@ public class Nightwing {
 
 	public static void main(String[] args) throws IOException {
 
+		long startTime, endTime;
+		startTime = System.currentTimeMillis();
+		
 		if (args.length < 2) {
 			System.out.println("Usage: ./Nightwing <mode> <wardenFile> <mode specific configs....>");
 			return;
@@ -151,5 +154,9 @@ public class Nightwing {
 			System.exit(-2);
 		}
 
+		endTime = System.currentTimeMillis();
+		System.out.println("\nAll work done, this took: " + (endTime-startTime) / 60000 + " minutes.");
+		
 	}
 }
+

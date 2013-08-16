@@ -78,7 +78,9 @@ public class ASTopoParser {
 		BufferedReader fBuff = new BufferedReader(new FileReader(asRelFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
-			System.out.println(pollString);
+			if (Constants.DEBUG) {
+				System.out.println(pollString);
+			}
 
 			/*
 			 * ignore blanks
@@ -236,3 +238,4 @@ public class ASTopoParser {
 		return purgeMap;
 	}
 }
+
