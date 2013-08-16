@@ -19,10 +19,10 @@ import econ.TransitAgent;
 public abstract class AS implements TransitAgent, Serializable {
 
 	/**
-	 * Serialization ID 
+	 * Serialization ID
 	 */
 	private static final long serialVersionUID = 2218701368397505673L;
-	
+
 	private int asn;
 	private boolean wardenAS;
 	private boolean activeAvoidance;
@@ -44,7 +44,7 @@ public abstract class AS implements TransitAgent, Serializable {
 	private double wardenTraffic;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
-														// adjancey
+	// adjancey
 	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
 	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	private HashMap<Integer, BGPPath> locRib;// best path
@@ -282,11 +282,11 @@ public abstract class AS implements TransitAgent, Serializable {
 
 		recalcBestPath(dest);
 	}
-	
-	public void rescanBGPTable(){
+
+	public void rescanBGPTable() {
 		//XXX logging
 		System.out.println("Rescanning bgp table.");
-		for(int tDest: this.locRib.keySet()){
+		for (int tDest : this.locRib.keySet()) {
 			this.recalcBestPath(tDest);
 		}
 	}
@@ -544,7 +544,10 @@ public abstract class AS implements TransitAgent, Serializable {
 	public BGPPath getPathToPurged(List<Integer> hookASNs) {
 		List<BGPPath> listPossPaths = new LinkedList<BGPPath>();
 		for (Integer tHook : hookASNs) {
-			listPossPaths.add(this.getPath(tHook));
+			BGPPath tempPath = this.getPath(tHook);
+			if (tempPath != null) {
+				listPossPaths.add(tempPath);
+			}
 		}
 		return this.pathSelection(listPossPaths);
 	}
@@ -831,8 +834,8 @@ public abstract class AS implements TransitAgent, Serializable {
 			this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
 		}
 	}
-	
-	public void resetTraffic(){
+
+	public void resetTraffic() {
 		this.trafficOverNeighbors.clear();
 	}
 }
