@@ -33,7 +33,7 @@ public class TrafficStat1 {
 
 	private HashMap<Integer, DecoyAS> fullTopology;
 
-	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	private static final boolean FROMSUPERAS = true;
 	private static final boolean NOTFROMSUPERAS = false;
 
@@ -74,10 +74,15 @@ public class TrafficStat1 {
 			tAS.resetTraffic();
 		}
 
-		this.statTrafficOnPToPNetwork();
+		this.statTrafficOnPToPNetwork();		
+		System.out.println("Traffic flowing on peer to peer network done.");
+		
 		this.statTrafficFromSuperAS();
+		System.out.println("Traffic flowing from super ASes done.");
 
-		testResults();
+		if (Constants.DEBUG) {
+			testResults();
+		}
 
 		/*
 		 * for (DecoyAS tAS : this.fullTopology.values()) {
@@ -127,7 +132,9 @@ public class TrafficStat1 {
 	 */
 	private void statTrafficFromSuperAS() throws IOException {
 
-		System.out.println("The total traffic on peer-to-peer network: " + getTotalP2PTraffic());
+		if (TrafficStat1.DEBUG) {
+			System.out.println("The total traffic on peer-to-peer network: " + getTotalP2PTraffic());
+		}
 
 		/*
 		 * read the file and calculate the traffic flowing to each normal AS
@@ -895,3 +902,4 @@ public class TrafficStat1 {
 		}
 	}
 }
+
