@@ -1,0 +1,4 @@
+#test the case that super AS is directly adjacent to the purged ASes
+1|2|-1
+2|3|-1
+2|4|-1
