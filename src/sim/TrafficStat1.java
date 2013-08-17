@@ -73,12 +73,17 @@ public class TrafficStat1 {
 		for (DecoyAS tAS : this.fullTopology.values()) {
 			tAS.resetTraffic();
 		}
-
-		this.statTrafficOnPToPNetwork();		
-		System.out.println("Traffic flowing on peer to peer network done.");
+		
+		long startTime, ptpNetwork, superAS;
+		startTime = System.currentTimeMillis();
+		
+		this.statTrafficOnPToPNetwork();
+		ptpNetwork = System.currentTimeMillis();
+		System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork-startTime)/60000 + " minutes. ");
 		
 		this.statTrafficFromSuperAS();
-		System.out.println("Traffic flowing from super ASes done.");
+		superAS = System.currentTimeMillis();
+		System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork)/60000 + " minutes.");
 
 		if (Constants.DEBUG) {
 			testResults();
@@ -844,9 +849,15 @@ public class TrafficStat1 {
 			BGPPath tpath = srcSuperAS.getPathToPurged(hookASNs);
 			if (tpath == null)
 				continue;
-
-			//this.addTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
+			
 			this.addSuperASTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
+			
+			// deal with the case that super AS is adjacent to purged ASes 
+			if (tpath.getPathLength() == 0) {
+				double amountOfTraffic = tDestPurgedAS.getTrafficFromEachSuperAS();
+				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic);
+				continue;
+			}
 			this.addTrafficOnTheLinkBasisPathAndPurged(tpath, srcSuperAS, tDestPurgedAS, TrafficStat1.FROMSUPERAS);
 		}
 
