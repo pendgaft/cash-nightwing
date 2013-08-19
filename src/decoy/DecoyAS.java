@@ -17,7 +17,7 @@ public class DecoyAS extends AS implements Serializable{
 	/**
 	 * Serialization ID
 	 */
-	private static final long serialVersionUID = 212255951735594960L;
+	private static final long serialVersionUID = 212255951735594961L;
 
 	/**
 	 * Flag for the AS deploying decoy routers
