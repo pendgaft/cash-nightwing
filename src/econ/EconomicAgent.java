@@ -39,7 +39,7 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * anything, it should just stage changes, the finalize function will do the
 	 * actual pushing of changes.
 	 */
-	public abstract void makeAdustments();
+	public abstract void makeAdustments(Object supplementalInfo);
 
 	/**
 	 * Method for informing the AS type object to do any logging for this round,

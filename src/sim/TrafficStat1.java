@@ -26,6 +26,9 @@ public class TrafficStat1 {
 	/** the total amount of traffic flowing on the peer to peer network */
 	private double totalP2PTraffic;
 
+	private double p2pRatio;
+	private double superASRatio;
+
 	/** Stores the active (routing) portion of the topology */
 	private HashMap<Integer, DecoyAS> activeMap;
 	/** Stores the pruned portion of the topology */
@@ -60,30 +63,79 @@ public class TrafficStat1 {
 
 		try {
 			this.statTotalP2PTraffic();
+			this.loadTrafficRatios(trafficSplitFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
 		}
 	}
 
-	public void runStat() throws IOException {
+	private void loadTrafficRatios(String trafficSplitFile) throws IOException {
+		BufferedReader fBuff = new BufferedReader(new FileReader(this.trafficSplitFile));
+		while (fBuff.ready()) {
+
+			String pollString = fBuff.readLine().trim();
+			/*
+			 * ignore blanks
+			 */
+			if (pollString.length() == 0) {
+				continue;
+			}
+
+			/*
+			 * Ignore comments
+			 */
+			if (pollString.charAt(0) == '#') {
+				continue;
+			}
+
+			/*
+			 * Parse line
+			 */
+			StringTokenizer pollToks = new StringTokenizer(pollString, ",");
+			int flag = Integer.parseInt(pollToks.nextToken());
+			double value = Double.parseDouble(pollToks.nextToken());
+			if (flag == 1) {
+				this.p2pRatio = value;
+			} else if (flag == 2) {
+				this.superASRatio = value;
+			} else {
+				System.err.println("Bad flag in traffic split file.");
+				System.exit(-2);
+			}
+		}
+		fBuff.close();
+
+		if (this.p2pRatio + this.superASRatio != 1.0) {
+			System.err.println("Invalid set of ratios in traffic split file (does not add to 1.0).");
+			System.exit(-2);
+		}
+	}
+
+	public void runStat() {
 		/*
 		 * Clear out the values from last round
 		 */
 		for (DecoyAS tAS : this.fullTopology.values()) {
 			tAS.resetTraffic();
 		}
-		
+
 		long startTime, ptpNetwork, superAS;
 		startTime = System.currentTimeMillis();
-		
+
 		this.statTrafficOnPToPNetwork();
 		ptpNetwork = System.currentTimeMillis();
-		System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork-startTime)/60000 + " minutes. ");
-		
+		if (TrafficStat1.DEBUG) {
+			System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork - startTime)
+					/ 60000 + " minutes. ");
+		}
+
 		this.statTrafficFromSuperAS();
 		superAS = System.currentTimeMillis();
-		System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork)/60000 + " minutes.");
+		if (TrafficStat1.DEBUG) {
+			System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
+					+ " minutes.");
+		}
 
 		if (Constants.DEBUG) {
 			testResults();
@@ -103,7 +155,7 @@ public class TrafficStat1 {
 	 * 
 	 * @throws IOException
 	 */
-	private void statTrafficOnPToPNetwork() throws IOException {
+	private void statTrafficOnPToPNetwork() {
 
 		this.statActiveMap();
 		this.statPurgedMap();
@@ -135,7 +187,7 @@ public class TrafficStat1 {
 	 * 
 	 * @throws IOException
 	 */
-	private void statTrafficFromSuperAS() throws IOException {
+	private void statTrafficFromSuperAS() {
 
 		if (TrafficStat1.DEBUG) {
 			System.out.println("The total traffic on peer-to-peer network: " + getTotalP2PTraffic());
@@ -145,7 +197,7 @@ public class TrafficStat1 {
 		 * read the file and calculate the traffic flowing to each normal AS
 		 * from each super AS
 		 */
-		double totalTrafficFromSuperASes = readRatiosAndCalcSuperASesTraffic();
+		double totalTrafficFromSuperASes = calcSuperASTrafficVolume();
 		groupASesAndCalcTrafficForNormalAS(totalTrafficFromSuperASes);
 
 		trafficFromSuperASToNormalAS();
@@ -630,57 +682,10 @@ public class TrafficStat1 {
 	 * @return
 	 * @throws IOException
 	 */
-	private double readRatiosAndCalcSuperASesTraffic() throws IOException {
-
-		String pollString;
-		int ASN, cnt = 0;
-		double tRatio;
-		double ratio[] = new double[2];
-
-		/*
-		 * read the traffic split file, and calculate the traffic flowing from
-		 * the superAS to normal ASes
-		 */
-		BufferedReader fBuff = new BufferedReader(new FileReader(this.trafficSplitFile));
-		while (fBuff.ready()) {
-			if (cnt == 2) {
-				System.out.println("WRONG TRAFFIC SPLIT FILE!!");
-				return -1;
-			}
-
-			pollString = fBuff.readLine().trim();
-			/*
-			 * ignore blanks
-			 */
-			if (pollString.length() == 0) {
-				continue;
-			}
-
-			/*
-			 * Ignore comments
-			 */
-			if (pollString.charAt(0) == '#') {
-				continue;
-			}
-
-			/*
-			 * Parse line
-			 */
-			StringTokenizer pollToks = new StringTokenizer(pollString, ",");
-			ASN = Integer.parseInt(pollToks.nextToken());
-			tRatio = Double.parseDouble(pollToks.nextToken());
-			ratio[ASN - 1] = tRatio;
-			++cnt;
-		}
-		fBuff.close();
-
-		if (ratio[0] + ratio[1] != 1.0) {
-			System.out.println("WRONG TRAFFIC SPLIT FILE!!");
-			return -1;
-		}
+	private double calcSuperASTrafficVolume() {
 
 		/* calculate based on the ratio, and then split equally */
-		double totalTrafficFromSuperASes = getTotalP2PTraffic() * ratio[1] / ratio[0];
+		double totalTrafficFromSuperASes = getTotalP2PTraffic() * this.superASRatio / this.p2pRatio;
 
 		return totalTrafficFromSuperASes;
 	}
@@ -849,9 +854,9 @@ public class TrafficStat1 {
 			BGPPath tpath = srcSuperAS.getPathToPurged(hookASNs);
 			if (tpath == null)
 				continue;
-			
+
 			this.addSuperASTrafficOnThePathAndPurged(tpath, srcSuperAS, tDestPurgedAS);
-			
+
 			// deal with the case that super AS is adjacent to purged ASes 
 			if (tpath.getPathLength() == 0) {
 				double amountOfTraffic = tDestPurgedAS.getTrafficFromEachSuperAS();
@@ -913,4 +918,3 @@ public class TrafficStat1 {
 		}
 	}
 }
-

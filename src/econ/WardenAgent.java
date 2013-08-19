@@ -68,7 +68,7 @@ public class WardenAgent extends EconomicAgent {
 	}
 
 	@Override
-	public void makeAdustments() {
+	public void makeAdustments(Object supplementalInfo) {
 		/*
 		 * Turns on decoy router avoidance code for this round with the known
 		 * set of decoy routers as the avoidance set

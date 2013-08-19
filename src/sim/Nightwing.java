@@ -30,7 +30,7 @@ public class Nightwing {
 
 		long startTime, endTime;
 		startTime = System.currentTimeMillis();
-		
+
 		if (args.length < 2) {
 			System.out.println("Usage: ./Nightwing <mode> <wardenFile> <mode specific configs....>");
 			return;
@@ -58,8 +58,9 @@ public class Nightwing {
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
-			if(args.length != 4){
-				System.out.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <decoy conversion chance>");
+			if (args.length != 6) {
+				System.out
+						.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
 				return;
 			}
 		} else {
@@ -70,26 +71,26 @@ public class Nightwing {
 
 		HashMap<Integer, DecoyAS> liveTopo = null;
 		HashMap<Integer, DecoyAS> prunedTopo = null;
-		
+
 		/*
 		 * Serialization control
 		 */
 		SerializationMaster serialControl = new SerializationMaster(wardenFile);
-		if(serialControl.hasValidSerialFile()){
+		if (serialControl.hasValidSerialFile()) {
 			System.out.println("Valid serial file exists, skipping fresh build.");
 			liveTopo = serialControl.loadActiveMap();
 			prunedTopo = serialControl.loadPrunedMap();
 			System.out.println("Topology loaded from serial file.");
-		}else{
+		} else {
 			System.out.println("No serial file exists, building topology from scratch.");
 			HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(wardenFile);
 			liveTopo = topoArray[0];
 			prunedTopo = topoArray[1];
-			System.out.println("Topo built and BGP converged.");	
+			System.out.println("Topo built and BGP converged.");
 			serialControl.buildSerializationFile(liveTopo, prunedTopo);
 			System.out.println("Topology saved to serial file.");
 		}
-		
+
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {
@@ -140,14 +141,12 @@ public class Nightwing {
 			 * through the network
 			 */
 			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
-			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, Double.parseDouble(args[3]));
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 			/*
 			 * Do the actual rounds of simulation
 			 */
-			for(int counter = 0; counter < 7; counter++){
-				stat.runStat();
-				econEngine.driveEconomicTurn();	
-			}
+			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
+					.parseInt(args[5]), 200, stat);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
@@ -155,8 +154,7 @@ public class Nightwing {
 		}
 
 		endTime = System.currentTimeMillis();
-		System.out.println("\nAll work done, this took: " + (endTime-startTime) / 60000 + " minutes.");
-		
+		System.out.println("\nAll work done, this took: " + (endTime - startTime) / 60000 + " minutes.");
+
 	}
 }
-

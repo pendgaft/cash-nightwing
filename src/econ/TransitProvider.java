@@ -8,7 +8,7 @@ import decoy.DecoyAS;
 public class TransitProvider extends EconomicAgent {
 
 	public enum DECOY_STRAT {
-		RAND, NEVER
+		RAND, NEVER, DICTATED
 	}
 
 	private double moneyEarned;
@@ -19,7 +19,7 @@ public class TransitProvider extends EconomicAgent {
 	private static double FLIPCHANCE = 0.00;
 	private static Random rng = new Random();
 
-	private static final boolean TESTING = true;
+	private static final boolean TESTING = false;
 
 	public static void setFlipChance(double chance) {
 		TransitProvider.FLIPCHANCE = chance;
@@ -55,7 +55,7 @@ public class TransitProvider extends EconomicAgent {
 		this.flipDecoyState = false;
 	}
 
-	public void makeAdustments() {
+	public void makeAdustments(Object supplementalInfo) {
 		if (this.lockIn > 0) {
 			this.lockIn--;
 			if(this.lockIn == 0 && this.parent.isDecoy()){
@@ -82,6 +82,12 @@ public class TransitProvider extends EconomicAgent {
 			this.lockIn = 2;
 		} else if (this.myStrat == TransitProvider.DECOY_STRAT.NEVER) {
 			this.flipDecoyState = false;
+		} else if (this.myStrat == TransitProvider.DECOY_STRAT.DICTATED){
+			boolean passedValue = (Boolean)supplementalInfo;
+			if(passedValue){
+				this.flipDecoyState = true;
+			}
+			this.lockIn = 2;
 		}
 	}
 
