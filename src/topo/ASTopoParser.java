@@ -33,7 +33,8 @@ public class ASTopoParser {
 	 */
 	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile) throws IOException {
 
-		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile, Constants.SUPER_AS_FILE);
+		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile,
+				Constants.SUPER_AS_FILE);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap);
 
@@ -65,7 +66,8 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading either config file
 	 */
-	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile) throws IOException {
+	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile)
+			throws IOException {
 
 		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
 
@@ -74,7 +76,7 @@ public class ASTopoParser {
 		int lhsASN, rhsASN, rel;
 
 		System.out.println(asRelFile);
-		
+
 		BufferedReader fBuff = new BufferedReader(new FileReader(asRelFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
@@ -130,7 +132,7 @@ public class ASTopoParser {
 			}
 		}
 		fBuff.close();
-		
+
 		/*
 		 * read the super AS file, toggle all super ASes
 		 */
@@ -140,7 +142,7 @@ public class ASTopoParser {
 			/*
 			 * Ignore comments
 			 */
-			if(pollString.charAt(0) == '#'){
+			if (pollString.charAt(0) == '#') {
 				continue;
 			}
 			if (pollString.length() > 0) {
@@ -167,7 +169,7 @@ public class ASTopoParser {
 		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.IP_COUNT_FILE));
 		while (fBuff.ready()) {
 			String pollString = fBuff.readLine().trim();
-			if(pollString.length() == 0 || pollString.charAt(0) == '#'){
+			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
 				continue;
 			}
 			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, ",");
@@ -221,6 +223,13 @@ public class ASTopoParser {
 				continue;
 			}
 
+			/*
+			 * Leave the super ASes in the topology as well for an efficency gain
+			 */
+			if (tAS.isSuperAS()) {
+				continue;
+			}
+
 			if (tAS.getNonPrunedCustomerCount() == 0) {
 				purgeMap.put(tAS.getASN(), tAS);
 			}
@@ -238,4 +247,3 @@ public class ASTopoParser {
 		return purgeMap;
 	}
 }
-
