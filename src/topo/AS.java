@@ -38,10 +38,6 @@ public abstract class AS implements TransitAgent, Serializable {
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
 	private double trafficFromSuperAS;
-	/** the total amount of traffic that goes through the AS */
-	private double totalTraffic;
-	/** the amount of traffic that goes from warden */
-	private double wardenTraffic;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 	// adjancey
@@ -63,8 +59,6 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.asn = myASN;
 		this.ipPercentage = 0;
 		this.trafficFromSuperAS = 0;
-		this.totalTraffic = 0;
-		this.wardenTraffic = 0;
 		this.wardenAS = false;
 		this.activeAvoidance = false;
 		this.purged = false;
@@ -680,42 +674,6 @@ public abstract class AS implements TransitAgent, Serializable {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * fetches the total traffic goes through the AS
-	 * 
-	 * @return
-	 */
-	public double getTotalTraffic() {
-		return totalTraffic;
-	}
-
-	/**
-	 * add traffic on the total traffic goes through the AS
-	 * 
-	 * @param traffic
-	 */
-	public void addOnTotalTraffic(double traffic) {
-		this.totalTraffic += traffic;
-	}
-
-	/**
-	 * fetches the traffic goes from warden ASes
-	 * 
-	 * @return
-	 */
-	public double getTrafficFromWarden() {
-		return wardenTraffic;
-	}
-
-	/**
-	 * add traffic on the traffic goes from the warden AS
-	 * 
-	 * @param wardenTraffic
-	 */
-	public void addOnTrafficFromWarden(double wardenTraffic) {
-		this.wardenTraffic += wardenTraffic;
 	}
 
 	/**
