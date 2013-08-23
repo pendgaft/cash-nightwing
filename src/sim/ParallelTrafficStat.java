@@ -305,7 +305,7 @@ public class ParallelTrafficStat {
 		}
 		
 		/* create a thread to update the traffic specifically */
-		Semaphore updateSemaLock = new Semaphore(100); //what's the size of semaphore is needed??
+		Semaphore updateSemaLock = new Semaphore(Constants.NTHREADS_UPDATE);
 		UpdateTrafficThread[] updateThread = new UpdateTrafficThread[Constants.NTHREADS_UPDATE]; 
 		Thread[] updateWorkers = new Thread[Constants.NTHREADS_UPDATE];
 		for (int i = 0; i < Constants.NTHREADS_UPDATE; ++i) {
@@ -979,3 +979,4 @@ public class ParallelTrafficStat {
 		}
 	}
 }
+

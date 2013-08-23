@@ -11,6 +11,9 @@ public class Constants {
 	//public static final String SUPER_AS_FILE = "bowenTest/superAS-test.txt";
 	
 	public static final boolean DEBUG = false;
+	public static final boolean DEBUG = false;
+	public static final int NTHREADS_CREATEQUEUE = 6;
+	public static final int NTHREADS_UPDATE = 4;
 
 }
 

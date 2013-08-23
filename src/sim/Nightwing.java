@@ -133,20 +133,22 @@ public class Nightwing {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(wardenFile);
 		} else if (mode == Nightwing.TRAFFICSTAT1_MODE) {
-			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
-			stat.runStat();
+			//TrafficStat1 statInSerial = new TrafficStat1(liveTopo, prunedTopo, args[2]);
+			//statInSerial.runStat();
+			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2]);
+			statInParallel.runStat();
 		} else if (mode == Nightwing.ECON_PHASE_1) {
 			/*
 			 * Build the traffic stat object, and then actually flow the traffic
 			 * through the network
 			 */
-			TrafficStat1 stat = new TrafficStat1(liveTopo, prunedTopo, args[2]);
+			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2]);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 			/*
 			 * Do the actual rounds of simulation
 			 */
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), 200, stat);
+					.parseInt(args[5]), 200, statInParallel);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
