@@ -1,0 +1,4 @@
+# peer to peer is type 1
+# peer to super AS is type 2
+1,0.4
+2,0.6
