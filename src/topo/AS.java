@@ -2,8 +2,11 @@ package topo;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 import java.io.Serializable;
+
+import sim.Constants;
 
 import econ.TransitAgent;
 
@@ -50,6 +53,7 @@ public abstract class AS implements TransitAgent, Serializable {
 
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
+	private Semaphore semaLock;
 
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
@@ -76,6 +80,7 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
+		this.semaLock = new Semaphore(Constants.NTHREADS);
 	}
 
 	/**
@@ -771,7 +776,7 @@ public abstract class AS implements TransitAgent, Serializable {
 	public double getTrafficOverLinkBetween(int otherASN) {
 
 		if (this.trafficOverNeighbors.containsKey(otherASN)) {
-			return this.trafficOverNeighbors.get(otherASN);
+			return this.trafficOverNeighbors.get(otherASN).doubleValue();
 		} else {
 			return 0;
 		}
@@ -781,15 +786,22 @@ public abstract class AS implements TransitAgent, Serializable {
 	 * update the traffic flowing over its given neighbor which is stored in a
 	 * special map
 	 * 
+	 * atomic operation for parallelization 
 	 * @param neighbor
 	 * @param amountOfTraffic
 	 */
 	public void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
-		if (this.trafficOverNeighbors.containsKey(neighbor)) {
-			double currentTraffic = this.trafficOverNeighbors.get(neighbor);
-			this.trafficOverNeighbors.put(neighbor, currentTraffic + amountOfTraffic);
-		} else {
-			this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
+		try {
+			this.semaLock.acquire();
+			if (this.trafficOverNeighbors.containsKey(neighbor)) {
+				double currentTraffic = this.trafficOverNeighbors.get(neighbor);
+				this.trafficOverNeighbors.put(neighbor, currentTraffic + amountOfTraffic);
+			} else {
+				this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
+			}
+			this.semaLock.release();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -797,3 +809,4 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.trafficOverNeighbors.clear();
 	}
 }
+

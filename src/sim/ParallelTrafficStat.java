@@ -46,11 +46,6 @@ public class ParallelTrafficStat {
 	private List<DecoyAS> normalASList;
 	private List<DecoyAS> superASList;
 	
-	/** used to store the message objects from threads */
-	private ConcurrentLinkedQueue<Message> conQueue;	
-	/** cnt the number of threads that finish their work */
-	private int cntDoneThreads;
-	
 	/**
 	 * constructor function
 	 * @param activeMap
@@ -83,9 +78,6 @@ public class ParallelTrafficStat {
 		this.normalASList = new ArrayList<DecoyAS>();
 		this.superASList = new ArrayList<DecoyAS>();
 		
-		this.conQueue = new ConcurrentLinkedQueue<Message>();
-		this.cntDoneThreads = 0;
-		
 		try {
 			this.statTotalP2PTraffic();
 			this.loadTrafficRatios(trafficSplitFile);
@@ -96,45 +88,17 @@ public class ParallelTrafficStat {
 	}
 	
 	/**
-	 * class used to pass the message for concurrent linked queue
-	 * 
-	 * can create some flag like link basis, normal, from-warden
-	 * which corresponds to update traffic class!!
-	 * @author bobo
-	 */
-	private class Message {
-		private int ASN;
-		private double amountOfTraffic;
-		private int neighborASN;
-		Message(int ASN, double amountOfTraffic, int neighborASN) {
-			this.ASN = ASN;
-			this.amountOfTraffic = amountOfTraffic;
-			this.neighborASN = neighborASN;
-		}
-		private int getASN() {
-			return this.ASN;
-		}
-		private double getAmountOfTraffic() {
-			return this.amountOfTraffic;
-		}
-		private int getNeighborASN() {
-			return this.neighborASN;
-		}
-	}
-	
-	/**
 	 * the class used to run to statistic the traffic only on 
-	 * peer to peer network in parallel 
+	 * peer to peer network in parallel with atomic operation
+	 * by semaphore of each AS
 	 * 
 	 * @author bobo
 	 */
 	private class ParallelRunningThread implements Runnable {
 
 		private List<Integer> localASList;
-		private Semaphore semaLock;
-		ParallelRunningThread(List<Integer> ASes, Semaphore semaLock) {
+		ParallelRunningThread(List<Integer> ASes) {
 			this.localASList = ASes;
-			this.semaLock = semaLock;
 		}
 		@Override
 		public void run() {
@@ -151,53 +115,9 @@ public class ParallelTrafficStat {
 					System.exit(-1);
 				}
 			}
-			/* increase cntDoneNumber by 1 to incline the number of threads done */
-			try {
-				this.semaLock.acquire();
-				++cntDoneThreads;
-				this.semaLock.release();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 	
-	/**
-	 * the class used to create threads to update the traffic going
-	 * through AS using concurrent linked queue or say consume the 
-	 * objects in concorrentLinkedQueue
-	 * 
-	 * @author bobo
-	 */
-	private class UpdateTrafficThread implements Runnable {
-
-		private Semaphore updateSemaLock;
-		UpdateTrafficThread(Semaphore updateSemaLock) {
-			this.updateSemaLock = updateSemaLock;
-		}
-		@Override
-		public void run() {
-			
-			/* condition when the work is not done, busy wait... */
-			while (cntDoneThreads != Constants.NTHREADS_CREATEQUEUE || !conQueue.isEmpty()) {
-				if (conQueue.isEmpty())
-					continue;
-				
-				Message msg = conQueue.poll();
-				if (msg == null)
-					continue;
-				/* poll the msg stored in concurrentLinkedQueue, and do the operations */
-				try {
-					this.updateSemaLock.acquire();
-					fullTopology.get(msg.getASN()).updateTrafficOverOneNeighbor(msg.getNeighborASN(), msg.getAmountOfTraffic());
-					this.updateSemaLock.release();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-	}
-
 	private void loadTrafficRatios(String trafficSplitFile) throws IOException {
 		BufferedReader fBuff = new BufferedReader(new FileReader(this.trafficSplitFile));
 		while (fBuff.ready()) {
@@ -265,16 +185,16 @@ public class ParallelTrafficStat {
 	 */
 	private List<Integer>[] spliteASes() {
 
-		int amount = (int)(this.validASNList.size() / Constants.NTHREADS_CREATEQUEUE);
-		int left = (int)(this.validASNList.size() % Constants.NTHREADS_CREATEQUEUE);		
+		int amount = (int)(this.validASNList.size() / Constants.NTHREADS);
+		int left = (int)(this.validASNList.size() % Constants.NTHREADS);		
 		@SuppressWarnings("unchecked")
-		List<Integer>[] ASListForEachThread = new ArrayList[Constants.NTHREADS_CREATEQUEUE];
+		List<Integer>[] ASListForEachThread = new ArrayList[Constants.NTHREADS];
 		
 		/* distribute the ASes */
 		int currentPos = 0;
-		for (int i = 0; i < Constants.NTHREADS_CREATEQUEUE; ++i) {
+		for (int i = 0; i < Constants.NTHREADS; ++i) {
 			ASListForEachThread[i] = new ArrayList<Integer>();			
-			if (i == Constants.NTHREADS_CREATEQUEUE -1) {
+			if (i == Constants.NTHREADS -1) {
 				ASListForEachThread[i].addAll(this.validASNList.subList(currentPos, currentPos+amount+left));
 				continue;
 			}			
@@ -295,30 +215,15 @@ public class ParallelTrafficStat {
 		List<Integer>[] ASesSplitedLists = spliteASes();
 		
 		/* make the threads run to calculate its own list of ASes */
-		ParallelRunningThread[] threads = new ParallelRunningThread[Constants.NTHREADS_CREATEQUEUE];
-		Thread[] workers = new Thread[Constants.NTHREADS_CREATEQUEUE];		
-		Semaphore cntDoneNumberSemaLock = new Semaphore(Constants.NTHREADS_CREATEQUEUE);
-		for (int i = 0; i < Constants.NTHREADS_CREATEQUEUE; ++i) {
-			threads[i] = new ParallelRunningThread(ASesSplitedLists[i], cntDoneNumberSemaLock); // assign a set of traffic
-			workers[i] = new Thread(threads[i]);
+		Thread[] workers = new Thread[Constants.NTHREADS];		
+		for (int i = 0; i < Constants.NTHREADS; ++i) {
+			// assign a set of traffic
+			workers[i] = new Thread(new ParallelRunningThread(ASesSplitedLists[i]));
 			workers[i].start();
-		}
-		
-		/* create a thread to update the traffic specifically */
-		Semaphore updateSemaLock = new Semaphore(Constants.NTHREADS_UPDATE);
-		UpdateTrafficThread[] updateThread = new UpdateTrafficThread[Constants.NTHREADS_UPDATE]; 
-		Thread[] updateWorkers = new Thread[Constants.NTHREADS_UPDATE];
-		for (int i = 0; i < Constants.NTHREADS_UPDATE; ++i) {
-			updateThread[i] = new UpdateTrafficThread(updateSemaLock);
-			updateWorkers[i] = new Thread(updateThread[i]);
-			updateWorkers[i].start();
 		}
 		
 		/*	wait for threads finish */
 		for (Thread thread : workers) {
-			thread.join();
-		}
-		for (Thread thread : updateWorkers) {
 			thread.join();
 		}
 	}
@@ -383,7 +288,7 @@ public class ParallelTrafficStat {
 			return 0;
 		}
 		// add the first
-		this.conQueue.offer(new Message(srcAS.getASN(), amountOfTraffic, tpath.getNextHop()));
+		srcAS.updateTrafficOverOneNeighbor(tpath.getNextHop(), amountOfTraffic);
 
 		List<Integer> pathList = tpath.getPath();
 		if (pathList.size() != 1) {
@@ -391,7 +296,7 @@ public class ParallelTrafficStat {
 			for (int tASN = 0; tASN < pathList.size() - 1; ++tASN) {
 				DecoyAS currentAS = this.fullTopology.get(pathList.get(tASN));
 				DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
-				this.conQueue.offer(new Message(currentAS.getASN(), amountOfTraffic, nextAS.getASN()));
+				currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic);
 			}
 		}
 
@@ -453,8 +358,7 @@ public class ParallelTrafficStat {
 		// tpath doesn't contain the destiny AS on the purged map, so add the traffic on it manually 
 		List<Integer> pathList = tpath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
-		
-		this.conQueue.offer(new Message(secondLastAS.getASN(), amountOfTraffic, destPurgedAS.getASN()));
+		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);
 	}
 	/**
 	 * serial version which works the same as parallel version, only used for traffic from super AS
@@ -470,7 +374,6 @@ public class ParallelTrafficStat {
 		// tpath doesn't contain the destiny AS on the purged map, so add the traffic on it manually 
 		List<Integer> pathList = tpath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
-		
 		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);
 	}
 	
@@ -568,7 +471,7 @@ public class ParallelTrafficStat {
 
 			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
 				double amountOfTraffic = srcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
-				this.conQueue.offer(new Message(srcActiveAS.getASN(), amountOfTraffic, tdestPurgedAS.getASN()));
+				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
 				continue;
 			}
 			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcActiveAS, tdestPurgedAS, ParallelTrafficStat.NOTFROMSUPERAS);
