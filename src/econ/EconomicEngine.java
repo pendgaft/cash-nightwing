@@ -22,6 +22,7 @@ public class EconomicEngine {
 	private static final double COST_PER_MBYTE = 1.0;
 
 	private static final String ROUND_TERMINATOR = "***";
+	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
@@ -29,8 +30,8 @@ public class EconomicEngine {
 		this.activeTopology = activeMap;
 
 		try {
-			this.wardenOut = new BufferedWriter(new FileWriter("logs/warden.log"));
-			this.transitOut = new BufferedWriter(new FileWriter("logs/transit.log"));
+			this.wardenOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "warden.log"));
+			this.transitOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "/transit.log"));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
