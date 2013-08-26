@@ -139,17 +139,19 @@ public class ASTopoParser {
 		fBuff = new BufferedReader(new FileReader(superASFile));
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
+			if (pollString.length() == 0) {
+				continue;
+			}
+
 			/*
 			 * Ignore comments
 			 */
 			if (pollString.charAt(0) == '#') {
 				continue;
 			}
-			if (pollString.length() > 0) {
-				int asn = Integer.parseInt(pollString);
-				System.out.println("superAS: " + asn);
-				retMap.get(asn).toggleSupperAS();
-			}
+			int asn = Integer.parseInt(pollString);
+			System.out.println("superAS: " + asn);
+			retMap.get(asn).toggleSupperAS();
 		}
 		fBuff.close();
 
@@ -224,7 +226,8 @@ public class ASTopoParser {
 			}
 
 			/*
-			 * Leave the super ASes in the topology as well for an efficency gain
+			 * Leave the super ASes in the topology as well for an efficency
+			 * gain
 			 */
 			if (tAS.isSuperAS()) {
 				continue;
