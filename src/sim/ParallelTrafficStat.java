@@ -39,6 +39,7 @@ public class ParallelTrafficStat {
 	private List<List<Integer>> workSplit;
 
 	private static final boolean DEBUG = false;
+	private static final boolean REPORT_TIMING = true;
 	private static final boolean FROMSUPERAS = true;
 	private static final boolean NOTFROMSUPERAS = false;
 
@@ -170,7 +171,7 @@ public class ParallelTrafficStat {
 		 */
 		this.statTrafficOnPToPNetworkInParallel();
 		ptpNetwork = System.currentTimeMillis();
-		if (ParallelTrafficStat.DEBUG) {
+		if (ParallelTrafficStat.REPORT_TIMING) {
 			System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork - startTime)
 					/ 60000 + " minutes. ");
 		}
@@ -180,7 +181,7 @@ public class ParallelTrafficStat {
 		 */
 		this.statTrafficFromSuperAS();
 		superAS = System.currentTimeMillis();
-		if (ParallelTrafficStat.DEBUG) {
+		if (ParallelTrafficStat.REPORT_TIMING) {
 			System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
 					+ " minutes.");
 		}
