@@ -2,11 +2,7 @@ package topo;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-
 import java.io.Serializable;
-
-import sim.Constants;
 
 import econ.TransitAgent;
 
@@ -53,7 +49,6 @@ public abstract class AS implements TransitAgent, Serializable {
 
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
-	private Semaphore semaLock;
 
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
@@ -80,7 +75,6 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
-		this.semaLock = new Semaphore(Constants.NTHREADS);
 	}
 
 	/**
@@ -181,6 +175,8 @@ public abstract class AS implements TransitAgent, Serializable {
 			System.err.println("WTF bad relation: " + myRelationToThem);
 			System.exit(-1);
 		}
+		this.trafficOverNeighbors.put(otherAS.asn, 0.0);
+		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
 	}
 
 	/**
@@ -283,8 +279,6 @@ public abstract class AS implements TransitAgent, Serializable {
 	}
 
 	public void rescanBGPTable() {
-		//XXX logging
-		System.out.println("Rescanning bgp table.");
 		for (int tDest : this.locRib.keySet()) {
 			this.recalcBestPath(tDest);
 		}
@@ -645,8 +639,6 @@ public abstract class AS implements TransitAgent, Serializable {
 			throw new IllegalStateException("Attempted to toggle avoidance on non-warden.");
 		}
 
-		//XXX logging
-		System.out.println("avoiding: " + avoidList);
 		this.activeAvoidance = true;
 		this.avoidSet = avoidList;
 	}
@@ -774,39 +766,26 @@ public abstract class AS implements TransitAgent, Serializable {
 	 *         traveled from THIS AS to otherASN this round
 	 */
 	public double getTrafficOverLinkBetween(int otherASN) {
-
-		if (this.trafficOverNeighbors.containsKey(otherASN)) {
-			return this.trafficOverNeighbors.get(otherASN).doubleValue();
-		} else {
-			return 0;
-		}
+		return this.trafficOverNeighbors.get(otherASN).doubleValue();
 	}
 
 	/**
 	 * update the traffic flowing over its given neighbor which is stored in a
 	 * special map
 	 * 
-	 * atomic operation for parallelization 
+	 * atomic operation for parallelization
+	 * 
 	 * @param neighbor
 	 * @param amountOfTraffic
 	 */
-	public void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
-		try {
-			this.semaLock.acquire();
-			if (this.trafficOverNeighbors.containsKey(neighbor)) {
-				double currentTraffic = this.trafficOverNeighbors.get(neighbor);
-				this.trafficOverNeighbors.put(neighbor, currentTraffic + amountOfTraffic);
-			} else {
-				this.trafficOverNeighbors.put(neighbor, amountOfTraffic);
-			}
-			this.semaLock.release();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
+		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
+
 	}
 
 	public void resetTraffic() {
-		this.trafficOverNeighbors.clear();
+		for (int tASN : this.trafficOverNeighbors.keySet()) {
+			this.trafficOverNeighbors.put(tASN, 0.0);
+		}
 	}
 }
-

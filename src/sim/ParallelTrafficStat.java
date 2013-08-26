@@ -1,7 +1,6 @@
 package sim;
 
 import java.util.*;
-import java.util.concurrent.*;
 import java.io.*;
 
 import topo.AS;
@@ -18,15 +17,11 @@ import decoy.DecoyAS;
 
 public class ParallelTrafficStat {
 
-	/**
-	 * the total amount of traffic on the peer-to-peer network over the total
-	 * amount of traffic from super ASes to peer-to-peer network
+	/*
+	 * Values needed to drive traffic flows, namely ratios of p2p vs super as
+	 * traffic and the total amount of p2p traffic
 	 */
-	private String trafficSplitFile;
-
-	/** the total amount of traffic flowing on the peer to peer network */
 	private double totalP2PTraffic;
-
 	private double p2pRatio;
 	private double superASRatio;
 
@@ -35,8 +30,13 @@ public class ParallelTrafficStat {
 	/** Stores the pruned portion of the topology */
 	private HashMap<Integer, DecoyAS> purgedMap;
 	private HashMap<Integer, DecoyAS> fullTopology;
-	/** store the ASN whose ip count is not zero, used to split ASes among the threads */
+	/**
+	 * store the ASN whose ip count is not zero, used to split ASes among the
+	 * threads
+	 */
 	private List<Integer> validASNList;
+
+	private List<List<Integer>> workSplit;
 
 	private static final boolean DEBUG = false;
 	private static final boolean FROMSUPERAS = true;
@@ -45,9 +45,10 @@ public class ParallelTrafficStat {
 	/** stores normal ASes and super ASes */
 	private List<DecoyAS> normalASList;
 	private List<DecoyAS> superASList;
-	
+
 	/**
 	 * constructor function
+	 * 
 	 * @param activeMap
 	 * @param purgedMap
 	 * @param trafficSplitFile
@@ -60,7 +61,7 @@ public class ParallelTrafficStat {
 		this.purgedMap = purgedMap;
 		this.fullTopology = new HashMap<Integer, DecoyAS>();
 		this.validASNList = new ArrayList<Integer>();
-		
+
 		for (int tASN : this.activeMap.keySet()) {
 			this.fullTopology.put(tASN, this.activeMap.get(tASN));
 			/* only need AS which has IP count */
@@ -74,32 +75,37 @@ public class ParallelTrafficStat {
 				this.validASNList.add(tASN);
 			}
 		}
-		this.trafficSplitFile = trafficSplitFile;
 		this.normalASList = new ArrayList<DecoyAS>();
 		this.superASList = new ArrayList<DecoyAS>();
-		
+		this.statTotalP2PTraffic();
+
 		try {
-			this.statTotalP2PTraffic();
 			this.loadTrafficRatios(trafficSplitFile);
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
 		}
+
+		/*
+		 * Divide up the ASes into working groups for threads
+		 */
+		this.workSplit = spliteASes();
 	}
-	
+
 	/**
-	 * the class used to run to statistic the traffic only on 
-	 * peer to peer network in parallel with atomic operation
-	 * by semaphore of each AS
+	 * the class used to run to statistic the traffic only on peer to peer
+	 * network in parallel with atomic operation by semaphore of each AS
 	 * 
 	 * @author bobo
 	 */
 	private class ParallelRunningThread implements Runnable {
 
 		private List<Integer> localASList;
+
 		ParallelRunningThread(List<Integer> ASes) {
 			this.localASList = ASes;
 		}
+
 		@Override
 		public void run() {
 
@@ -117,9 +123,9 @@ public class ParallelTrafficStat {
 			}
 		}
 	}
-	
+
 	private void loadTrafficRatios(String trafficSplitFile) throws IOException {
-		BufferedReader fBuff = new BufferedReader(new FileReader(this.trafficSplitFile));
+		BufferedReader fBuff = new BufferedReader(new FileReader(trafficSplitFile));
 		while (fBuff.ready()) {
 
 			String pollString = fBuff.readLine().trim();
@@ -148,7 +154,7 @@ public class ParallelTrafficStat {
 		}
 	}
 
-	public void runStat() throws InterruptedException {
+	public void runStat() {
 		/*
 		 * Clear out the values from last round
 		 */
@@ -159,6 +165,9 @@ public class ParallelTrafficStat {
 		long startTime, ptpNetwork, superAS;
 		startTime = System.currentTimeMillis();
 
+		/*
+		 * Run the p2p traffic flow
+		 */
 		this.statTrafficOnPToPNetworkInParallel();
 		ptpNetwork = System.currentTimeMillis();
 		if (ParallelTrafficStat.DEBUG) {
@@ -166,6 +175,9 @@ public class ParallelTrafficStat {
 					/ 60000 + " minutes. ");
 		}
 
+		/*
+		 * Run the super AS traffic flow
+		 */
 		this.statTrafficFromSuperAS();
 		superAS = System.currentTimeMillis();
 		if (ParallelTrafficStat.DEBUG) {
@@ -173,61 +185,62 @@ public class ParallelTrafficStat {
 					+ " minutes.");
 		}
 
-		if (Constants.DEBUG) {
+		if (ParallelTrafficStat.DEBUG) {
 			testResults();
 		}
 	}
-	
+
 	/**
-	 * split the ASes about equally to each thread and store them
-	 * in an array of lists
+	 * split the ASes about equally to each thread and store them in an array of
+	 * lists
+	 * 
 	 * @return
 	 */
-	private List<Integer>[] spliteASes() {
+	private List<List<Integer>> spliteASes() {
 
-		int amount = (int)(this.validASNList.size() / Constants.NTHREADS);
-		int left = (int)(this.validASNList.size() % Constants.NTHREADS);		
-		@SuppressWarnings("unchecked")
-		List<Integer>[] ASListForEachThread = new ArrayList[Constants.NTHREADS];
-		
+		int amount = (int) (this.validASNList.size() / Constants.NTHREADS);
+		int left = (int) (this.validASNList.size() % Constants.NTHREADS);
+		List<List<Integer>> allLists = new ArrayList<List<Integer>>();
+
 		/* distribute the ASes */
 		int currentPos = 0;
 		for (int i = 0; i < Constants.NTHREADS; ++i) {
-			ASListForEachThread[i] = new ArrayList<Integer>();			
-			if (i == Constants.NTHREADS -1) {
-				ASListForEachThread[i].addAll(this.validASNList.subList(currentPos, currentPos+amount+left));
-				continue;
-			}			
-			ASListForEachThread[i].addAll(this.validASNList.subList(currentPos, currentPos+amount));
-			currentPos += amount;
+			ArrayList<Integer> tempList = new ArrayList<Integer>();
+			if (i == Constants.NTHREADS - 1) {
+				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount + left));
+			}else{
+				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount));
+				currentPos += amount;
+			}
+			allLists.add(tempList);
 		}
-		return ASListForEachThread;
+		return allLists;
 	}
 
 	/**
-	 * calculate the traffic on peer-to-peer network
-	 * create two kinds of thread objects
-	 * @throws InterruptedException 
-	 * @throws IOException
+	 * calculate the traffic on peer-to-peer network create two kinds of thread
+	 * objects
+	 * 
 	 */
-	private void statTrafficOnPToPNetworkInParallel() throws InterruptedException {
-		
-		List<Integer>[] ASesSplitedLists = spliteASes();
-		
+	private void statTrafficOnPToPNetworkInParallel() {
+
 		/* make the threads run to calculate its own list of ASes */
-		Thread[] workers = new Thread[Constants.NTHREADS];		
+		Thread[] workers = new Thread[Constants.NTHREADS];
 		for (int i = 0; i < Constants.NTHREADS; ++i) {
-			// assign a set of traffic
-			workers[i] = new Thread(new ParallelRunningThread(ASesSplitedLists[i]));
+			workers[i] = new Thread(new ParallelRunningThread(this.workSplit.get(i)));
 			workers[i].start();
 		}
-		
-		/*	wait for threads finish */
-		for (Thread thread : workers) {
-			thread.join();
+
+		/* wait for threads finish */
+		try {
+			for (Thread thread : workers) {
+				thread.join();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			System.exit(-3);
 		}
 	}
-
 
 	/**
 	 * calculate the amount of traffic flowing from superAS to each AS based on
@@ -274,7 +287,8 @@ public class ParallelTrafficStat {
 	 * @param destAS
 	 * @return
 	 */
-	private double addTrafficOnTheLinkBasisPathInParallel(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS, boolean fromSuperAS) {
+	private double addTrafficOnTheLinkBasisPathInParallel(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS,
+			boolean fromSuperAS) {
 
 		double amountOfTraffic = 0;
 		if (fromSuperAS) {
@@ -302,16 +316,19 @@ public class ParallelTrafficStat {
 
 		return amountOfTraffic;
 	}
-	
+
 	/**
-	 * function as parallel version, work in serial, used for traffic from super AS 
+	 * function as parallel version, work in serial, used for traffic from super
+	 * AS
+	 * 
 	 * @param tpath
 	 * @param srcAS
 	 * @param destAS
 	 * @param fromSuperAS
 	 * @return
 	 */
-	private double addTrafficOnTheLinkBasisPathInSerial(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS, boolean fromSuperAS) {
+	private double addTrafficOnTheLinkBasisPathInSerial(BGPPath tpath, DecoyAS srcAS, DecoyAS destAS,
+			boolean fromSuperAS) {
 
 		double amountOfTraffic = 0;
 		if (fromSuperAS) {
@@ -344,7 +361,7 @@ public class ParallelTrafficStat {
 	 * does the same thing as addTrafficOnTheLinkBasisPath(BGPPath tpath,
 	 * DecoyAS srcAS, DecoyAS destAS), only difference is that the path doesn't
 	 * contain the AS on the purged map, so need to add them manually.
-	 *
+	 * 
 	 * parallel version
 	 * 
 	 * @param tpath
@@ -355,13 +372,17 @@ public class ParallelTrafficStat {
 			boolean fromSuperAS) {
 
 		double amountOfTraffic = this.addTrafficOnTheLinkBasisPathInParallel(tpath, srcAS, destPurgedAS, fromSuperAS);
-		// tpath doesn't contain the destiny AS on the purged map, so add the traffic on it manually 
+		// tpath doesn't contain the destiny AS on the purged map, so add the
+		// traffic on it manually
 		List<Integer> pathList = tpath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
 		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);
 	}
+
 	/**
-	 * serial version which works the same as parallel version, only used for traffic from super AS
+	 * serial version which works the same as parallel version, only used for
+	 * traffic from super AS
+	 * 
 	 * @param tpath
 	 * @param srcAS
 	 * @param destPurgedAS
@@ -371,12 +392,12 @@ public class ParallelTrafficStat {
 			boolean fromSuperAS) {
 
 		double amountOfTraffic = this.addTrafficOnTheLinkBasisPathInSerial(tpath, srcAS, destPurgedAS, fromSuperAS);
-		// tpath doesn't contain the destiny AS on the purged map, so add the traffic on it manually 
+		// tpath doesn't contain the destiny AS on the purged map, so add the
+		// traffic on it manually
 		List<Integer> pathList = tpath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
 		secondLastAS.updateTrafficOverOneNeighbor(destPurgedAS.getASN(), amountOfTraffic);
 	}
-	
 
 	/**
 	 * add the path to the path container which stores all the paths of a purged
@@ -426,6 +447,7 @@ public class ParallelTrafficStat {
 	 * ip amount.
 	 * 
 	 * parallel version
+	 * 
 	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
@@ -445,7 +467,8 @@ public class ParallelTrafficStat {
 				continue;
 
 			/* if the path exists, do the statistic */
-			this.addTrafficOnTheLinkBasisPathInParallel(tpath, srcActiveAS, tdestActiveAS, ParallelTrafficStat.NOTFROMSUPERAS);
+			this.addTrafficOnTheLinkBasisPathInParallel(tpath, srcActiveAS, tdestActiveAS,
+					ParallelTrafficStat.NOTFROMSUPERAS);
 		}
 	}
 
@@ -454,10 +477,11 @@ public class ParallelTrafficStat {
 	 * activeMap to all ASes in the purgedMap To get to the purged ASes, get all
 	 * the providers of that ASes, and getPathToPurged will pick a best path.
 	 * 
-	 * also stat the from/to-warden traffic at the same time 
-	 * stat the link basis traffic flow at the same time
+	 * also stat the from/to-warden traffic at the same time stat the link basis
+	 * traffic flow at the same time
 	 * 
 	 * parallel version
+	 * 
 	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
@@ -474,7 +498,8 @@ public class ParallelTrafficStat {
 				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic);
 				continue;
 			}
-			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcActiveAS, tdestPurgedAS, ParallelTrafficStat.NOTFROMSUPERAS);
+			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcActiveAS, tdestPurgedAS,
+					ParallelTrafficStat.NOTFROMSUPERAS);
 		}
 	}
 
@@ -505,7 +530,7 @@ public class ParallelTrafficStat {
 				cpath.prependASToPath(tProviderAS.getASN());
 				pathList.add(cpath);
 			}
-			
+
 			BGPPath tpath = srcPurgedAS.pathSelection(pathList);
 			if (tpath == null)
 				continue;
@@ -527,18 +552,19 @@ public class ParallelTrafficStat {
 	 * parallel version
 	 */
 	private void purgedToPurged(DecoyAS srcPurgedAS) {
-		
+
 		List<BGPPath> pathList = new ArrayList<BGPPath>();
 		List<Integer> srcProviderList = this.getProvidersList(srcPurgedAS.getProviders());
-		
+
 		for (int tdestPurgedASN : this.purgedMap.keySet()) {
 			if (srcPurgedAS.getASN() == tdestPurgedASN)
 				continue;
-			
+
 			pathList.clear();
-			List<Integer> destProviderList = this.getProvidersList(this.fullTopology.get(tdestPurgedASN).getProviders());
-			
-			for (int tSrcProviderASN : srcProviderList) {				
+			List<Integer> destProviderList = this
+					.getProvidersList(this.fullTopology.get(tdestPurgedASN).getProviders());
+
+			for (int tSrcProviderASN : srcProviderList) {
 				BGPPath tpath = this.activeMap.get(tSrcProviderASN).getPathToPurged(destProviderList);
 				if (tpath == null)
 					continue;
@@ -546,15 +572,14 @@ public class ParallelTrafficStat {
 				cpath.prependASToPath(tSrcProviderASN);
 				pathList.add(cpath);
 			}
-			
+
 			BGPPath tpath = srcPurgedAS.pathSelection(pathList);
 			if (tpath == null)
 				continue;
-			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN),
-					ParallelTrafficStat.NOTFROMSUPERAS);
+			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcPurgedAS,
+					this.fullTopology.get(tdestPurgedASN), ParallelTrafficStat.NOTFROMSUPERAS);
 		}
 	}
-
 
 	/**
 	 * calculate the total amount of traffic flowing on the peer to peer
@@ -562,41 +587,18 @@ public class ParallelTrafficStat {
 	 * 
 	 * @throws IOException
 	 */
-	private void statTotalP2PTraffic() throws IOException {
+	private void statTotalP2PTraffic() {
 
-		int ASN, ipNum, cnt = 0;
 		int ips[] = new int[this.activeMap.size() + this.purgedMap.size()];
-		String pollString;
 
-		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.IP_COUNT_FILE));
-		while (fBuff.ready()) {
-			pollString = fBuff.readLine().trim();
-
-			/*
-			 * ignore blanks
-			 */
-			if (pollString.length() == 0) {
-				continue;
-			}
-
-			/*
-			 * Ignore comments
-			 */
-			if (pollString.charAt(0) == '#') {
-				continue;
-			}
-
-			/*
-			 * Parse line
-			 */
-			StringTokenizer pollToks = new StringTokenizer(pollString, ",");
-			ASN = Integer.parseInt(pollToks.nextToken());
-			ipNum = Integer.parseInt(pollToks.nextToken());
-			ips[cnt++] = ipNum;
+		int counter = 0;
+		for (DecoyAS tAS : this.fullTopology.values()) {
+			ips[counter] = tAS.getIPCount();
+			counter++;
 		}
 
-		for (int i = 0; i < cnt; ++i)
-			for (int j = i + 1; j < cnt; ++j)
+		for (int i = 0; i < ips.length; ++i)
+			for (int j = i + 1; j < ips.length; ++j)
 				this.totalP2PTraffic += ips[i] * ips[j];
 		this.totalP2PTraffic *= 2;
 	}
@@ -803,7 +805,7 @@ public class ParallelTrafficStat {
 				continue;
 
 			/* if the path exists, do the statistic */
-			//this.addTrafficOnThePath(tpath, srcSuperAS, tDestActiveAS);
+			// this.addTrafficOnThePath(tpath, srcSuperAS, tDestActiveAS);
 			this.addTrafficOnTheLinkBasisPathInSerial(tpath, srcSuperAS, tDestActiveAS, ParallelTrafficStat.FROMSUPERAS);
 		}
 
@@ -827,13 +829,14 @@ public class ParallelTrafficStat {
 			if (tpath == null)
 				continue;
 
-			// deal with the case that super AS is adjacent to purged ASes 
+			// deal with the case that super AS is adjacent to purged ASes
 			if (tpath.getPathLength() == 0) {
 				double amountOfTraffic = tDestPurgedAS.getTrafficFromEachSuperAS();
 				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic);
 				continue;
 			}
-			this.addTrafficOnTheLinkBasisPathAndPurgedInSerial(tpath, srcSuperAS, tDestPurgedAS, ParallelTrafficStat.FROMSUPERAS);
+			this.addTrafficOnTheLinkBasisPathAndPurgedInSerial(tpath, srcSuperAS, tDestPurgedAS,
+					ParallelTrafficStat.FROMSUPERAS);
 		}
 
 	}
@@ -874,7 +877,7 @@ public class ParallelTrafficStat {
 		System.out.println("\nShowResults: traffic flowing to neighbors");
 		System.out.println("AS, neighbor AS, total traffic");
 		for (DecoyAS tAS : this.fullTopology.values()) {
-			for (int tASN : this.fullTopology.keySet()) {
+			for (int tASN : tAS.getNeighbors()) {
 				System.out.println(tAS.getASN() + ", " + tASN + ", " + tAS.getTrafficOverLinkBetween(tASN));
 			}
 			System.out.println();
@@ -882,4 +885,3 @@ public class ParallelTrafficStat {
 		}
 	}
 }
-

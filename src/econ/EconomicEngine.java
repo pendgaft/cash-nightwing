@@ -6,7 +6,7 @@ import java.io.*;
 import decoy.DecoyAS;
 
 import sim.BGPMaster;
-import sim.TrafficStat1;
+import sim.ParallelTrafficStat;
 import topo.AS;
 
 public class EconomicEngine {
@@ -50,7 +50,7 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageFixedNumberSim(int start, int end, int step, int trialCount, TrafficStat1 trafficManager) {
+	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
 		int[] asArray = new int[this.activeTopology.keySet().size()];
 		int arrayPos = 0;
