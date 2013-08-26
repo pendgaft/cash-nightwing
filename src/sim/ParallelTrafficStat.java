@@ -115,8 +115,8 @@ public class ParallelTrafficStat {
 					activeToActive(fullTopology.get(tASN));
 					activeToPurged(fullTopology.get(tASN));
 				} else if (purgedMap.containsKey(tASN)) {
-					purgedToActive(fullTopology.get(tASN));
-					purgedToPurged(fullTopology.get(tASN));
+					HashMap<Integer, BGPPath> toActiveMap = purgedToActive(fullTopology.get(tASN));
+					purgedToPurged(fullTopology.get(tASN), toActiveMap);
 				} else {
 					System.out.println("Inlegel Decoy AS!!");
 					System.exit(-1);
@@ -209,7 +209,7 @@ public class ParallelTrafficStat {
 			ArrayList<Integer> tempList = new ArrayList<Integer>();
 			if (i == Constants.NTHREADS - 1) {
 				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount + left));
-			}else{
+			} else {
 				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount));
 				currentPos += amount;
 			}
@@ -516,7 +516,8 @@ public class ParallelTrafficStat {
 	 * 
 	 * paralle version
 	 */
-	private void purgedToActive(DecoyAS srcPurgedAS) {
+	private HashMap<Integer, BGPPath> purgedToActive(DecoyAS srcPurgedAS) {
+		HashMap<Integer, BGPPath> bestPathMapping = new HashMap<Integer, BGPPath>();
 		List<BGPPath> pathList = new ArrayList<BGPPath>();
 
 		/* get the path through the providers of nodes in purgedMap */
@@ -537,7 +538,10 @@ public class ParallelTrafficStat {
 				continue;
 			this.addTrafficOnTheLinkBasisPathInParallel(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN),
 					ParallelTrafficStat.NOTFROMSUPERAS);
+			bestPathMapping.put(tdestActiveASN, tpath);
 		}
+
+		return bestPathMapping;
 	}
 
 	/**
@@ -552,11 +556,10 @@ public class ParallelTrafficStat {
 	 * 
 	 * parallel version
 	 */
-	private void purgedToPurged(DecoyAS srcPurgedAS) {
+	private void purgedToPurged(DecoyAS srcPurgedAS, HashMap<Integer, BGPPath> toActiveMap) {
 
 		List<BGPPath> pathList = new ArrayList<BGPPath>();
-		List<Integer> srcProviderList = this.getProvidersList(srcPurgedAS.getProviders());
-
+		
 		for (int tdestPurgedASN : this.purgedMap.keySet()) {
 			if (srcPurgedAS.getASN() == tdestPurgedASN)
 				continue;
@@ -564,14 +567,10 @@ public class ParallelTrafficStat {
 			pathList.clear();
 			List<Integer> destProviderList = this
 					.getProvidersList(this.fullTopology.get(tdestPurgedASN).getProviders());
-
-			for (int tSrcProviderASN : srcProviderList) {
-				BGPPath tpath = this.activeMap.get(tSrcProviderASN).getPathToPurged(destProviderList);
-				if (tpath == null)
-					continue;
-				BGPPath cpath = tpath.deepCopy();
-				cpath.prependASToPath(tSrcProviderASN);
-				pathList.add(cpath);
+			for (int tDestHook : destProviderList) {
+				if (toActiveMap.containsKey(tDestHook)) {
+					pathList.add(toActiveMap.get(tDestHook));
+				}
 			}
 
 			BGPPath tpath = srcPurgedAS.pathSelection(pathList);
