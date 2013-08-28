@@ -572,7 +572,12 @@ public class ParallelTrafficStat {
 
 			double amountOfTraffic = this.workAroundAddTrafficToLinks(bestPath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN),
 					toActiveMap.get(lastHop), false);
-			DecoyAS secondLastAS = this.fullTopology.get(bestPath.getPath().get(bestPath.getPathLength() - 1));
+			DecoyAS secondLastAS = null;
+			if(bestPath.getPathLength() == 0){
+				secondLastAS = this.fullTopology.get(bestPath.getNextHop());
+			}else{
+				secondLastAS = this.fullTopology.get(bestPath.getPath().get(bestPath.getPathLength() - 1));
+			}
 			secondLastAS.updateTrafficOverOneNeighbor(tdestPurgedASN, amountOfTraffic);
 			
 		}
