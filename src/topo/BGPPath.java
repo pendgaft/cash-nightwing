@@ -120,18 +120,6 @@ public class BGPPath implements Serializable{
 	public int getDest() {
 		return this.destASN;
 	}
-	
-	public boolean recursiveTieBreak(BGPPath rhs){
-		for(int counter = 0; counter < this.getPathLength(); counter++){
-			if(this.path.get(counter) < rhs.path.get(counter)){
-				return true;
-			} else if(this.path.get(counter) > rhs.path.get(counter)){
-				return false;
-			}
-		}
-		
-		return true;
-	}
 
 	/**
 	 * Predicate to test if two routes are the same route. This tests that the

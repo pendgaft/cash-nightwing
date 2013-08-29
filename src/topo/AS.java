@@ -425,82 +425,16 @@ public abstract class AS implements TransitAgent, Serializable {
 			}
 
 			if (newRel == currentRel) {
-				if (currentBest.getPathLength() > tPath.getPathLength()) {
+				if (currentBest.getPathLength() > tPath.getPathLength()
+						|| (currentBest.getPathLength() == tPath.getPathLength() && tPath.getNextHop() < currentBest
+								.getNextHop())) {
 					currentBest = tPath;
 					currentRel = newRel;
-				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
-					if (tPath.getNextHop() < currentBest.getNextHop()) {
-						currentBest = tPath;
-						currentRel = newRel;
-					}else if(tPath.getNextHop() == currentBest.getNextHop()){
-						/*
-						 * This is only needed for the path decisions dealing with purged networks
-						 */
-						if(tPath.recursiveTieBreak(currentBest)){
-							currentBest = tPath;
-							currentRel = newRel;
-						}
-					}
 				}
 			}
 		}
 
 		return currentBest;
-	}
-
-	/**
-	 * This is used for selecting paths to purged ASes outside of code. Long and
-	 * the short, since purged ASes are always only customers of entities, we
-	 * treat all paths as the same local pref, so we can skip right to path
-	 * length and tie breaker. Additionally we need to note the next hop in a
-	 * minorly crazy manner, since we're pulling these routes from other AS's
-	 * RIBs
-	 * 
-	 * @param possMap
-	 * @return
-	 */
-	public int purgedToActivePathSelection(HashMap<Integer, BGPPath> possMap) {
-		int pathLen = Integer.MAX_VALUE;
-		int key = -1;
-
-		for (int tNextHop : possMap.keySet()) {
-			BGPPath tPath = possMap.get(tNextHop);
-			if (tPath.getPathLength() < pathLen || (pathLen == tPath.getPathLength() && tNextHop < key)) {
-				pathLen = tPath.getPathLength();
-				key = tNextHop;
-			}
-		}
-
-		return key;
-	}
-
-	public int purgedToPurgedPathSelection(HashMap<Integer, BGPPath> toHookMap, HashMap<Integer, Integer> hookNextHop) {
-		int pathLen = Integer.MAX_VALUE;
-		int key = -1;
-		boolean replace = false;
-
-		for (int tHook : toHookMap.keySet()) {
-			BGPPath tPath = toHookMap.get(tHook);
-			if (tPath.getPathLength() < pathLen) {
-				replace = true;
-			} else if (tPath.getPathLength() == pathLen) {
-				if (hookNextHop.get(key) > hookNextHop.get(tHook)) {
-					replace = true;
-				} else if (hookNextHop.get(key) == hookNextHop.get(tHook)) {
-					if (tPath.recursiveTieBreak(toHookMap.get(key))) {
-						replace = true;
-					}
-				}
-			}
-
-			if (replace) {
-				pathLen = tPath.getPathLength();
-				key = tHook;
-				replace = false;
-			}
-		}
-
-		return key;
 	}
 
 	/**
@@ -846,6 +780,7 @@ public abstract class AS implements TransitAgent, Serializable {
 	 */
 	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
+
 	}
 
 	public void resetTraffic() {

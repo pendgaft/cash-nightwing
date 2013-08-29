@@ -576,24 +576,8 @@ public class ParallelTrafficStat {
 			BGPPath tpath = srcPurgedAS.pathSelection(pathList);
 			if (tpath == null)
 				continue;
-<<<<<<< HEAD
-			}
-			BGPPath bestPath = availMap.get(lastHop);
-
-			double amountOfTraffic = this.workAroundAddTrafficToLinks(bestPath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN),
-					toActiveMap.get(lastHop), false);
-			DecoyAS secondLastAS = null;
-			if(bestPath.getPathLength() == 0){
-				secondLastAS = this.fullTopology.get(bestPath.getNextHop());
-			}else{
-				secondLastAS = this.fullTopology.get(bestPath.getPath().get(bestPath.getPathLength() - 1));
-			}
-			secondLastAS.updateTrafficOverOneNeighbor(tdestPurgedASN, amountOfTraffic);
-			
-=======
 			this.addTrafficOnTheLinkBasisPathAndPurgedInParallel(tpath, srcPurgedAS,
 					this.fullTopology.get(tdestPurgedASN), ParallelTrafficStat.NOTFROMSUPERAS);
->>>>>>> parent of 5675830... re-worked traffic flow to not need O(pruned x active) number of deep object copies this is a bit of a speed test and possible revert, depends on if it is actually faster
 		}
 	}
 
