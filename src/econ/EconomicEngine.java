@@ -86,7 +86,7 @@ public class EconomicEngine {
 				}
 				
 				for (int counter = 0; counter < 3; counter++) {
-					trafficManager.runStat();
+					trafficManager.runStat(counter+1);
 					this.driveEconomicTurn("" + drCount + "," + counter, drSet);
 				}
 			}
@@ -226,3 +226,4 @@ public class EconomicEngine {
 		}
 	}
 }
+
