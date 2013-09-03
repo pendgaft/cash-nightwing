@@ -37,8 +37,6 @@ public abstract class AS implements TransitAgent, Serializable {
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
 	private double trafficFromSuperAS;
-	/** the traffic that can be removed */
-	private double totVolTraffic;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 	// adjancey
@@ -49,13 +47,9 @@ public abstract class AS implements TransitAgent, Serializable {
 
 	private Queue<BGPUpdate> incUpdateQueue;
 
-	/** store the traffic over each neighbor */
+	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
-	/** store the traffic over each neighbor which is on the path that has at least one warden */
-	private HashMap<Integer, Double> volTrafficOverNeighbors;
-	/** store the destination ASN the path to which has at least one warden */
-	private List<Integer> volTrafficDestinations;
-	
+
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
 	public static final int CUSTOMER_CODE = 1;
@@ -64,7 +58,6 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.asn = myASN;
 		this.ipPercentage = 0;
 		this.trafficFromSuperAS = 0;
-		this.totVolTraffic = 0;
 		this.wardenAS = false;
 		this.activeAvoidance = false;
 		this.purged = false;
@@ -82,9 +75,6 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
-		this.volTrafficOverNeighbors = new HashMap<Integer, Double>();
-		
-		this.volTrafficDestinations = new ArrayList<Integer>();
 	}
 
 	/**
@@ -186,9 +176,7 @@ public abstract class AS implements TransitAgent, Serializable {
 			System.exit(-1);
 		}
 		this.trafficOverNeighbors.put(otherAS.asn, 0.0);
-		this.volTrafficOverNeighbors.put(otherAS.asn, 0.0);
 		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
-		otherAS.volTrafficOverNeighbors.put(this.asn, 0.0);
 	}
 
 	/**
@@ -794,48 +782,10 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
 
 	}
-	
-	/**
-	 * add a pair of destination and amountOfTraffic which is the path has at least one
-	 * warden on it.
-	 * 
-	 * atomic operation for parallelization
-	 * 
-	 * @param neighbor
-	 * @param amountOfTraffic
-	 */	
-	public synchronized void updateVolTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
-		this.volTrafficOverNeighbors.put(neighbor, this.volTrafficOverNeighbors.get(neighbor) + amountOfTraffic);
-		this.totVolTraffic += amountOfTraffic;
-	}
-	
-	/**
-	 * subtract the traffic flowing on the path that has wardens
-	 * */
-	public void subtractVolTraffic() {
-		for (int tASN : this.volTrafficOverNeighbors.keySet()) {
-			if (this.volTrafficOverNeighbors.get(tASN) != 0) {
-				this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volTrafficOverNeighbors.get(tASN));
-			}
-		}
-	}
-	
-	/**
-	 * add the destination AS where the path has at least one warden on it,
-	 * and the paths to these ASes are to be recalculated 
-	 * @param ASN
-	 */
-	public void addVolTrafficDestinationOnTheList(int ASN) {
-		this.volTrafficDestinations.add(ASN);
-	}
-	
-	public List<Integer> getVolTafficDestination() {
-		return this.volTrafficDestinations;
-	}
+
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
 			this.trafficOverNeighbors.put(tASN, 0.0);
 		}
 	}
 }
-
