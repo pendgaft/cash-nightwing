@@ -49,6 +49,9 @@ public abstract class AS implements TransitAgent, Serializable {
 
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
+	
+	private HashMap<Integer, Double> volatileTraffic;
+	private Set<Integer> volatileDestinations;
 
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
@@ -75,6 +78,8 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
+		this.volatileTraffic = new HashMap<Integer, Double>();
+		this.volatileDestinations = new HashSet<Integer>();
 	}
 
 	/**
@@ -177,6 +182,8 @@ public abstract class AS implements TransitAgent, Serializable {
 		}
 		this.trafficOverNeighbors.put(otherAS.asn, 0.0);
 		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
+		this.volatileTraffic.put(otherAS.asn, 0.0);
+		otherAS.volatileTraffic.put(this.asn, 0.0);
 	}
 
 	/**
@@ -766,7 +773,11 @@ public abstract class AS implements TransitAgent, Serializable {
 	 *         traveled from THIS AS to otherASN this round
 	 */
 	public double getTrafficOverLinkBetween(int otherASN) {
-		return this.trafficOverNeighbors.get(otherASN).doubleValue();
+		return this.trafficOverNeighbors.get(otherASN);
+	}
+	
+	public double getVolTraffic(int otherASN){
+		return this.volatileTraffic.get(otherASN);
 	}
 
 	/**
@@ -778,14 +789,24 @@ public abstract class AS implements TransitAgent, Serializable {
 	 * @param neighbor
 	 * @param amountOfTraffic
 	 */
-	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic) {
+	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile) {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
-
+		if(isVolatile){
+			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
+		}
+	}
+	
+	public void addVolatileDestionation(int volatileDest){
+		this.volatileDestinations.add(volatileDest);
+	}
+	
+	public Set<Integer> getVolatileDestinations(){
+		return this.volatileDestinations;
 	}
 
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
-			this.trafficOverNeighbors.put(tASN, 0.0);
+			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
 		}
 	}
 }
