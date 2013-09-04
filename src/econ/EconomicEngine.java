@@ -98,6 +98,7 @@ public class EconomicEngine {
 		 * Write the round terminators to logging files
 		 */
 		try {
+			//TODO feature request: different terminator for sample vs round
 			this.wardenOut.write(EconomicEngine.ROUND_TERMINATOR + roundLeader + "\n");
 			this.transitOut.write(EconomicEngine.ROUND_TERMINATOR + roundLeader + "\n");
 		} catch (IOException e) {
@@ -212,6 +213,7 @@ public class EconomicEngine {
 		 */
 		if (!this.activeTopology.containsKey(asn)) {
 			this.theTopo.get(asn).makeAdustments(null);
+			return;
 		}
 
 		/*

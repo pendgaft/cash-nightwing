@@ -37,6 +37,8 @@ public class ParallelTrafficStat {
 	private List<Integer> validASNList;
 
 	private List<List<Integer>> workSplit;
+	
+	private boolean firstRound;
 
 	private static final boolean DEBUG = true;
 	private static final boolean REPORT_TIMING = true;
@@ -60,6 +62,7 @@ public class ParallelTrafficStat {
 		this.purgedMap = purgedMap;
 		this.fullTopology = new HashMap<Integer, DecoyAS>();
 		this.validASNList = new ArrayList<Integer>();
+		this.firstRound = true;
 
 		for (int tASN : this.activeMap.keySet()) {
 			this.fullTopology.put(tASN, this.activeMap.get(tASN));
@@ -100,9 +103,11 @@ public class ParallelTrafficStat {
 	private class ParallelRunningThread implements Runnable {
 
 		private List<Integer> localASList;
+		private boolean firstRun;
 
-		ParallelRunningThread(List<Integer> ASes) {
+		ParallelRunningThread(List<Integer> ASes, boolean firstRun) {
 			this.localASList = ASes;
+			this.firstRun = firstRun;
 		}
 
 		@Override
@@ -111,11 +116,11 @@ public class ParallelTrafficStat {
 			//TODO the first round flag needs to be actually set
 			for (int tASN : this.localASList) {
 				if (activeMap.containsKey(tASN)) {
-					activeToActive(fullTopology.get(tASN), true);
-					activeToPurged(fullTopology.get(tASN), true);
+					activeToActive(fullTopology.get(tASN), this.firstRun);
+					activeToPurged(fullTopology.get(tASN), this.firstRun);
 				} else if (purgedMap.containsKey(tASN)) {
-					HashMap<Integer, BGPPath> toActiveMap = purgedToActive(fullTopology.get(tASN), true);
-					purgedToPurged(fullTopology.get(tASN), toActiveMap, true);
+					HashMap<Integer, BGPPath> toActiveMap = purgedToActive(fullTopology.get(tASN), this.firstRun);
+					purgedToPurged(fullTopology.get(tASN), toActiveMap, this.firstRun);
 				} else {
 					System.out.println("Inlegel Decoy AS!!");
 					System.exit(-1);
@@ -168,7 +173,7 @@ public class ParallelTrafficStat {
 		/*
 		 * Run the p2p traffic flow
 		 */
-		this.statTrafficOnPToPNetworkInParallel();
+		this.statTrafficOnPToPNetworkInParallel(this.firstRound);
 		ptpNetwork = System.currentTimeMillis();
 		if (ParallelTrafficStat.REPORT_TIMING) {
 			System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork - startTime)
@@ -183,6 +188,10 @@ public class ParallelTrafficStat {
 		if (ParallelTrafficStat.REPORT_TIMING) {
 			System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
 					+ " minutes.");
+		}
+		
+		if(this.firstRound){
+			this.firstRound = false;
 		}
 
 		if (ParallelTrafficStat.DEBUG) {
@@ -222,12 +231,12 @@ public class ParallelTrafficStat {
 	 * objects
 	 * 
 	 */
-	private void statTrafficOnPToPNetworkInParallel() {
+	private void statTrafficOnPToPNetworkInParallel(boolean firstRun) {
 
 		/* make the threads run to calculate its own list of ASes */
 		Thread[] workers = new Thread[Constants.NTHREADS];
 		for (int i = 0; i < Constants.NTHREADS; ++i) {
-			workers[i] = new Thread(new ParallelRunningThread(this.workSplit.get(i)));
+			workers[i] = new Thread(new ParallelRunningThread(this.workSplit.get(i), firstRun));
 			workers[i].start();
 		}
 
@@ -692,10 +701,10 @@ public class ParallelTrafficStat {
 
 			//TODO the first round flag needs to be actually populated
 			/* traffic from tAS which is in the activeMap to activeMap */
-			statTrafficFromSuperASActiveToActive(tAS, true);
+			statTrafficFromSuperASActiveToActive(tAS, this.firstRound);
 
 			/* traffic from tAS which is in the activeMap to purgedMap */
-			statTrafficFromSuperASActiveToPurged(tAS, true);
+			statTrafficFromSuperASActiveToPurged(tAS, this.firstRound);
 		}
 	}
 

@@ -3,6 +3,8 @@ package econ;
 import java.io.*;
 import java.util.Random;
 
+import sim.Constants;
+
 import decoy.DecoyAS;
 
 public class TransitProvider extends EconomicAgent {
@@ -18,8 +20,6 @@ public class TransitProvider extends EconomicAgent {
 
 	private static double FLIPCHANCE = 0.00;
 	private static Random rng = new Random();
-
-	private static final boolean TESTING = false;
 
 	public static void setFlipChance(double chance) {
 		TransitProvider.FLIPCHANCE = chance;
@@ -64,7 +64,7 @@ public class TransitProvider extends EconomicAgent {
 			return;
 		}
 
-		if (TransitProvider.TESTING) {
+		if (Constants.ECON_TESTING) {
 			if (this.parent.getASN() == 2) {
 				this.flipDecoyState = true;
 			} else {

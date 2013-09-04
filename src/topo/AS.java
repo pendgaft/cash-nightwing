@@ -807,6 +807,7 @@ public abstract class AS implements TransitAgent, Serializable {
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
+			this.volatileTraffic.put(tASN, 0.0);
 		}
 	}
 }

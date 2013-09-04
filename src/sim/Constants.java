@@ -15,6 +15,8 @@ public class Constants {
 //	public static final String SUPER_AS_FILE = "maxTest/superAS-test.txt";
 	
 	public static final boolean DEBUG = false;
+	public static final boolean ECON_TESTING = false;
+	
 	public static final int NTHREADS = 10;
 
 }
