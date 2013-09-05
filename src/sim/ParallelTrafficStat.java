@@ -527,7 +527,7 @@ public class ParallelTrafficStat {
 					srcPurgedAS.addVolatileDestionation(tdestActiveASN);
 				}
 			} else {
-				isVolatile = false;
+				isVolatile = true;
 			}
 			
 			this.addTrafficToPath(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN), false, isVolatile);
