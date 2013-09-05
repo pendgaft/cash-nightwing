@@ -358,6 +358,39 @@ public class ParallelTrafficStat {
 		}
 		return pList;
 	}
+	
+	/**
+	 * convert a set of integer into a set of corresponding DecoyAS,
+	 * and return the set
+	 * @param tAS
+	 * @return
+	 */
+	private Set<DecoyAS> convertToDecoyAS(DecoyAS tAS) {
+		Set<DecoyAS> decoyASList = new HashSet<DecoyAS>();
+		for (int tASN : tAS.getVolatileDestinations()) {
+			decoyASList.add(this.fullTopology.get(tASN));
+		}
+		return decoyASList;
+	}
+	
+	/**
+	 * return the proper set of AS which depends on the number of the run,
+	 * and the type of the map
+	 * @param tAS
+	 * @param firstRun
+	 * @param isActiveMap
+	 * @return
+	 */
+	private Collection<DecoyAS> selectDecoyASList(DecoyAS tAS, boolean firstRun, boolean toActiveMap) {
+		if (firstRun) {
+			if (toActiveMap)
+				return this.activeMap.values();
+			else
+				return this.purgedMap.values();
+		} else {
+			return convertToDecoyAS(tAS);
+		}
+	}
 
 	/**
 	 * the traffic of all the paths starting from the given AS in activeMap to
@@ -371,13 +404,14 @@ public class ParallelTrafficStat {
 	 * 
 	 * parallel version
 	 * 
-	 * @param srcAS
+	 * @param srcActiveAS
 	 *            the AS to start from
 	 */
-	private void activeToActive(DecoyAS srcAS, boolean firstRun) {
+	private void activeToActive(DecoyAS srcActiveAS, boolean firstRun) {
 
-		for (DecoyAS destAS : this.activeMap.values()) {
-			if (srcAS.getASN() == destAS.getASN()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcActiveAS, firstRun, true);
+		for (DecoyAS destAS : decoyASList) {
+			if (srcActiveAS.getASN() == destAS.getASN()) {
 				continue;
 			}
 
@@ -385,22 +419,27 @@ public class ParallelTrafficStat {
 			 * Fetch the actual path object, deal with the odd case in which it
 			 * does not exist
 			 */
-			BGPPath usedPath = srcAS.getPath(destAS.getASN());
+			BGPPath usedPath = srcActiveAS.getPath(destAS.getASN());
 			if (usedPath == null)
 				continue;
 			
 			/*
 			 * Figure out if the path is volatile or not
 			 */
-			boolean isVolatile = this.pathIsVolatile(usedPath, srcAS.getASN(), destAS.getASN());
-			if(isVolatile && firstRun){
-				srcAS.addVolatileDestionation(destAS.getASN());
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(usedPath, srcActiveAS.getASN(), destAS.getASN());
+				if (isVolatile) {
+					srcActiveAS.addVolatileDestionation(destAS.getASN());
+				}
+			} else {
+				isVolatile = true;
 			}
 
 			/*
 			 * Actually add the traffic to the AS objects
 			 */
-			this.addTrafficToPath(usedPath, srcAS, destAS, false, isVolatile);
+			this.addTrafficToPath(usedPath, srcActiveAS, destAS, false, isVolatile);
 		}
 	}
 
@@ -419,15 +458,21 @@ public class ParallelTrafficStat {
 	 */
 	private void activeToPurged(DecoyAS srcActiveAS, boolean firstRun) {
 
-		for (DecoyAS tdestPurgedAS : this.purgedMap.values()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcActiveAS, firstRun, false);
+		for (DecoyAS tdestPurgedAS : decoyASList) {
 			List<Integer> hookASNs = getProvidersList(tdestPurgedAS.getProviders());
 			BGPPath tpath = srcActiveAS.getPathToPurged(hookASNs);
 			if (tpath == null)
 				continue;
 
-			boolean isVolatile = this.pathIsVolatile(tpath, srcActiveAS.getASN(), tdestPurgedAS.getASN());
-			if(isVolatile && firstRun){
-				srcActiveAS.addVolatileDestionation(tdestPurgedAS.getASN());
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(tpath, srcActiveAS.getASN(), tdestPurgedAS.getASN());
+				if (isVolatile) {
+					srcActiveAS.addVolatileDestionation(tdestPurgedAS.getASN());
+				}
+			} else {
+				isVolatile = true;
 			}
 			
 			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
@@ -455,7 +500,9 @@ public class ParallelTrafficStat {
 
 		/* get the path through the providers of nodes in purgedMap */
 		Set<AS> providers = srcPurgedAS.getProviders();
-		for (int tdestActiveASN : this.activeMap.keySet()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcPurgedAS, firstRun, true);
+		for (DecoyAS tdestActiveAS : decoyASList) {
+			int tdestActiveASN = tdestActiveAS.getASN();
 			pathList.clear();
 			for (AS tProviderAS : providers) {
 				BGPPath tpath = tProviderAS.getPath(tdestActiveASN);
@@ -473,9 +520,14 @@ public class ParallelTrafficStat {
 			/*
 			 * figure out if the path is volatile
 			 */
-			boolean isVolatile = this.pathIsVolatile(tpath, srcPurgedAS.getASN(), tdestActiveASN);
-			if(isVolatile && firstRun){
-				srcPurgedAS.addVolatileDestionation(tdestActiveASN);
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(tpath, srcPurgedAS.getASN(), tdestActiveASN);
+				if (isVolatile) {
+					srcPurgedAS.addVolatileDestionation(tdestActiveASN);
+				}
+			} else {
+				isVolatile = false;
 			}
 			
 			this.addTrafficToPath(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN), false, isVolatile);
@@ -500,8 +552,9 @@ public class ParallelTrafficStat {
 	private void purgedToPurged(DecoyAS srcPurgedAS, HashMap<Integer, BGPPath> toActiveMap, boolean firstRun) {
 
 		List<BGPPath> pathList = new ArrayList<BGPPath>();
-
-		for (int tdestPurgedASN : this.purgedMap.keySet()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcPurgedAS, firstRun, false);
+		for (DecoyAS tdestPurgedAS : decoyASList) {
+			int tdestPurgedASN = tdestPurgedAS.getASN();
 			if (srcPurgedAS.getASN() == tdestPurgedASN)
 				continue;
 
@@ -521,9 +574,14 @@ public class ParallelTrafficStat {
 			/*
 			 * figure out if the path is volatile
 			 */
-			boolean isVolatile = this.pathIsVolatile(tpath, srcPurgedAS.getASN(), tdestPurgedASN);
-			if(isVolatile && firstRun){
-				srcPurgedAS.addVolatileDestionation(tdestPurgedASN);
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(tpath, srcPurgedAS.getASN(), tdestPurgedASN);
+				if (isVolatile) {
+					srcPurgedAS.addVolatileDestionation(tdestPurgedASN);
+				}
+			} else {
+				isVolatile = true;
 			}
 			
 			this.addTrafficToPathAndLastHop(tpath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN), false, isVolatile);
@@ -625,7 +683,8 @@ public class ParallelTrafficStat {
 	 */
 	private void statTrafficFromSuperASActiveToActive(DecoyAS srcSuperAS, boolean firstRun) {
 
-		for (DecoyAS tDestActiveAS : this.activeMap.values()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcSuperAS, firstRun, true);
+		for (DecoyAS tDestActiveAS : decoyASList) {
 			if (tDestActiveAS.isSuperAS())
 				continue;
 
@@ -636,9 +695,14 @@ public class ParallelTrafficStat {
 			/*
 			 * figure out if the path is volatile
 			 */
-			boolean isVolatile = this.pathIsVolatile(tpath, srcSuperAS.getASN(), tDestActiveAS.getASN());
-			if(isVolatile && firstRun){
-				srcSuperAS.addVolatileDestionation(tDestActiveAS.getASN());
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(tpath, srcSuperAS.getASN(), tDestActiveAS.getASN());
+				if (isVolatile) {
+					srcSuperAS.addVolatileDestionation(tDestActiveAS.getASN());
+				}
+			} else {
+				isVolatile = true;
 			}
 
 			/* if the path exists, do the statistic */
@@ -656,7 +720,8 @@ public class ParallelTrafficStat {
 	 */
 	private void statTrafficFromSuperASActiveToPurged(DecoyAS srcSuperAS, boolean firstRun) {
 
-		for (DecoyAS tDestPurgedAS : this.purgedMap.values()) {
+		Collection <DecoyAS> decoyASList = this.selectDecoyASList(srcSuperAS, firstRun, false);
+		for (DecoyAS tDestPurgedAS : decoyASList) {
 			if (tDestPurgedAS.isSuperAS())
 				continue;
 
@@ -668,9 +733,15 @@ public class ParallelTrafficStat {
 			/*
 			 * figure out if the path is volatile
 			 */
-			boolean isVolatile = this.pathIsVolatile(tpath, srcSuperAS.getASN(), tDestPurgedAS.getASN());
-			if(isVolatile && firstRun){
-				srcSuperAS.addVolatileDestionation(tDestPurgedAS.getASN());
+			
+			boolean isVolatile;
+			if (firstRun) {
+				isVolatile = this.pathIsVolatile(tpath, srcSuperAS.getASN(), tDestPurgedAS.getASN());
+				if (isVolatile) {
+					srcSuperAS.addVolatileDestionation(tDestPurgedAS.getASN());
+				}
+			} else {
+				isVolatile = true;
 			}
 
 			// XXX does this handle this edge condition correctly?
@@ -738,3 +809,4 @@ public class ParallelTrafficStat {
 		}
 	}
 }
+

@@ -22,6 +22,7 @@ public class EconomicEngine {
 	private static final double COST_PER_MBYTE = 1.0;
 
 	private static final String ROUND_TERMINATOR = "***";
+	private static final String SAMPLE_TERMINATOR = "###";
 	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
@@ -87,20 +88,25 @@ public class EconomicEngine {
 				
 				for (int counter = 0; counter < 3; counter++) {
 					trafficManager.runStat();
-					this.driveEconomicTurn("" + drCount + "," + counter, drSet);
+					this.driveEconomicTurn("" + drCount + "," + counter, drSet, counter);
 				}
 			}
 		}
 	}
 
-	private void driveEconomicTurn(String roundLeader, Object supData) {
+	private void driveEconomicTurn(String roundLeader, Object supData, int round) {
 		/*
 		 * Write the round terminators to logging files
 		 */
 		try {
-			//TODO feature request: different terminator for sample vs round
-			this.wardenOut.write(EconomicEngine.ROUND_TERMINATOR + roundLeader + "\n");
-			this.transitOut.write(EconomicEngine.ROUND_TERMINATOR + roundLeader + "\n");
+			String terminator = null;
+			if (round == 0) {
+				terminator = EconomicEngine.SAMPLE_TERMINATOR;
+			} else {
+				terminator = EconomicEngine.ROUND_TERMINATOR;
+			}
+			this.wardenOut.write(terminator + roundLeader + "\n");
+			this.transitOut.write(terminator + roundLeader + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -228,3 +234,4 @@ public class EconomicEngine {
 		}
 	}
 }
+
