@@ -47,6 +47,7 @@ public class BGPMaster {
 		return retArray;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static HashMap<Integer, DecoyAS>[] buildASObjectsOnly(String wardenFile) throws IOException{
 		/*
 		 * Build AS map
