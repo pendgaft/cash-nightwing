@@ -153,7 +153,7 @@ public class Nightwing {
 			 * Do the actual rounds of simulation
 			 */
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), 100, trafficStat);
+					.parseInt(args[5]), Constants.SAMPLE_COUNT, trafficStat);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
