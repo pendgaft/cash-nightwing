@@ -47,6 +47,19 @@ public class BGPMaster {
 		return retArray;
 	}
 	
+	public static HashMap<Integer, DecoyAS>[] buildASObjectsOnly(String wardenFile) throws IOException{
+		/*
+		 * Build AS map
+		 */
+		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
+		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+		
+		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
+		retArray[0] = usefulASMap;
+		retArray[1] = prunedASMap;
+		return retArray;
+	}
+	
 	public static void driveBGPProcessing(HashMap<Integer, DecoyAS> activeMap){
 		/*
 		 * dole out ases into blocks

@@ -14,21 +14,18 @@ public class SerializationMaster {
 
 	private byte[] hashValue;
 	private String wardenFile;
-	private boolean loadedActive;
-
-	private ObjectInputStream serialLoad;
 
 	private static final String SERIALFILE_DIRECTORY = "serial/";
 	private static final String SERIALFILE_EXT = ".ser";
 
 	public static void main(String args[]) {
-		SerializationMaster tester = new SerializationMaster("bowenTest/warden-test.txt");
+		SerializationMaster tester = new SerializationMaster(
+				"bowenTest/warden-test.txt");
 		System.out.println(tester.convertHashToFileName());
 	}
 
 	public SerializationMaster(String wardenFile) {
 		this.wardenFile = wardenFile;
-		this.loadedActive = false;
 		this.buildFileManifest();
 	}
 
@@ -57,7 +54,8 @@ public class SerializationMaster {
 
 	private void addToHash(String fileName, MessageDigest hashObject) {
 		try {
-			BufferedReader confFile = new BufferedReader(new FileReader(fileName));
+			BufferedReader confFile = new BufferedReader(new FileReader(
+					fileName));
 			while (confFile.ready()) {
 				hashObject.update(confFile.readLine().getBytes());
 			}
@@ -76,55 +74,46 @@ public class SerializationMaster {
 		}
 		String formatResult = format.toString();
 		format.close();
-		return SerializationMaster.SERIALFILE_DIRECTORY + formatResult + SerializationMaster.SERIALFILE_EXT;
+		return SerializationMaster.SERIALFILE_DIRECTORY + formatResult
+				+ SerializationMaster.SERIALFILE_EXT;
 	}
 
-	@SuppressWarnings("unchecked")
-	public HashMap<Integer, DecoyAS> loadActiveMap() {
-		if (this.loadedActive) {
-			throw new RuntimeException("Attempted to load active map more than once.");
-		}
-
-		HashMap<Integer, DecoyAS> loadedTopo = null;
+	public void loadSerializationFile(HashMap<Integer, DecoyAS> activeTopo) {
 		try {
-			this.serialLoad = new ObjectInputStream(new FileInputStream(this.convertHashToFileName()));
-			loadedTopo = (HashMap<Integer, DecoyAS>) this.serialLoad.readObject();
+			ObjectInputStream serialIn = new ObjectInputStream(
+					new FileInputStream(this.convertHashToFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo
+					.keySet());
+			for (int tASN : sortedAS) {
+				activeTopo.get(tASN).loadASFromSerial(serialIn);
+			}
+			serialIn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-
-		this.loadedActive = true;
-		return loadedTopo;
 	}
 
-	@SuppressWarnings("unchecked")
-	public HashMap<Integer, DecoyAS> loadPrunedMap() {
-		if (!this.loadedActive) {
-			throw new RuntimeException("Attempted to load passive map before loading active map.");
-		}
-
-		HashMap<Integer, DecoyAS> loadedTopo = null;
+	public void buildSerializationFile(HashMap<Integer, DecoyAS> activeTopo) {
 		try {
-			loadedTopo = (HashMap<Integer, DecoyAS>) this.serialLoad.readObject();
-			this.serialLoad.close();
-		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(-1);
-		}
-
-		return loadedTopo;
-	}
-
-	public void buildSerializationFile(HashMap<Integer, DecoyAS> activeTopo, HashMap<Integer, DecoyAS> prunedTopo) {
-		try {
-			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToFileName()));
-			serialOut.writeObject(activeTopo);
-			serialOut.writeObject(prunedTopo);
+			ObjectOutputStream serialOut = new ObjectOutputStream(
+					new FileOutputStream(this.convertHashToFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo
+					.keySet());
+			for (int tASN : sortedAS) {
+				activeTopo.get(tASN).saveASToSerial(serialOut);
+			}
 			serialOut.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	private List<Integer> buildSortedASNList(Set<Integer> activeASNs) {
+		List<Integer> sortedList = new ArrayList<Integer>();
+		sortedList.addAll(activeASNs);
+		Collections.sort(sortedList);
+		return sortedList;
 	}
 }

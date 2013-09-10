@@ -2,7 +2,9 @@ package topo;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.io.Serializable;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 
 import econ.TransitAgent;
 
@@ -15,12 +17,7 @@ import econ.TransitAgent;
  * @author pendgaft
  * 
  */
-public abstract class AS implements TransitAgent, Serializable {
-
-	/**
-	 * Serialization ID
-	 */
-	private static final long serialVersionUID = 2218701368397505673L;
+public abstract class AS implements TransitAgent {
 
 	private int asn;
 	private boolean wardenAS;
@@ -80,6 +77,39 @@ public abstract class AS implements TransitAgent, Serializable {
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
 		this.volatileTraffic = new HashMap<Integer, Double>();
 		this.volatileDestinations = new HashSet<Integer>();
+	}
+	
+	@SuppressWarnings("unchecked")
+	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException{
+		this.inRib = (HashMap<Integer, List<BGPPath>>)serialIn.readObject();
+		this.adjInRib = (HashMap<Integer, List<BGPPath>>)serialIn.readObject();
+		this.locRib = (HashMap<Integer, BGPPath>)serialIn.readObject();
+		
+		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>)serialIn.readObject();
+		this.adjOutRib = new HashMap<Integer, Set<AS>>();
+		for(int tASN: tempAdjOut.keySet()){
+			Set<AS> tempSet = new HashSet<AS>();
+			for(int tAdvNeighbor: tempAdjOut.get(tASN)){
+				tempSet.add(this.getNeighborByASN(tAdvNeighbor));
+			}
+			this.adjOutRib.put(tASN, tempSet);
+		}
+	}
+	
+	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException{
+		serialOut.writeObject(this.inRib);
+		serialOut.writeObject(this.adjInRib);
+		serialOut.writeObject(this.locRib);
+		
+		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
+		for(int tDest: this.adjOutRib.keySet()){
+			Set<Integer> tempSet = new HashSet<Integer>();
+			for(AS tAS: this.adjOutRib.get(tDest)){
+				tempSet.add(tAS.getASN());
+			}
+			tempAdjOut.put(tDest, tempSet);
+		}
+		serialOut.writeObject(tempAdjOut);
 	}
 
 	/**
@@ -184,6 +214,25 @@ public abstract class AS implements TransitAgent, Serializable {
 		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
 		this.volatileTraffic.put(otherAS.asn, 0.0);
 		otherAS.volatileTraffic.put(this.asn, 0.0);
+	}
+	
+	private AS getNeighborByASN(int asn){
+		for(AS tAS: this.customers){
+			if(tAS.getASN() == asn){
+				return tAS;
+			}
+		}
+		for(AS tAS: this.peers){
+			if(tAS.getASN() == asn){
+				return tAS;
+			}
+		}
+		for(AS tAS: this.providers){
+			if(tAS.getASN() == asn){
+				return tAS;
+			}
+		}
+		return null;
 	}
 
 	/**

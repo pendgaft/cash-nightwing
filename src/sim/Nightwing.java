@@ -78,8 +78,10 @@ public class Nightwing {
 		SerializationMaster serialControl = new SerializationMaster(wardenFile);
 		if (serialControl.hasValidSerialFile()) {
 			System.out.println("Valid serial file exists, skipping fresh build.");
-			liveTopo = serialControl.loadActiveMap();
-			prunedTopo = serialControl.loadPrunedMap();
+			HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildASObjectsOnly(wardenFile);
+			liveTopo = topoArray[0];
+			prunedTopo = topoArray[1];
+			serialControl.loadSerializationFile(liveTopo);
 			System.out.println("Topology loaded from serial file.");
 		} else {
 			System.out.println("No serial file exists, building topology from scratch.");
@@ -87,7 +89,7 @@ public class Nightwing {
 			liveTopo = topoArray[0];
 			prunedTopo = topoArray[1];
 			System.out.println("Topo built and BGP converged.");
-			serialControl.buildSerializationFile(liveTopo, prunedTopo);
+			serialControl.buildSerializationFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
 
