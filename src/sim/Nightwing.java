@@ -109,6 +109,11 @@ public class Nightwing {
 			System.out.println("pruned ip count:");
 			for (AS tAS : prunedTopo.values())
 				System.out.println(tAS.getASN() + ", " + tAS.getIPCount());
+			
+			System.out.println("routing tables:");
+			for(AS tAS: liveTopo.values()){
+				System.out.println(tAS.printDebugString());
+			}
 		}
 
 		/*

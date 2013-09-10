@@ -523,6 +523,8 @@ public abstract class AS implements TransitAgent {
 					newAdvTo.add(tProv);
 				}
 			}
+			
+			this.adjOutRib.put(dest, newAdvTo);
 		}
 
 		if (prevAdvedTo != null) {
@@ -630,6 +632,10 @@ public abstract class AS implements TransitAgent {
 
 	public String toString() {
 		return "AS: " + this.asn;
+	}
+	
+	public String printDebugString(){
+		return this.toString() + "\nADJ IN RIB\n" + this.adjInRib.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n" + this.locRib.toString() + "\nADJ OUT\n" + this.adjOutRib.toString();
 	}
 
 	/**
