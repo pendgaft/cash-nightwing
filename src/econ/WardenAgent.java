@@ -28,6 +28,7 @@ public class WardenAgent extends EconomicAgent {
 		Set<Integer> decoySet = this.buildDecoySet();
 		double pathCount = 0.0;
 		double cleanCount = 0.0;
+		int nullCount = 0;
 		
 		for(int tDest: this.activeTopo.keySet()){
 			if(tDest == this.parent.getASN()){
@@ -35,18 +36,27 @@ public class WardenAgent extends EconomicAgent {
 			}
 			
 			BGPPath tPath = this.parent.getPath(tDest);
+			if(tPath == null){
+				nullCount++;
+				continue;
+			}
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
 			if(!tPath.containsAnyOf(decoySet)){
 				cleanCount += ipCount;
 			}
 			pathCount += ipCount;
 		}
+		//XXX logging to take out
+		System.out.println("" + this.parent.getASN() + " " + nullCount);
 		for(int tDest: this.prunedTopo.keySet()){
 			List<Integer> hookASNs = new ArrayList<Integer>();
 			for(AS tParent: this.prunedTopo.get(tDest).getProviders()){
 				hookASNs.add(tParent.getASN());
 			}
 			BGPPath tPath = this.parent.getPathToPurged(hookASNs);
+			if(tPath == null){
+				continue;
+			}
 			int ipCount = this.prunedTopo.get(tDest).getIPCount();
 			if(!tPath.containsAnyOf(decoySet)){
 				cleanCount += ipCount;
