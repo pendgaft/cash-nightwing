@@ -23,6 +23,7 @@ public class EconomicEngine {
 
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
+	private static final String SAMPLESIZE_TERMINATOR = "&&&";
 	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
@@ -65,6 +66,17 @@ public class EconomicEngine {
 			System.out.println("Starting processing for Decoy Count of: " + drCount);
 			int tenPercentMark = (int)Math.floor((double)trialCount / 10.0);
 			int nextMark = tenPercentMark;
+			/*
+			 * Write the size terminators to logging files
+			 */
+			try {
+				this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+				this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+			
 			for (int trialNumber = 0; trialNumber < trialCount; trialNumber++) {
 				/*
 				 * Give progress reports
