@@ -41,7 +41,7 @@ public class ParallelTrafficStat {
 	private boolean firstRound;
 
 	private static final boolean DEBUG = false;
-	private static final boolean REPORT_TIMING = true;
+	private static final boolean REPORT_TIMING = false;
 
 	/** stores normal ASes and super ASes */
 	private List<DecoyAS> normalASList;
