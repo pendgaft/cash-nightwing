@@ -1,4 +1,4 @@
-package sim;
+package parsing;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -20,6 +20,11 @@ public class FileParsingEngine {
 	/** the percentile to calculate */
 	private static double[] percentile= {0.10, 0.25, 0.50, 0.75, 0.90};
 	private static String OUTPUTPATH = "parseResults/";
+	
+	public static void main(String args[]) throws IOException{
+		FileParsingEngine self = new FileParsingEngine(args[0], args[1]);
+		self.parseFile();
+	}
 	
 	public FileParsingEngine(String wardenlog, String transitlog) {
 		this.wardenlog = wardenlog;
