@@ -524,7 +524,7 @@ public abstract class AS implements TransitAgent {
 				}
 			}
 			
-			this.adjOutRib.put(dest, newAdvTo);
+			//this.adjOutRib.put(dest, newAdvTo);
 		}
 
 		if (prevAdvedTo != null) {
