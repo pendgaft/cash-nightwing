@@ -25,6 +25,8 @@ public class Nightwing {
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
 	private static final int ECON_PHASE_1 = 7;
 	private static final String ECON_P1_STRING = "econ1";
+	private static final int PARSE_FILE_MODE = 8;
+	private static final String PARSE_FILE_STRING = "parse";
 
 	public static void main(String[] args) throws IOException {
 
@@ -59,8 +61,13 @@ public class Nightwing {
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
 			if (args.length != 6) {
-				System.out
-						.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+				System.out.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+				return;
+			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.PARSE_FILE_STRING)) {
+			mode = Nightwing.PARSE_FILE_MODE;
+			if (args.length != 4) {
+				System.out.println("Parsingfile mode usage: ./Nightwing <mode> <warden file> <warden logfile> <transit logfile>");
 				return;
 			}
 		} else {
@@ -92,7 +99,7 @@ public class Nightwing {
 			serialControl.buildSerializationFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
-
+		
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {
@@ -155,6 +162,9 @@ public class Nightwing {
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
 					.parseInt(args[5]), Constants.SAMPLE_COUNT, trafficStat);
 			econEngine.endSim();
+		} else if (mode == Nightwing.PARSE_FILE_MODE) {
+			FileParsingEngine parsingEngine = new FileParsingEngine(args[2], args[3]);
+			parsingEngine.parseFile();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
@@ -165,3 +175,4 @@ public class Nightwing {
 
 	}
 }
+
