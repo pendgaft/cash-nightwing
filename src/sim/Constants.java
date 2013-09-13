@@ -19,7 +19,7 @@ public class Constants {
 	
 	public static final int NTHREADS = 10;
 	
-	public static final int SAMPLE_COUNT = 10;
+	public static final int SAMPLE_COUNT = 50;
 
 }
 

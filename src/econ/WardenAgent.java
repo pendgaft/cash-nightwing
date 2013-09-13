@@ -46,8 +46,7 @@ public class WardenAgent extends EconomicAgent {
 			}
 			pathCount += ipCount;
 		}
-		//XXX logging to take out
-		System.out.println("" + this.parent.getASN() + " " + nullCount);
+
 		for(int tDest: this.prunedTopo.keySet()){
 			List<Integer> hookASNs = new ArrayList<Integer>();
 			for(AS tParent: this.prunedTopo.get(tDest).getProviders()){
