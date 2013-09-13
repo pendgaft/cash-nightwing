@@ -48,7 +48,7 @@ public class EconomicEngine {
 				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut,
-						TransitProvider.DECOY_STRAT.RAND));
+						TransitProvider.DECOY_STRAT.DICTATED));
 			}
 		}
 	}
