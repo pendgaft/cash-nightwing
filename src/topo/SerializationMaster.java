@@ -16,11 +16,11 @@ public class SerializationMaster {
 	private String wardenFile;
 
 	private static final String SERIALFILE_DIRECTORY = "serial/";
-	private static final String SERIALFILE_EXT = ".ser";
+	private static final String SERIALFILE_BGP_EXT = "-BGP.ser";
+	private static final String SERIALFILE_TRAFFIC_EXT = "-TRAFFIC.ser";
 
 	public static void main(String args[]) {
-		SerializationMaster tester = new SerializationMaster(
-				"bowenTest/warden-test.txt");
+		SerializationMaster tester = new SerializationMaster("bowenTest/warden-test.txt");
 		System.out.println(tester.convertHashToFileName());
 	}
 
@@ -29,8 +29,14 @@ public class SerializationMaster {
 		this.buildFileManifest();
 	}
 
-	public boolean hasValidSerialFile() {
-		String fileName = this.convertHashToFileName();
+	public boolean hasValidBGPSerialFile() {
+		String fileName = this.convertHashToBGPFileName();
+		File testFileObject = new File(fileName);
+		return testFileObject.exists();
+	}
+
+	public boolean hasValidTrafficSerialFile() {
+		String fileName = this.convertHashToTrafficFileName();
 		File testFileObject = new File(fileName);
 		return testFileObject.exists();
 	}
@@ -54,8 +60,7 @@ public class SerializationMaster {
 
 	private void addToHash(String fileName, MessageDigest hashObject) {
 		try {
-			BufferedReader confFile = new BufferedReader(new FileReader(
-					fileName));
+			BufferedReader confFile = new BufferedReader(new FileReader(fileName));
 			while (confFile.ready()) {
 				hashObject.update(confFile.readLine().getBytes());
 			}
@@ -74,16 +79,21 @@ public class SerializationMaster {
 		}
 		String formatResult = format.toString();
 		format.close();
-		return SerializationMaster.SERIALFILE_DIRECTORY + formatResult
-				+ SerializationMaster.SERIALFILE_EXT;
+		return SerializationMaster.SERIALFILE_DIRECTORY + formatResult;
 	}
 
-	public void loadSerializationFile(HashMap<Integer, DecoyAS> activeTopo) {
+	private String convertHashToBGPFileName() {
+		return this.convertHashToFileName() + SerializationMaster.SERIALFILE_BGP_EXT;
+	}
+
+	private String convertHashToTrafficFileName() {
+		return this.convertHashToFileName() + SerializationMaster.SERIALFILE_TRAFFIC_EXT;
+	}
+
+	public void loadBGPSerialFile(HashMap<Integer, DecoyAS> activeTopo) {
 		try {
-			ObjectInputStream serialIn = new ObjectInputStream(
-					new FileInputStream(this.convertHashToFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(activeTopo
-					.keySet());
+			ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(this.convertHashToBGPFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keySet());
 			for (int tASN : sortedAS) {
 				activeTopo.get(tASN).loadASFromSerial(serialIn);
 			}
@@ -94,17 +104,43 @@ public class SerializationMaster {
 		}
 	}
 
-	public void buildSerializationFile(HashMap<Integer, DecoyAS> activeTopo) {
+	public void buildBGPSerialFile(HashMap<Integer, DecoyAS> activeTopo) {
 		try {
-			ObjectOutputStream serialOut = new ObjectOutputStream(
-					new FileOutputStream(this.convertHashToFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(activeTopo
-					.keySet());
+			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToBGPFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keySet());
 			for (int tASN : sortedAS) {
 				activeTopo.get(tASN).saveASToSerial(serialOut);
 			}
 			serialOut.close();
 		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+	}
+	
+	public void loadTrafficSerialFile(HashMap<Integer, DecoyAS> fullTopo){
+		try {
+			ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(this.convertHashToTrafficFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keySet());
+			for (int tASN : sortedAS) {
+				fullTopo.get(tASN).loadTrafficFromSerial(serialIn);
+			}
+			serialIn.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+	
+	public void buildTrafficSerialFile(HashMap<Integer, DecoyAS> fullTopo){
+		try{
+			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToTrafficFileName()));
+			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keySet());
+			for(int tASN: sortedAS){
+				fullTopo.get(tASN).saveTrafficToSerial(serialOut);
+			}
+			serialOut.close();
+		} catch(IOException e){
 			e.printStackTrace();
 			return;
 		}

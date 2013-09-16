@@ -111,6 +111,19 @@ public abstract class AS implements TransitAgent {
 		}
 		serialOut.writeObject(tempAdjOut);
 	}
+	
+	@SuppressWarnings("unchecked")
+	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException{
+		this.trafficOverNeighbors = (HashMap<Integer, Double>)serialIn.readObject();
+		this.volatileTraffic = (HashMap<Integer, Double>)serialIn.readObject();
+		this.volatileDestinations = (Set<Integer>)serialIn.readObject();
+	}
+	
+	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException{
+		serialOut.writeObject(this.trafficOverNeighbors);
+		serialOut.writeObject(this.volatileTraffic);
+		serialOut.writeObject(this.volatileDestinations);
+	}
 
 	/**
 	 * Sets the ip count, as it is not parsed at the point of AS object
