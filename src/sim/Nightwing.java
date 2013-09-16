@@ -59,8 +59,7 @@ public class Nightwing {
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
 			if (args.length != 6) {
-				System.out
-						.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+				System.out.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
 				return;
 			}
 		} else {
@@ -92,7 +91,7 @@ public class Nightwing {
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
-
+		
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {
@@ -165,3 +164,4 @@ public class Nightwing {
 
 	}
 }
+

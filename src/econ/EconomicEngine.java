@@ -48,7 +48,7 @@ public class EconomicEngine {
 				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut,
-						TransitProvider.DECOY_STRAT.RAND));
+						TransitProvider.DECOY_STRAT.DICTATED));
 			}
 		}
 	}
@@ -77,12 +77,15 @@ public class EconomicEngine {
 				System.exit(-1);
 			}
 			
+			long time = System.currentTimeMillis();
 			for (int trialNumber = 0; trialNumber < trialCount; trialNumber++) {
 				/*
 				 * Give progress reports
 				 */
 				if(trialNumber == nextMark){
-					System.out.println("" + nextMark / tenPercentMark * 10 + "% complete");
+					long secondTime = System.currentTimeMillis();
+					System.out.println("" + nextMark / tenPercentMark * 10 + "% complete (chunk took: " + (secondTime - time)/60000 + " minutes)");
+					time = secondTime;
 					nextMark += tenPercentMark;
 				}
 				
