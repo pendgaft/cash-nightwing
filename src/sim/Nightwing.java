@@ -139,14 +139,14 @@ public class Nightwing {
 			Rings simDriver = new Rings(liveTopo, prunedTopo);
 			simDriver.runTests(wardenFile);
 		} else if (mode == Nightwing.TRAFFICSTAT1_MODE) {
-			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2]);
+			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			statInParallel.runStat();
 		} else if (mode == Nightwing.ECON_PHASE_1) {
 			/*
 			 * Build the traffic stat object, and then actually flow the traffic
 			 * through the network
 			 */
-			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2]);
+			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 			/*
 			 * Do the actual rounds of simulation

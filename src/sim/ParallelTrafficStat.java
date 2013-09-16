@@ -5,6 +5,7 @@ import java.io.*;
 
 import topo.AS;
 import topo.BGPPath;
+import topo.SerializationMaster;
 import decoy.DecoyAS;
 
 /**
@@ -39,6 +40,7 @@ public class ParallelTrafficStat {
 	private List<List<Integer>> workSplit;
 
 	private boolean firstRound;
+	private SerializationMaster serialControl;
 
 	private static final boolean DEBUG = false;
 	private static final boolean REPORT_TIMING = false;
@@ -55,7 +57,7 @@ public class ParallelTrafficStat {
 	 * @param trafficSplitFile
 	 */
 	public ParallelTrafficStat(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> purgedMap,
-			String trafficSplitFile) {
+			String trafficSplitFile, SerializationMaster serialControl) {
 
 		this.totalP2PTraffic = 0;
 		this.activeMap = activeMap;
@@ -63,6 +65,7 @@ public class ParallelTrafficStat {
 		this.fullTopology = new HashMap<Integer, DecoyAS>();
 		this.validASNList = new ArrayList<Integer>();
 		this.firstRound = true;
+		this.serialControl = serialControl;
 
 		for (int tASN : this.activeMap.keySet()) {
 			this.fullTopology.put(tASN, this.activeMap.get(tASN));
@@ -170,27 +173,46 @@ public class ParallelTrafficStat {
 		startTime = System.currentTimeMillis();
 
 		/*
-		 * Run the p2p traffic flow
+		 * If it is the first round and we already have a serial file please
+		 * simply load that state, otherwise actually do the traffic flow
 		 */
-		this.statTrafficOnPToPNetworkInParallel(this.firstRound);
-		ptpNetwork = System.currentTimeMillis();
-		if (ParallelTrafficStat.REPORT_TIMING) {
-			System.out.println("\nTraffic flowing on peer to peer network done, this took: " + (ptpNetwork - startTime)
-					/ 60000 + " minutes. ");
-		}
+		if (this.firstRound && this.serialControl.hasValidTrafficSerialFile()) {
+			System.out.println("Valid serial file exists for traffic flows, skipping first round of traffic flow.");
+			this.serialControl.loadTrafficSerialFile(this.fullTopology);
+			System.out.println("Load of serial file complete.");
+		} else {
+			/*
+			 * Run the p2p traffic flow
+			 */
+			this.statTrafficOnPToPNetworkInParallel(this.firstRound);
+			ptpNetwork = System.currentTimeMillis();
+			if (ParallelTrafficStat.REPORT_TIMING) {
+				System.out.println("\nTraffic flowing on peer to peer network done, this took: "
+						+ (ptpNetwork - startTime) / 60000 + " minutes. ");
+			}
 
-		/*
-		 * Run the super AS traffic flow
-		 */
-		this.statTrafficFromSuperAS();
-		superAS = System.currentTimeMillis();
-		if (ParallelTrafficStat.REPORT_TIMING) {
-			System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
-					+ " minutes.");
+			/*
+			 * Run the super AS traffic flow
+			 */
+			this.statTrafficFromSuperAS();
+			superAS = System.currentTimeMillis();
+			if (ParallelTrafficStat.REPORT_TIMING) {
+				System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
+						+ " minutes.");
+			}
 		}
 
 		if (this.firstRound) {
 			this.firstRound = false;
+			/*
+			 * Build the serial file if we need to, as doing the same work over
+			 * and over gets old...
+			 */
+			if (!this.serialControl.hasValidTrafficSerialFile()) {
+				System.out.println("Saving opening traffic flow to serial file.");
+				this.serialControl.buildTrafficSerialFile(this.fullTopology);
+				System.out.println("Saving of serial file complete.");
+			}
 		}
 
 		if (ParallelTrafficStat.DEBUG) {
