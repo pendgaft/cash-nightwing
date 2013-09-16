@@ -243,8 +243,8 @@ public class FileParsingEngine {
 			
 			/* finish one sample and store the median of each sample into the list which is for one size */
 			//System.out.println("decoying : " + sumOfDeltaDecoyingDR + ", not decoying " + sumOfNotDeltaDecoyingDR);
-			aveDeltaDecoyingDRList.add(sumOfDeltaDecoyingDR / this.asNum);
-			aveDeltaNotDecoyingDRList.add(sumOfNotDeltaDecoyingDR / this.asNum);
+			aveDeltaDecoyingDRList.add(sumOfDeltaDecoyingDR / drCount);
+			aveDeltaNotDecoyingDRList.add(sumOfNotDeltaDecoyingDR / (this.asNum - drCount));
 		}
 		
 		/* write the last set results of the sample size */
