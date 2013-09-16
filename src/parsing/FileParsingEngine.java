@@ -127,7 +127,7 @@ public class FileParsingEngine {
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
 				roundTwo.add(Double.parseDouble(pollToks.nextToken()));
-				delta.add(roundOne.get(i) - roundTwo.get(i));
+				delta.add(roundTwo.get(i) - roundOne.get(i));
 			}
 			
 			/* finish one sample and store the median of each sample into the list which is for one size */

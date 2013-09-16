@@ -23,11 +23,14 @@ public class WardenAgent extends EconomicAgent {
 		this.prunedTopo = prunedTopo;
 	}
 
+	/**
+	 * Current logging logs the fraction of IP ADDRESS SPACE that the warden has a clean path to
+	 */
 	@Override
 	public void doRoundLogging() {
 		Set<Integer> decoySet = this.buildDecoySet();
-		double pathCount = 0.0;
-		double cleanCount = 0.0;
+		double totalIPCount = 0.0;
+		double cleanIPCount = 0.0;
 		int nullCount = 0;
 		
 		for(int tDest: this.activeTopo.keySet()){
@@ -42,9 +45,9 @@ public class WardenAgent extends EconomicAgent {
 			}
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
 			if(!tPath.containsAnyOf(decoySet)){
-				cleanCount += ipCount;
+				cleanIPCount += ipCount;
 			}
-			pathCount += ipCount;
+			totalIPCount += ipCount;
 		}
 
 		for(int tDest: this.prunedTopo.keySet()){
@@ -58,13 +61,13 @@ public class WardenAgent extends EconomicAgent {
 			}
 			int ipCount = this.prunedTopo.get(tDest).getIPCount();
 			if(!tPath.containsAnyOf(decoySet)){
-				cleanCount += ipCount;
+				cleanIPCount += ipCount;
 			}
-			pathCount += ipCount;
+			totalIPCount += ipCount;
 		}
 		
 		try{
-			this.logStream.write("" + this.parent.getASN() + "," + cleanCount / pathCount + "\n");
+			this.logStream.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + "\n");
 		} catch(IOException e){
 			e.printStackTrace();
 			System.exit(-1);
