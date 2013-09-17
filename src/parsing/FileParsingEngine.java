@@ -19,7 +19,7 @@ public class FileParsingEngine {
 	private static int DRCOUNTPOSITION = 3;
 	/** the percentile to calculate */
 	private static double[] percentile= {0.10, 0.25, 0.50, 0.75, 0.90};
-	private static String OUTPUTPATH = "parseResults/";
+	private static String OUTPUTPATH = "parsingResults/";
 	
 	public static void main(String args[]) throws IOException{
 		FileParsingEngine self = new FileParsingEngine(args[0], args[1]);
@@ -64,7 +64,6 @@ public class FileParsingEngine {
 			delta.clear();
 
 			String pollString = fBuff.readLine().trim();
-			//System.out.println(pollString);
 			
 			/* for &&&, which is terminator for size */
 			if (pollString.equals("&&&")) {
@@ -81,7 +80,6 @@ public class FileParsingEngine {
 				}
 				/* need to read one more line marking round one, line of ### */
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 			}
 			
 			/* for the data of the first round,
@@ -93,7 +91,6 @@ public class FileParsingEngine {
 				/* count the number of wardens */
 				while (true) {
 					pollString = fBuff.readLine().trim();
-					//System.out.println(pollString);
 					if (pollString.charAt(0) == '*') {
 						break;
 					}
@@ -103,14 +100,12 @@ public class FileParsingEngine {
 			} else {
 				for (int i = 0; i < this.wardenNum+1; ++i) {
 					pollString = fBuff.readLine().trim();
-					//System.out.println(pollString);
 				}
 			}
 			
 			/* for the data of the second round */
 			for (int i = 0; i < this.wardenNum; ++i) {
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
 				roundOne.add(Double.parseDouble(pollToks.nextToken()));
@@ -118,12 +113,10 @@ public class FileParsingEngine {
 			
 			/* separation between rounds, i.e. line *** */
 			pollString = fBuff.readLine().trim();
-			//System.out.println(pollString);
 			
 			/* parse the third round */
 			for (int i = 0; i < this.wardenNum; ++i) {
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
 				roundTwo.add(Double.parseDouble(pollToks.nextToken()));
@@ -166,7 +159,6 @@ public class FileParsingEngine {
 			sumOfNotDeltaDecoyingDR = 0;
 			
 			String pollString = fBuff.readLine().trim();
-			//System.out.println(pollString);
 			
 			/* for &&&, which is terminator for size */
 			if (pollString.equals("&&&")) {
@@ -181,7 +173,6 @@ public class FileParsingEngine {
 				}
 				/* need to read one more line for round one, line of ### */
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 			}
 			
 			/* for the data of the first round,
@@ -193,7 +184,6 @@ public class FileParsingEngine {
 				/* count the number of wardens */
 				while (true) {
 					pollString = fBuff.readLine().trim();
-					//System.out.println(pollString);
 					if (pollString.charAt(0) == '*') {
 						break;
 					}
@@ -203,14 +193,12 @@ public class FileParsingEngine {
 			} else {
 				for (int i = 0; i < this.asNum+1; ++i) {
 					pollString = fBuff.readLine().trim();
-					//System.out.println(pollString);
 				}
 			}
 			
 			/* for the data of the second round */
 			for (int i = 0; i < this.asNum; ++i) {
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
 				double money = Double.parseDouble(pollToks.nextToken());
@@ -224,12 +212,10 @@ public class FileParsingEngine {
 			
 			/* separation between rounds, i.e. line *** */
 			pollString = fBuff.readLine().trim();
-			//System.out.println(pollString);
 			
 			/* parse the third round */
 			for (int i = 0; i < this.asNum; ++i) {
 				pollString = fBuff.readLine().trim();
-				//System.out.println(pollString);
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
 				double money = Double.parseDouble(pollToks.nextToken());
