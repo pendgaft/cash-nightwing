@@ -1,5 +1,3 @@
-package parsing;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileReader;
@@ -19,6 +17,7 @@ public class FileParsingEngine {
 	private static int DRCOUNTPOSITION = 3;
 	/** the percentile to calculate */
 	private static double[] percentile= {0.10, 0.25, 0.50, 0.75, 0.90};
+	//private static String OUTPUTPATH = "ParsingData/parsingResults/";
 	private static String OUTPUTPATH = "parsingResults/";
 	
 	public static void main(String args[]) throws IOException{
@@ -86,7 +85,7 @@ public class FileParsingEngine {
 			 * get the number of wardens if it is the first sample size, after that,
 			 * just ignore all since the number is all the same for one network
 			 */
-			drCount = Character.getNumericValue(pollString.charAt(FileParsingEngine.DRCOUNTPOSITION));
+			drCount = this.getDrCount(pollString.substring(FileParsingEngine.DRCOUNTPOSITION, pollString.length()));
 			if (firstSampleSize) {
 				/* count the number of wardens */
 				while (true) {
@@ -139,7 +138,7 @@ public class FileParsingEngine {
 		wardenRoundTwoWriter.close();
 		wardenDeltaWriter.close();
 	}
-	
+
 	private void parseTransitLog(String transitlog) throws IOException {
 		boolean firstSampleSize = true;
 		int drCount = -1;
@@ -149,8 +148,8 @@ public class FileParsingEngine {
 		List<Double> aveDeltaNotDecoyingDRList = new ArrayList<Double>();
 		
 		BufferedReader fBuff = new BufferedReader(new FileReader(transitlog));
-		BufferedWriter transitDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog _decoyDR.txt"));
-		BufferedWriter transitNotDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog _NotDecoyDR.txt"));
+		BufferedWriter transitDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog_decoyDR.txt"));
+		BufferedWriter transitNotDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog_NotDecoyDR.txt"));
 		
 		/* each loop is for one sample including three rounds */
 		while (fBuff.ready()) {
@@ -179,7 +178,7 @@ public class FileParsingEngine {
 			 * get the number of wardens if it is the first sample size, after that,
 			 * just ignore all since the number is all the same for one map
 			 */
-			drCount = Character.getNumericValue(pollString.charAt(FileParsingEngine.DRCOUNTPOSITION));
+			drCount = this.getDrCount(pollString.substring(3, pollString.length()));
 			if (firstSampleSize) {
 				/* count the number of wardens */
 				while (true) {
@@ -243,6 +242,11 @@ public class FileParsingEngine {
 		
 	}
 	
+	private int getDrCount(String pollString) {
+		StringTokenizer pollToks = new StringTokenizer(pollString, ",");
+		return Integer.parseInt(pollToks.nextToken());
+	}
+	
 	/**
 	 * return a percentile value of an unsorted list
 	 * @param list
@@ -274,3 +278,4 @@ public class FileParsingEngine {
 		out.write("\n");
 	}
 }
+
