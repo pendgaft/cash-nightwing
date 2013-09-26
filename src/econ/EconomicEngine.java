@@ -6,6 +6,7 @@ import java.io.*;
 import decoy.DecoyAS;
 
 import sim.BGPMaster;
+import sim.Constants;
 import sim.ParallelTrafficStat;
 import topo.AS;
 
@@ -52,17 +53,75 @@ public class EconomicEngine {
 			}
 		}
 	}
+	
+	/**
+	 * calculate ccSize for each AS
+	 * the start point of dfs.
+	 */
+	private void calculateCostumeConeSize() {
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			this.dfs(tAS);
+		}
+		if (Constants.DEBUG) {
+			for (DecoyAS tAS : this.activeTopology.values()) {
+				System.out.println(tAS.getASN() + ", ccSize: " + tAS.getCustomerConeSize() + ", ccList:" + tAS.getCustomerConeASList());
+			}
+		}
+	}
 
+	/**
+	 * dfs the AS tree recursively by using the given AS as the root 
+	 * and get all the ASes in its customer cone. 
+	 * @param currentAS
+	 * @return
+	 */
+	private void dfs(AS currentAS) {
+		if (currentAS.getCustomerConeSize() != 0)
+			return;
+		
+		for (int tASN : currentAS.getPurgedNeighbors()) {
+			currentAS.addOnCustomerConeList(tASN);
+		}
+		for (AS nextAS : currentAS.getCustomers()) {
+			dfs(nextAS);
+			for (int tASN : nextAS.getCustomerConeASList()) {
+				currentAS.addOnCustomerConeList(tASN);
+			}
+		}
+		
+		/* count itself */
+		currentAS.addOnCustomerConeList(currentAS.getASN());
+	}
+	
+	/**
+	 * 
+	 * @param start
+	 * @param end
+	 * @param step
+	 * @param trialCount
+	 * @param trafficManager
+	 * @param randomType : only use the ASes whose ccNum is greater and equal to randomType
+	 */
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
 		int[] asArray = new int[this.activeTopology.keySet().size()];
 		int arrayPos = 0;
-		for(int tAS: this.activeTopology.keySet()){
-			asArray[arrayPos] = tAS;
-			arrayPos++;
+		
+		/* make it as an function argument? */
+		int randomType = 2;
+		
+		this.calculateCostumeConeSize();
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			if (tAS.getCustomerConeSize() >= randomType) {
+				asArray[arrayPos++] = tAS.getASN();
+			}
 		}
 		
 		for (int drCount = start; drCount <= end; drCount += step) {
+			if (drCount > arrayPos) {
+				/* need to print something?? */
+				break;
+			}
 			System.out.println("Starting processing for Decoy Count of: " + drCount);
 			int tenPercentMark = (int)Math.floor((double)trialCount / 10.0);
 			int nextMark = tenPercentMark;
@@ -249,4 +308,3 @@ public class EconomicEngine {
 		}
 	}
 }
-

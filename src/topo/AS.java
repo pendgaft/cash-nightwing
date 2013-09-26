@@ -27,13 +27,15 @@ public abstract class AS implements TransitAgent {
 	private Set<AS> customers;
 	private Set<AS> peers;
 	private Set<AS> providers;
-	private Set<Integer> purgedNeighbors;
+	private Set<Integer> purgedNeighbors; 
 
 	private int numberOfIPs;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
 	private double trafficFromSuperAS;
+	
+	private List<Integer> customerConeASList;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 	// adjancey
@@ -77,6 +79,8 @@ public abstract class AS implements TransitAgent {
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
 		this.volatileTraffic = new HashMap<Integer, Double>();
 		this.volatileDestinations = new HashSet<Integer>();
+		
+		this.customerConeASList = new ArrayList<Integer>();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -878,4 +882,18 @@ public abstract class AS implements TransitAgent {
 			this.volatileTraffic.put(tASN, 0.0);
 		}
 	}
+	
+	public void addOnCustomerConeList(int asn) {
+		if (!this.customerConeASList.contains(asn))
+			this.customerConeASList.add(asn);
+	}
+	
+	public List<Integer> getCustomerConeASList() {
+		return this.customerConeASList;
+	}
+	
+	public int getCustomerConeSize() {
+		return this.customerConeASList.size();
+	}
 }
+
