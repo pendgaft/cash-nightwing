@@ -30,12 +30,13 @@ public abstract class AS implements TransitAgent {
 	private Set<Integer> purgedNeighbors; 
 
 	private int numberOfIPs;
+	private int sizeOfCustomerIPCone;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
 	private double trafficFromSuperAS;
 	
-	private List<Integer> customerConeASList;
+	private Set<Integer> customerConeASList;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 	// adjancey
@@ -80,7 +81,7 @@ public abstract class AS implements TransitAgent {
 		this.volatileTraffic = new HashMap<Integer, Double>();
 		this.volatileDestinations = new HashSet<Integer>();
 		
-		this.customerConeASList = new ArrayList<Integer>();
+		this.customerConeASList = new HashSet<Integer>();
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -888,12 +889,20 @@ public abstract class AS implements TransitAgent {
 			this.customerConeASList.add(asn);
 	}
 	
-	public List<Integer> getCustomerConeASList() {
+	public Set<Integer> getCustomerConeASList() {
 		return this.customerConeASList;
 	}
 	
 	public int getCustomerConeSize() {
 		return this.customerConeASList.size();
+	}
+	
+	public void setCustomerIPCone(int custIPCone){
+		this.sizeOfCustomerIPCone = custIPCone;
+	}
+	
+	public int getIPCustomerCone(){
+		return this.sizeOfCustomerIPCone;
 	}
 }
 

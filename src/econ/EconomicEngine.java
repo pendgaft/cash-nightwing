@@ -19,6 +19,8 @@ public class EconomicEngine {
 	private BufferedWriter wardenOut;
 	private BufferedWriter transitOut;
 
+	private double maxIPCount;
+
 	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
 	private static final double COST_PER_MBYTE = 1.0;
 
@@ -52,47 +54,69 @@ public class EconomicEngine {
 						TransitProvider.DECOY_STRAT.DICTATED));
 			}
 		}
-	}
-	
-	/**
-	 * calculate ccSize for each AS
-	 * the start point of dfs.
-	 */
-	private void calculateCostumeConeSize() {
+
+		this.calculateCustomerCone();
+		this.maxIPCount = 0.0;
 		for (DecoyAS tAS : this.activeTopology.values()) {
-			this.dfs(tAS);
+			this.maxIPCount = Math.max(this.maxIPCount, (double) tAS.getIPCustomerCone());
+		}
+	}
+
+	/**
+	 * calculate ccSize for each AS the start point of dfs.
+	 */
+	private void calculateCustomerCone() {
+		/*
+		 * Do this over all ASes since we'll need the IP cust cones populated
+		 * for the econ part of the sim
+		 */
+		for (EconomicAgent tAgent : this.theTopo.values()) {
+			this.buildIndividualCustomerCone(tAgent.parent);
 		}
 		if (Constants.DEBUG) {
 			for (DecoyAS tAS : this.activeTopology.values()) {
-				System.out.println(tAS.getASN() + ", ccSize: " + tAS.getCustomerConeSize() + ", ccList:" + tAS.getCustomerConeASList());
+				System.out.println(tAS.getASN() + ", ccSize: " + tAS.getCustomerConeSize() + ", ccList:"
+						+ tAS.getCustomerConeASList());
 			}
 		}
 	}
 
 	/**
-	 * dfs the AS tree recursively by using the given AS as the root 
-	 * and get all the ASes in its customer cone. 
+	 * dfs the AS tree recursively by using the given AS as the root and get all
+	 * the ASes in its customer cone.
+	 * 
 	 * @param currentAS
 	 * @return
 	 */
-	private void dfs(AS currentAS) {
+	private int buildIndividualCustomerCone(AS currentAS) {
+		int ipCount = 0;
+
+		/*
+		 * Skip ASes that have already been built at an earlier stage
+		 */
 		if (currentAS.getCustomerConeSize() != 0)
-			return;
-		
+			return currentAS.getIPCustomerCone();
+
 		for (int tASN : currentAS.getPurgedNeighbors()) {
 			currentAS.addOnCustomerConeList(tASN);
+			ipCount += this.theTopo.get(tASN).parent.getIPCount();
 		}
 		for (AS nextAS : currentAS.getCustomers()) {
-			dfs(nextAS);
+			ipCount += buildIndividualCustomerCone(nextAS);
 			for (int tASN : nextAS.getCustomerConeASList()) {
 				currentAS.addOnCustomerConeList(tASN);
 			}
 		}
-		
+
 		/* count itself */
 		currentAS.addOnCustomerConeList(currentAS.getASN());
+		ipCount += currentAS.getIPCount();
+
+		currentAS.setCustomerIPCone(ipCount);
+
+		return ipCount;
 	}
-	
+
 	/**
 	 * 
 	 * @param start
@@ -100,30 +124,31 @@ public class EconomicEngine {
 	 * @param step
 	 * @param trialCount
 	 * @param trafficManager
-	 * @param randomType : only use the ASes whose ccNum is greater and equal to randomType
+	 * @param randomType
+	 *            : only use the ASes whose ccNum is greater and equal to
+	 *            randomType
 	 */
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
 		int[] asArray = new int[this.activeTopology.keySet().size()];
 		int arrayPos = 0;
-		
+
 		/* make it as an function argument? */
 		int randomType = 2;
-		
-		this.calculateCostumeConeSize();
+
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			if (tAS.getCustomerConeSize() >= randomType) {
 				asArray[arrayPos++] = tAS.getASN();
 			}
 		}
-		
+
 		for (int drCount = start; drCount <= end; drCount += step) {
 			if (drCount > arrayPos) {
 				/* need to print something?? */
 				break;
 			}
 			System.out.println("Starting processing for Decoy Count of: " + drCount);
-			int tenPercentMark = (int)Math.floor((double)trialCount / 10.0);
+			int tenPercentMark = (int) Math.floor((double) trialCount / 10.0);
 			int nextMark = tenPercentMark;
 			/*
 			 * Write the size terminators to logging files
@@ -135,31 +160,32 @@ public class EconomicEngine {
 				e.printStackTrace();
 				System.exit(-1);
 			}
-			
+
 			long time = System.currentTimeMillis();
 			for (int trialNumber = 0; trialNumber < trialCount; trialNumber++) {
 				/*
 				 * Give progress reports
 				 */
-				if(trialNumber == nextMark){
+				if (trialNumber == nextMark) {
 					long secondTime = System.currentTimeMillis();
-					System.out.println("" + nextMark / tenPercentMark * 10 + "% complete (chunk took: " + (secondTime - time)/60000 + " minutes)");
+					System.out.println("" + nextMark / tenPercentMark * 10 + "% complete (chunk took: "
+							+ (secondTime - time) / 60000 + " minutes)");
 					time = secondTime;
 					nextMark += tenPercentMark;
 				}
-				
+
 				/*
 				 * Build decoy set for this round
 				 */
 				Set<Integer> drSet = new HashSet<Integer>();
-				while(drSet.size() != drCount){
+				while (drSet.size() != drCount) {
 					arrayPos = rng.nextInt(asArray.length);
-					if(drSet.contains(asArray[arrayPos]) || this.activeTopology.get(asArray[arrayPos]).isWardenAS()){
+					if (drSet.contains(asArray[arrayPos]) || this.activeTopology.get(asArray[arrayPos]).isWardenAS()) {
 						continue;
 					}
 					drSet.add(asArray[arrayPos]);
 				}
-				
+
 				for (int counter = 0; counter < 3; counter++) {
 					trafficManager.runStat();
 					this.driveEconomicTurn("" + drCount + "," + counter, drSet, counter);
@@ -185,7 +211,7 @@ public class EconomicEngine {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		this.resetForNewRound();
 		this.runMoneyTransfer();
 
@@ -270,8 +296,15 @@ public class EconomicEngine {
 		}
 	}
 
-	private double buildScaleFactor(EconomicAgent lhs, EconomicAgent rhs, int relation) {
-		return EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
+	private double buildScaleFactor(EconomicAgent sendingAS, EconomicAgent recievingAS, int relation) {
+		double ipScale = 1.0;
+		if (relation == AS.CUSTOMER_CODE) {
+			ipScale -= ((double) sendingAS.parent.getIPCustomerCone() / this.maxIPCount);
+		} else {
+			ipScale -= ((double) recievingAS.parent.getIPCustomerCone() / this.maxIPCount);
+		}
+		
+		return ipScale * EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
 	}
 
 	private void resetForNewRound() {
@@ -301,7 +334,7 @@ public class EconomicEngine {
 		 * need to push any added info
 		 */
 		if (!this.activeTopology.get(asn).isWardenAS()) {
-			Set<Integer> drSet = (Set<Integer>)supData;
+			Set<Integer> drSet = (Set<Integer>) supData;
 			this.theTopo.get(asn).makeAdustments(new Boolean(drSet.contains(asn)));
 		} else {
 			this.theTopo.get(asn).makeAdustments(null);
