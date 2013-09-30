@@ -23,6 +23,8 @@ public class EconomicEngine {
 
 	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
 	private static final double COST_PER_MBYTE = 1.0;
+	
+	private static final int MIN_CUST_CONE = 2;
 
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
@@ -130,15 +132,12 @@ public class EconomicEngine {
 	 */
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
-		int[] asArray = new int[this.activeTopology.keySet().size()];
+		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 		int arrayPos = 0;
 
-		/* make it as an function argument? */
-		int randomType = 2;
-
 		for (DecoyAS tAS : this.activeTopology.values()) {
-			if (tAS.getCustomerConeSize() >= randomType) {
-				asArray[arrayPos++] = tAS.getASN();
+			if (tAS.getCustomerConeSize() >= EconomicEngine.MIN_CUST_CONE) {
+				validDecoyASes.add(tAS.getASN());
 			}
 		}
 
@@ -179,11 +178,12 @@ public class EconomicEngine {
 				 */
 				Set<Integer> drSet = new HashSet<Integer>();
 				while (drSet.size() != drCount) {
-					arrayPos = rng.nextInt(asArray.length);
-					if (drSet.contains(asArray[arrayPos]) || this.activeTopology.get(asArray[arrayPos]).isWardenAS()) {
+					arrayPos = rng.nextInt(validDecoyASes.size());
+					int testAS = validDecoyASes.get(arrayPos);
+					if (drSet.contains(testAS) || this.activeTopology.get(testAS).isWardenAS()) {
 						continue;
 					}
-					drSet.add(asArray[arrayPos]);
+					drSet.add(testAS);
 				}
 
 				for (int counter = 0; counter < 3; counter++) {
