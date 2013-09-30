@@ -133,7 +133,6 @@ public class EconomicEngine {
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
-		int arrayPos = 0;
 
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			if (tAS.getCustomerConeSize() >= EconomicEngine.MIN_CUST_CONE) {
@@ -142,8 +141,8 @@ public class EconomicEngine {
 		}
 
 		for (int drCount = start; drCount <= end; drCount += step) {
-			if (drCount > arrayPos) {
-				/* need to print something?? */
+			if (drCount > validDecoyASes.size()) {
+				System.out.println("DR count exceeds total possible.");
 				break;
 			}
 			System.out.println("Starting processing for Decoy Count of: " + drCount);
@@ -178,7 +177,7 @@ public class EconomicEngine {
 				 */
 				Set<Integer> drSet = new HashSet<Integer>();
 				while (drSet.size() != drCount) {
-					arrayPos = rng.nextInt(validDecoyASes.size());
+					int arrayPos = rng.nextInt(validDecoyASes.size());
 					int testAS = validDecoyASes.get(arrayPos);
 					if (drSet.contains(testAS) || this.activeTopology.get(testAS).isWardenAS()) {
 						continue;
