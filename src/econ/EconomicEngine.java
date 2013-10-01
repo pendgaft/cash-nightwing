@@ -23,8 +23,6 @@ public class EconomicEngine {
 
 	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
 	private static final double COST_PER_MBYTE = 1.0;
-	
-	private static final int MIN_CUST_CONE = 2;
 
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
@@ -119,6 +117,13 @@ public class EconomicEngine {
 		return ipCount;
 	}
 
+	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize,
+			ParallelTrafficStat trafficManager) {
+		for(int currentConeSize = start; currentConeSize <= end; currentConeSize += step){
+			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, trafficManager);
+		}
+	}
+
 	/**
 	 * 
 	 * @param start
@@ -130,12 +135,13 @@ public class EconomicEngine {
 	 *            : only use the ASes whose ccNum is greater and equal to
 	 *            randomType
 	 */
-	public void manageFixedNumberSim(int start, int end, int step, int trialCount, ParallelTrafficStat trafficManager) {
+	public void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize,
+			ParallelTrafficStat trafficManager) {
 		Random rng = new Random();
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
 		for (DecoyAS tAS : this.activeTopology.values()) {
-			if (tAS.getCustomerConeSize() >= EconomicEngine.MIN_CUST_CONE) {
+			if (tAS.getCustomerConeSize() >= minCCSize) {
 				validDecoyASes.add(tAS.getASN());
 			}
 		}
@@ -143,7 +149,7 @@ public class EconomicEngine {
 		for (int drCount = start; drCount <= end; drCount += step) {
 			if (drCount > validDecoyASes.size()) {
 				System.out.println("DR count exceeds total possible.");
-				break;
+				return;
 			}
 			System.out.println("Starting processing for Decoy Count of: " + drCount);
 			int tenPercentMark = (int) Math.floor((double) trialCount / 10.0);
@@ -302,7 +308,7 @@ public class EconomicEngine {
 		} else {
 			ipScale -= ((double) recievingAS.parent.getIPCustomerCone() / this.maxIPCount);
 		}
-		
+
 		return ipScale * EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
 	}
 

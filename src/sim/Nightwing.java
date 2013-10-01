@@ -25,6 +25,8 @@ public class Nightwing {
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
 	private static final int ECON_PHASE_1 = 7;
 	private static final String ECON_P1_STRING = "econ1";
+	private static final int ECON_MODE_2 = 8;
+	private static final String ECON_M2_STRING = "econ2";
 
 	public static void main(String[] args) throws IOException {
 
@@ -59,7 +61,15 @@ public class Nightwing {
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
 			if (args.length != 6) {
-				System.out.println("Economic mode usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+				System.out
+						.println("Economic mode 1 (only provide, number of DR exploration) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+				return;
+			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M2_STRING)) {
+			mode = Nightwing.ECON_MODE_2;
+			if (args.length != 7) {
+				System.out
+						.println("Economic mode 2 (min cust cone exploration) usage: ./Nightwing <mode> <warden file> <traffic split file> <decoy size> <starting cone size> <ending cone size> <step size>");
 				return;
 			}
 		} else {
@@ -91,7 +101,7 @@ public class Nightwing {
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
-		
+
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {
@@ -108,9 +118,9 @@ public class Nightwing {
 			System.out.println("pruned ip count:");
 			for (AS tAS : prunedTopo.values())
 				System.out.println(tAS.getASN() + ", " + tAS.getIPCount());
-			
+
 			System.out.println("routing tables:");
-			for(AS tAS: liveTopo.values()){
+			for (AS tAS : liveTopo.values()) {
 				System.out.println(tAS.printDebugString());
 			}
 		}
@@ -152,7 +162,14 @@ public class Nightwing {
 			 * Do the actual rounds of simulation
 			 */
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), Constants.SAMPLE_COUNT, trafficStat);
+					.parseInt(args[5]), 2, Constants.SAMPLE_COUNT, trafficStat);
+			econEngine.endSim();
+		} else if (mode == Nightwing.ECON_MODE_2) {
+			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
+
+			econEngine.manageCustConeExploration(Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer
+					.parseInt(args[6]), Constants.SAMPLE_COUNT, Integer.parseInt(args[3]), trafficStat);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
@@ -164,4 +181,3 @@ public class Nightwing {
 
 	}
 }
-
