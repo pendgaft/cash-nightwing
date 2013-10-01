@@ -3,6 +3,7 @@ package econ;
 import java.io.*;
 import java.util.*;
 
+import sim.Constants;
 import topo.AS;
 import topo.BGPPath;
 
@@ -95,7 +96,7 @@ public class WardenAgent extends EconomicAgent {
 		 * Turns on decoy router avoidance code for this round with the known
 		 * set of decoy routers as the avoidance set
 		 */
-		this.parent.turnOnActiveAvoidance(this.buildDecoySet());
+		this.parent.turnOnActiveAvoidance(this.buildDecoySet(), Constants.DEFAULT_AVOID_MODE);
 	}
 
 	public void reportMoneyEarned(double moneyEarned) {

@@ -17,17 +17,24 @@ import econ.TransitAgent;
  * @author pendgaft
  * 
  */
+
 public abstract class AS implements TransitAgent {
 
+	public enum AvoidMode {
+		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak;
+	}
+
 	private int asn;
-	private boolean wardenAS;
-	private boolean activeAvoidance;
-	private Set<Integer> avoidSet;
 	private boolean purged;
 	private Set<AS> customers;
 	private Set<AS> peers;
 	private Set<AS> providers;
-	private Set<Integer> purgedNeighbors; 
+	private Set<Integer> purgedNeighbors;
+
+	private boolean wardenAS;
+	private boolean activeAvoidance;
+	private Set<Integer> avoidSet;
+	private AvoidMode currentAvoidMode;
 
 	private int numberOfIPs;
 	private int sizeOfCustomerIPCone;
@@ -35,7 +42,7 @@ public abstract class AS implements TransitAgent {
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
 	private double trafficFromSuperAS;
-	
+
 	private Set<Integer> customerConeASList;
 
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
@@ -49,7 +56,7 @@ public abstract class AS implements TransitAgent {
 
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
-	
+
 	private HashMap<Integer, Double> volatileTraffic;
 	private Set<Integer> volatileDestinations;
 
@@ -63,6 +70,7 @@ public abstract class AS implements TransitAgent {
 		this.trafficFromSuperAS = 0;
 		this.wardenAS = false;
 		this.activeAvoidance = false;
+		this.currentAvoidMode = AvoidMode.None;
 		this.purged = false;
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
@@ -80,51 +88,51 @@ public abstract class AS implements TransitAgent {
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
 		this.volatileTraffic = new HashMap<Integer, Double>();
 		this.volatileDestinations = new HashSet<Integer>();
-		
+
 		this.customerConeASList = new HashSet<Integer>();
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException{
-		this.inRib = (HashMap<Integer, List<BGPPath>>)serialIn.readObject();
-		this.adjInRib = (HashMap<Integer, List<BGPPath>>)serialIn.readObject();
-		this.locRib = (HashMap<Integer, BGPPath>)serialIn.readObject();
-		
-		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>)serialIn.readObject();
+	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
+		this.inRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
+		this.adjInRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
+		this.locRib = (HashMap<Integer, BGPPath>) serialIn.readObject();
+
+		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>) serialIn.readObject();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
-		for(int tASN: tempAdjOut.keySet()){
+		for (int tASN : tempAdjOut.keySet()) {
 			Set<AS> tempSet = new HashSet<AS>();
-			for(int tAdvNeighbor: tempAdjOut.get(tASN)){
+			for (int tAdvNeighbor : tempAdjOut.get(tASN)) {
 				tempSet.add(this.getNeighborByASN(tAdvNeighbor));
 			}
 			this.adjOutRib.put(tASN, tempSet);
 		}
 	}
-	
-	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException{
+
+	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.inRib);
 		serialOut.writeObject(this.adjInRib);
 		serialOut.writeObject(this.locRib);
-		
+
 		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
-		for(int tDest: this.adjOutRib.keySet()){
+		for (int tDest : this.adjOutRib.keySet()) {
 			Set<Integer> tempSet = new HashSet<Integer>();
-			for(AS tAS: this.adjOutRib.get(tDest)){
+			for (AS tAS : this.adjOutRib.get(tDest)) {
 				tempSet.add(tAS.getASN());
 			}
 			tempAdjOut.put(tDest, tempSet);
 		}
 		serialOut.writeObject(tempAdjOut);
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException{
-		this.trafficOverNeighbors = (HashMap<Integer, Double>)serialIn.readObject();
-		this.volatileTraffic = (HashMap<Integer, Double>)serialIn.readObject();
-		this.volatileDestinations = (Set<Integer>)serialIn.readObject();
+	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
+		this.trafficOverNeighbors = (HashMap<Integer, Double>) serialIn.readObject();
+		this.volatileTraffic = (HashMap<Integer, Double>) serialIn.readObject();
+		this.volatileDestinations = (Set<Integer>) serialIn.readObject();
 	}
-	
-	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException{
+
+	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.trafficOverNeighbors);
 		serialOut.writeObject(this.volatileTraffic);
 		serialOut.writeObject(this.volatileDestinations);
@@ -233,20 +241,20 @@ public abstract class AS implements TransitAgent {
 		this.volatileTraffic.put(otherAS.asn, 0.0);
 		otherAS.volatileTraffic.put(this.asn, 0.0);
 	}
-	
-	private AS getNeighborByASN(int asn){
-		for(AS tAS: this.customers){
-			if(tAS.getASN() == asn){
+
+	private AS getNeighborByASN(int asn) {
+		for (AS tAS : this.customers) {
+			if (tAS.getASN() == asn) {
 				return tAS;
 			}
 		}
-		for(AS tAS: this.peers){
-			if(tAS.getASN() == asn){
+		for (AS tAS : this.peers) {
+			if (tAS.getASN() == asn) {
 				return tAS;
 			}
 		}
-		for(AS tAS: this.providers){
-			if(tAS.getASN() == asn){
+		for (AS tAS : this.providers) {
+			if (tAS.getASN() == asn) {
 				return tAS;
 			}
 		}
@@ -481,8 +489,17 @@ public abstract class AS implements TransitAgent {
 		BGPPath currentBest = null;
 		int currentRel = -4;
 		for (BGPPath tPath : possList) {
-			if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
-				continue;
+
+			/*
+			 * If we're doing avoidance based on ignoring local preference, then
+			 * for the first pass we're literally just going to throw out all
+			 * routes that are NOT clean, this is corrected in path selection if
+			 * this leaves us w/ no viable routes
+			 */
+			if (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref) {
+				if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
+					continue;
+				}
 			}
 
 			if (currentBest == null) {
@@ -498,12 +515,43 @@ public abstract class AS implements TransitAgent {
 				continue;
 			}
 
+			/*
+			 * If local pref is the same, move on to the next critera
+			 */
 			if (newRel == currentRel) {
-				if (currentBest.getPathLength() > tPath.getPathLength()
-						|| (currentBest.getPathLength() == tPath.getPathLength() && tPath.getNextHop() < currentBest
-								.getNextHop())) {
+				/*
+				 * If we're inserting the decision to route around decoys after
+				 * local pref, but before path length, do so here
+				 */
+				if (this.currentAvoidMode == AS.AvoidMode.IgnorePathLen) {
+					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+						currentBest = tPath;
+						currentRel = newRel;
+						continue;
+					}
+					if(avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)){
+						continue;
+					}
+				}
+
+				if (currentBest.getPathLength() > tPath.getPathLength()){
 					currentBest = tPath;
 					currentRel = newRel;
+					continue;
+				}else if(currentBest.getPathLength() == tPath.getPathLength()){
+					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+						currentBest = tPath;
+						currentRel = newRel;
+						continue;
+					}
+					if(avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)){
+						continue;
+					}
+									
+					if(tPath.getNextHop() < currentBest.getNextHop()){
+						currentBest = tPath;
+						currentRel = newRel;
+					}
 				}
 			}
 		}
@@ -541,7 +589,7 @@ public abstract class AS implements TransitAgent {
 					newAdvTo.add(tProv);
 				}
 			}
-			
+
 			//this.adjOutRib.put(dest, newAdvTo);
 		}
 
@@ -651,9 +699,10 @@ public abstract class AS implements TransitAgent {
 	public String toString() {
 		return "AS: " + this.asn;
 	}
-	
-	public String printDebugString(){
-		return this.toString() + "\nADJ IN RIB\n" + this.adjInRib.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n" + this.locRib.toString() + "\nADJ OUT\n" + this.adjOutRib.toString();
+
+	public String printDebugString() {
+		return this.toString() + "\nADJ IN RIB\n" + this.adjInRib.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n"
+				+ this.locRib.toString() + "\nADJ OUT\n" + this.adjOutRib.toString();
 	}
 
 	/**
@@ -714,13 +763,14 @@ public abstract class AS implements TransitAgent {
 		return this.wardenAS;
 	}
 
-	public void turnOnActiveAvoidance(Set<Integer> avoidList) {
+	public void turnOnActiveAvoidance(Set<Integer> avoidList, AvoidMode newAvoidMode) {
 		if (!this.isWardenAS()) {
 			throw new IllegalStateException("Attempted to toggle avoidance on non-warden.");
 		}
 
 		this.activeAvoidance = true;
 		this.avoidSet = avoidList;
+		this.currentAvoidMode = newAvoidMode;
 	}
 
 	/**
@@ -848,8 +898,8 @@ public abstract class AS implements TransitAgent {
 	public double getTrafficOverLinkBetween(int otherASN) {
 		return this.trafficOverNeighbors.get(otherASN);
 	}
-	
-	public double getVolTraffic(int otherASN){
+
+	public double getVolTraffic(int otherASN) {
 		return this.volatileTraffic.get(otherASN);
 	}
 
@@ -864,16 +914,16 @@ public abstract class AS implements TransitAgent {
 	 */
 	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile) {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
-		if(isVolatile){
+		if (isVolatile) {
 			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
 		}
 	}
-	
-	public void addVolatileDestionation(int volatileDest){
+
+	public void addVolatileDestionation(int volatileDest) {
 		this.volatileDestinations.add(volatileDest);
 	}
-	
-	public Set<Integer> getVolatileDestinations(){
+
+	public Set<Integer> getVolatileDestinations() {
 		return this.volatileDestinations;
 	}
 
@@ -883,26 +933,25 @@ public abstract class AS implements TransitAgent {
 			this.volatileTraffic.put(tASN, 0.0);
 		}
 	}
-	
+
 	public void addOnCustomerConeList(int asn) {
 		if (!this.customerConeASList.contains(asn))
 			this.customerConeASList.add(asn);
 	}
-	
+
 	public Set<Integer> getCustomerConeASList() {
 		return this.customerConeASList;
 	}
-	
+
 	public int getCustomerConeSize() {
 		return this.customerConeASList.size();
 	}
-	
-	public void setCustomerIPCone(int custIPCone){
+
+	public void setCustomerIPCone(int custIPCone) {
 		this.sizeOfCustomerIPCone = custIPCone;
 	}
-	
-	public int getIPCustomerCone(){
+
+	public int getIPCustomerCone() {
 		return this.sizeOfCustomerIPCone;
 	}
 }
-

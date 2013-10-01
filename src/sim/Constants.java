@@ -1,5 +1,7 @@
 package sim;
 
+import topo.AS;
+
 public class Constants {
 
 	public static final String AS_REL_FILE = "cash-nightwing/as-rel.txt";
@@ -20,6 +22,8 @@ public class Constants {
 	public static final int NTHREADS = 10;
 	
 	public static final int SAMPLE_COUNT = 50;
+	
+	public static final AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
 
 }
 
