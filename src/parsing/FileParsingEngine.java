@@ -16,20 +16,29 @@ public class FileParsingEngine {
 	
 	private static int DRCOUNTPOSITION = 3;
 	/** the percentile to calculate */
-	private static double[] percentile= {0.10, 0.25, 0.50, 0.75, 0.90};
-	//private static String OUTPUTPATH = "ParsingData/parsingResults/";
-	private static String OUTPUTPATH = "parsingResults/";
+	private static double[] percentiles= {0.10, 0.25, 0.50, 0.75, 0.90};
+	//private String outputFile = "parsingResults/";
+	private String outputFile = "../../../../../../scratch/minerva2/public/nightwingData/";
+
 	
 	public static void main(String args[]) throws IOException{
-		FileParsingEngine self = new FileParsingEngine(args[0], args[1]);
+		if (args.length != 3) {
+			System.out.println("Usage: ./FileParsingEngine <warden file> <transit file> <output file>");
+			return;
+		}
+		//this.outputFile = this.outputFile + args[2];
+		//System.out.println(this.outputFile);
+		FileParsingEngine self = new FileParsingEngine(args[0], args[1], args[2]);
 		self.parseFile();
 	}
 	
-	public FileParsingEngine(String wardenlog, String transitlog) {
+	public FileParsingEngine(String wardenlog, String transitlog, String outputFile) {
 		this.wardenlog = wardenlog;
 		this.transitlog = transitlog;
 		this.asNum = 0;
 		this.wardenNum = 0;
+		this.outputFile += outputFile + "/";
+		System.out.println(this.outputFile);
 	}
 	
 	public void parseFile() throws IOException {
@@ -42,25 +51,50 @@ public class FileParsingEngine {
 		int drCount=-1;
 		
 		/* lists for each sample */
-		List<Double> roundOne = new ArrayList<Double>();
-		List<Double> roundTwo = new ArrayList<Double>();
-		List<Double> delta = new ArrayList<Double>();
+		List<Double> roundOneCleanPath = new ArrayList<Double>();
+		List<Double> roundTwoCleanPath = new ArrayList<Double>();
+		List<Double> deltaCleanPath = new ArrayList<Double>();
+		List<Double> incrementCleanPath = new ArrayList<Double>();
+		
+		List<Double> roundOneCleanAS = new ArrayList<Double>();
+		List<Double> roundTwoCleanAS = new ArrayList<Double>();
+		List<Double> deltaCleanAS = new ArrayList<Double>();
+		List<Double> incrementCleanAS = new ArrayList<Double>();
+		
 		/* lists for each size */
-		List<Double> roundOneList = new ArrayList<Double>();
-		List<Double> roundTwoList = new ArrayList<Double>();
-		List<Double> deltaList = new ArrayList<Double>();
+		List<Double> roundOneCleanPathList = new ArrayList<Double>();
+		List<Double> roundTwoCleanPathList = new ArrayList<Double>();
+		List<Double> deltaCleanPathList = new ArrayList<Double>();
+		List<Double> incrementCleanPathList = new ArrayList<Double>();
+		
+		List<Double> roundOneCleanASList = new ArrayList<Double>();
+		List<Double> roundTwoCleanASList = new ArrayList<Double>();
+		List<Double> deltaCleanASList = new ArrayList<Double>();
+		List<Double> incrementCleanASList = new ArrayList<Double>();
 		
 		BufferedReader fBuff = new BufferedReader(new FileReader(wardenlog));
-		BufferedWriter wardenRoundOneWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "wardenLog_round1.txt"));
-		BufferedWriter wardenRoundTwoWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "wardenLog_round2.txt"));
-		BufferedWriter wardenDeltaWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "wardenLog_delta.txt"));
+		BufferedWriter wardenRoundOneCleanPathWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanPath_round1.txt"));
+		BufferedWriter wardenRoundTwoCleanPathWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanPath_round2.txt"));
+		BufferedWriter wardenDeltaCleanPathWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanPath_delta.txt"));
+		BufferedWriter wardenIncrementCleanPathWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanPath_increment.txt"));
+		
+		BufferedWriter wardenRoundOneCleanASWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanAS_round1.txt"));
+		BufferedWriter wardenRoundTwoCleanASWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanAS_round2.txt"));
+		BufferedWriter wardenDeltaCleanASWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanAS_delta.txt"));
+		BufferedWriter wardenIncrementCleanASWriter = new BufferedWriter(new FileWriter(this.outputFile + "wardenLog_cleanAS_increment.txt"));
 		
 		/* each loop is for one sample including three rounds*/
 		while (fBuff.ready()) {
 			
-			roundOne.clear();
-			roundTwo.clear();
-			delta.clear();
+			roundOneCleanPath.clear();
+			roundTwoCleanPath.clear();
+			deltaCleanPath.clear();
+			incrementCleanPath.clear();
+			
+			roundOneCleanAS.clear();
+			roundTwoCleanAS.clear();
+			deltaCleanAS.clear();
+			incrementCleanAS.clear();
 
 			String pollString = fBuff.readLine().trim();
 			
@@ -68,14 +102,26 @@ public class FileParsingEngine {
 			if (pollString.equals("&&&")) {
 				if (!firstSampleSize) {
 					/* sort and write out data */
-					writeResultOfOneSampleSize(drCount, roundOneList, wardenRoundOneWriter);
-					writeResultOfOneSampleSize(drCount, roundTwoList, wardenRoundTwoWriter);
-					writeResultOfOneSampleSize(drCount, deltaList, wardenDeltaWriter);
+					writeResultOfOneSampleSize(drCount, roundOneCleanPathList, wardenRoundOneCleanPathWriter);
+					writeResultOfOneSampleSize(drCount, roundTwoCleanPathList, wardenRoundTwoCleanPathWriter);
+					writeResultOfOneSampleSize(drCount, deltaCleanPathList, wardenDeltaCleanPathWriter);
+					writeResultOfOneSampleSize(drCount, incrementCleanPathList, wardenIncrementCleanPathWriter);
+					
+					writeResultOfOneSampleSize(drCount, roundOneCleanASList, wardenRoundOneCleanASWriter);
+					writeResultOfOneSampleSize(drCount, roundTwoCleanASList, wardenRoundTwoCleanASWriter);
+					writeResultOfOneSampleSize(drCount, deltaCleanASList, wardenDeltaCleanASWriter);
+					writeResultOfOneSampleSize(drCount, incrementCleanASList, wardenIncrementCleanASWriter);
 					
 					/* reset the data */
-					roundOneList.clear();
-					roundTwoList.clear();
-					deltaList.clear();
+					roundOneCleanPathList.clear();
+					roundTwoCleanPathList.clear();
+					deltaCleanPathList.clear();
+					incrementCleanPathList.clear();
+					
+					roundOneCleanASList.clear();
+					roundTwoCleanASList.clear();
+					deltaCleanASList.clear();
+					incrementCleanASList.clear();
 				}
 				/* need to read one more line marking round one, line of ### */
 				pollString = fBuff.readLine().trim();
@@ -85,7 +131,7 @@ public class FileParsingEngine {
 			 * get the number of wardens if it is the first sample size, after that,
 			 * just ignore all since the number is all the same for one network
 			 */
-			drCount = this.getDrCount(pollString.substring(FileParsingEngine.DRCOUNTPOSITION, pollString.length()));
+			drCount = this.getDrCount(pollString);
 			if (firstSampleSize) {
 				/* count the number of wardens */
 				while (true) {
@@ -107,7 +153,8 @@ public class FileParsingEngine {
 				pollString = fBuff.readLine().trim();
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
-				roundOne.add(Double.parseDouble(pollToks.nextToken()));
+				roundOneCleanPath.add(Double.parseDouble(pollToks.nextToken()));
+				roundOneCleanAS.add(Double.parseDouble(pollToks.nextToken()));
 			}
 			
 			/* separation between rounds, i.e. line *** */
@@ -118,25 +165,49 @@ public class FileParsingEngine {
 				pollString = fBuff.readLine().trim();
 				StringTokenizer pollToks = new StringTokenizer(pollString, ",");
 				int asn = Integer.parseInt(pollToks.nextToken());
-				roundTwo.add(Double.parseDouble(pollToks.nextToken()));
-				delta.add(roundTwo.get(i) - roundOne.get(i));
+				
+				roundTwoCleanPath.add(Double.parseDouble(pollToks.nextToken()));
+				deltaCleanPath.add(roundTwoCleanPath.get(i) - roundOneCleanPath.get(i));
+				incrementCleanPath.add(deltaCleanPath.get(i) / roundOneCleanPath.get(i));
+				
+				roundTwoCleanAS.add(Double.parseDouble(pollToks.nextToken()));
+				deltaCleanAS.add(roundTwoCleanAS.get(i) - roundOneCleanAS.get(i));
+				incrementCleanAS.add(deltaCleanAS.get(i) / roundOneCleanAS.get(i));
 			}
 			
 			/* finish one sample and store the median of each sample into the list which is for one size */
-			roundOneList.add(this.getGivenPercentile(roundOne, 0.5));
-			roundTwoList.add(this.getGivenPercentile(roundTwo, 0.5));
-			deltaList.add(this.getGivenPercentile(delta, 0.5));
+			roundOneCleanPathList.add(this.getGivenPercentile(roundOneCleanPath, 0.5));
+			roundTwoCleanPathList.add(this.getGivenPercentile(roundTwoCleanPath, 0.5));
+			deltaCleanPathList.add(this.getGivenPercentile(deltaCleanPath, 0.5));
+			incrementCleanPathList.add(this.getGivenPercentile(incrementCleanPath, 0.5));
+			
+			roundOneCleanASList.add(this.getGivenPercentile(roundOneCleanAS, 0.5));
+			roundTwoCleanASList.add(this.getGivenPercentile(roundTwoCleanAS, 0.5));
+			deltaCleanASList.add(this.getGivenPercentile(deltaCleanAS, 0.5));
+			incrementCleanASList.add(this.getGivenPercentile(incrementCleanAS, 0.5));
 		}
 		
 		/* write the last set results of the sample size */
-		writeResultOfOneSampleSize(drCount, roundOneList, wardenRoundOneWriter);
-		writeResultOfOneSampleSize(drCount, roundTwoList, wardenRoundTwoWriter);
-		writeResultOfOneSampleSize(drCount, deltaList, wardenDeltaWriter);
+		writeResultOfOneSampleSize(drCount, roundOneCleanPathList, wardenRoundOneCleanPathWriter);
+		writeResultOfOneSampleSize(drCount, roundTwoCleanPathList, wardenRoundTwoCleanPathWriter);
+		writeResultOfOneSampleSize(drCount, deltaCleanPathList, wardenDeltaCleanPathWriter);
+		writeResultOfOneSampleSize(drCount, incrementCleanPathList, wardenIncrementCleanPathWriter);
+		
+		writeResultOfOneSampleSize(drCount, roundOneCleanASList, wardenRoundOneCleanASWriter);
+		writeResultOfOneSampleSize(drCount, roundTwoCleanASList, wardenRoundTwoCleanASWriter);
+		writeResultOfOneSampleSize(drCount, deltaCleanASList, wardenDeltaCleanASWriter);
+		writeResultOfOneSampleSize(drCount, incrementCleanASList, wardenIncrementCleanASWriter);
 		
 		fBuff.close();
-		wardenRoundOneWriter.close();
-		wardenRoundTwoWriter.close();
-		wardenDeltaWriter.close();
+		wardenRoundOneCleanPathWriter.close();
+		wardenRoundTwoCleanPathWriter.close();
+		wardenDeltaCleanPathWriter.close();
+		wardenIncrementCleanPathWriter.close();
+		
+		wardenRoundOneCleanASWriter.close();
+		wardenRoundTwoCleanASWriter.close();
+		wardenDeltaCleanASWriter.close();
+		wardenIncrementCleanASWriter.close();
 	}
 
 	private void parseTransitLog(String transitlog) throws IOException {
@@ -148,8 +219,8 @@ public class FileParsingEngine {
 		List<Double> aveDeltaNotDecoyingDRList = new ArrayList<Double>();
 		
 		BufferedReader fBuff = new BufferedReader(new FileReader(transitlog));
-		BufferedWriter transitDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog_decoyDR.txt"));
-		BufferedWriter transitNotDecoyingDRWriter = new BufferedWriter(new FileWriter(FileParsingEngine.OUTPUTPATH + "transitLog_NotDecoyDR.txt"));
+		BufferedWriter transitDecoyingDRWriter = new BufferedWriter(new FileWriter(this.outputFile + "transitLog_decoyDR.txt"));
+		BufferedWriter transitNotDecoyingDRWriter = new BufferedWriter(new FileWriter(this.outputFile + "transitLog_NotDecoyDR.txt"));
 		
 		/* each loop is for one sample including three rounds */
 		while (fBuff.ready()) {
@@ -178,7 +249,7 @@ public class FileParsingEngine {
 			 * get the number of wardens if it is the first sample size, after that,
 			 * just ignore all since the number is all the same for one map
 			 */
-			drCount = this.getDrCount(pollString.substring(3, pollString.length()));
+			drCount = this.getDrCount(pollString);
 			if (firstSampleSize) {
 				/* count the number of wardens */
 				while (true) {
@@ -243,7 +314,7 @@ public class FileParsingEngine {
 	}
 	
 	private int getDrCount(String pollString) {
-		StringTokenizer pollToks = new StringTokenizer(pollString, ",");
+		StringTokenizer pollToks = new StringTokenizer(pollString.substring(FileParsingEngine.DRCOUNTPOSITION, pollString.length()), ",");
 		return Integer.parseInt(pollToks.nextToken());
 	}
 	
@@ -272,10 +343,9 @@ public class FileParsingEngine {
 	 */
 	private void writeResultOfOneSampleSize(int drCount, List<Double> list, BufferedWriter out) throws IOException {
 		Collections.sort(list);
-		for (int i = 0; i < FileParsingEngine.percentile.length; ++i) {
-			out.write(drCount + ", " + this.getGivenPercentile(list, FileParsingEngine.percentile[i]) + ", ");
+		for (int i = 0; i < FileParsingEngine.percentiles.length; ++i) {
+			out.write(drCount + ", " + this.getGivenPercentile(list, FileParsingEngine.percentiles[i]) + ", ");
 		}
 		out.write("\n");
 	}
 }
-
