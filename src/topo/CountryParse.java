@@ -3,12 +3,16 @@ package topo;
 import java.io.*;
 import java.util.regex.*;
 
-public class ChinaParser {
+public class CountryParser {
 
 	public static void main(String[] args) throws IOException {
+		
+		if (args.length != 2) {
+			System.out.println("parsing XML usage: ./CountryParser <country name> <abbreviation>");
+		}
 
 		BufferedReader inBuff = new BufferedReader(new FileReader("rawCountryData.xml"));
-		BufferedWriter outBuff = new BufferedWriter(new FileWriter("china-as.txt"));
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(args[0] + "-as.txt"));
 		Pattern asnPattern = Pattern.compile("<asn>(\\d++)</asn>");
 
 		boolean readRegion = false;
@@ -24,15 +28,15 @@ public class ChinaParser {
 					outBuff.newLine();
 				}
 				
-			} else if (pollString
-					.contains("<country country_code=\"CN\" country_name=\"China\" country_code_is_region=\"0\">")) {
+			//} else if (pollString.contains("<country country_code=\"" + args[1] + "\" country_name=\"" + args[0] + "\" country_code_is_region=\"0\">")) {
+			} else if (pollString.contains("<country country_code=\"" + args[1])) {
 				readRegion = true;
 			}
 
 		}
 		inBuff.close();
 		outBuff.close();
-
+		
+		System.out.println(args[0] + " warden parsing finished!");
 	}
-
 }
