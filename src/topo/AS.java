@@ -37,7 +37,7 @@ public abstract class AS implements TransitAgent {
 	private AvoidMode currentAvoidMode;
 
 	private int numberOfIPs;
-	private int sizeOfCustomerIPCone;
+	private long sizeOfCustomerIPCone;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
@@ -529,26 +529,26 @@ public abstract class AS implements TransitAgent {
 						currentRel = newRel;
 						continue;
 					}
-					if(avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)){
+					if (avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
 				}
 
-				if (currentBest.getPathLength() > tPath.getPathLength()){
+				if (currentBest.getPathLength() > tPath.getPathLength()) {
 					currentBest = tPath;
 					currentRel = newRel;
 					continue;
-				}else if(currentBest.getPathLength() == tPath.getPathLength()){
+				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
 					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if(avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)){
+					if (avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
-									
-					if(tPath.getNextHop() < currentBest.getNextHop()){
+
+					if (tPath.getNextHop() < currentBest.getNextHop()) {
 						currentBest = tPath;
 						currentRel = newRel;
 					}
@@ -935,8 +935,7 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public void addOnCustomerConeList(int asn) {
-		if (!this.customerConeASList.contains(asn))
-			this.customerConeASList.add(asn);
+		this.customerConeASList.add(asn);
 	}
 
 	public Set<Integer> getCustomerConeASList() {
@@ -947,11 +946,11 @@ public abstract class AS implements TransitAgent {
 		return this.customerConeASList.size();
 	}
 
-	public void setCustomerIPCone(int custIPCone) {
+	public void setCustomerIPCone(long custIPCone) {
 		this.sizeOfCustomerIPCone = custIPCone;
 	}
 
-	public int getIPCustomerCone() {
+	public long getIPCustomerCone() {
 		return this.sizeOfCustomerIPCone;
 	}
 }

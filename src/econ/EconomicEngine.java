@@ -16,6 +16,9 @@ public class EconomicEngine {
 	private HashMap<Integer, DecoyAS> activeTopology;
 	private HashMap<Integer, Double> cashForThisRound;
 
+	private HashMap<Integer, Integer> tierMap;
+	private HashMap<Integer, Long> tierScaleFactor;
+
 	private BufferedWriter wardenOut;
 	private BufferedWriter transitOut;
 
@@ -23,6 +26,8 @@ public class EconomicEngine {
 
 	private static final double TRAFFIC_UNIT_TO_MBYTES = 1.0;
 	private static final double COST_PER_MBYTE = 1.0;
+	private static final double SCALE_FACTOR_POINT = 0.8;
+	private static final double DISCOUNT = 0.75;
 
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
@@ -56,6 +61,7 @@ public class EconomicEngine {
 		}
 
 		this.calculateCustomerCone();
+		this.setupPricingTiers();
 		this.maxIPCount = 0.0;
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			this.maxIPCount = Math.max(this.maxIPCount, (double) tAS.getIPCustomerCone());
@@ -72,6 +78,12 @@ public class EconomicEngine {
 		 */
 		for (EconomicAgent tAgent : this.theTopo.values()) {
 			this.buildIndividualCustomerCone(tAgent.parent);
+
+			long ipCCSize = 0;
+			for (int tASN : tAgent.parent.getCustomerConeASList()) {
+				ipCCSize += this.theTopo.get(tASN).parent.getIPCount();
+			}
+			tAgent.parent.setCustomerIPCone(ipCCSize);
 		}
 		if (Constants.DEBUG) {
 			for (DecoyAS tAS : this.activeTopology.values()) {
@@ -88,21 +100,20 @@ public class EconomicEngine {
 	 * @param currentAS
 	 * @return
 	 */
-	private int buildIndividualCustomerCone(AS currentAS) {
-		int ipCount = 0;
+	private void buildIndividualCustomerCone(AS currentAS) {
 
 		/*
 		 * Skip ASes that have already been built at an earlier stage
 		 */
-		if (currentAS.getCustomerConeSize() != 0)
-			return currentAS.getIPCustomerCone();
+		if (currentAS.getCustomerConeSize() != 0) {
+			return;
+		}
 
 		for (int tASN : currentAS.getPurgedNeighbors()) {
 			currentAS.addOnCustomerConeList(tASN);
-			ipCount += this.theTopo.get(tASN).parent.getIPCount();
 		}
 		for (AS nextAS : currentAS.getCustomers()) {
-			ipCount += buildIndividualCustomerCone(nextAS);
+			this.buildIndividualCustomerCone(nextAS);
 			for (int tASN : nextAS.getCustomerConeASList()) {
 				currentAS.addOnCustomerConeList(tASN);
 			}
@@ -110,16 +121,62 @@ public class EconomicEngine {
 
 		/* count itself */
 		currentAS.addOnCustomerConeList(currentAS.getASN());
-		ipCount += currentAS.getIPCount();
+	}
 
-		currentAS.setCustomerIPCone(ipCount);
+	private void setupPricingTiers() {
+		this.tierMap = new HashMap<Integer, Integer>();
+		this.tierScaleFactor = new HashMap<Integer, Long>();
 
-		return ipCount;
+		List<Integer> ccSizes = new ArrayList<Integer>(this.activeTopology.size());
+		List<Long> noCustSizes = new ArrayList<Long>(this.theTopo.size() - this.activeTopology.size());
+		for (int tASN : this.theTopo.keySet()) {
+			if (!this.activeTopology.containsKey(tASN)) {
+				this.tierMap.put(tASN, 0);
+				noCustSizes.add(this.theTopo.get(tASN).parent.getIPCustomerCone());
+				continue;
+			}
+
+			boolean placed = false;
+			long mySize = this.theTopo.get(tASN).parent.getIPCustomerCone();
+			for (int counter = 0; counter < ccSizes.size(); counter++) {
+				if (this.theTopo.get(ccSizes.get(counter)).parent.getIPCustomerCone() > mySize) {
+					ccSizes.add(counter, tASN);
+					placed = true;
+					break;
+				}
+			}
+			if (!placed) {
+				ccSizes.add(tASN);
+			}
+		}
+
+		int quarter = (int) Math.ceil((double) ccSizes.size() / 4.0);
+		for (int currentTier = 1; currentTier < 5; currentTier++) {
+			for (int counter = 0; counter < quarter; counter++) {
+				if (counter + (currentTier - 1) * quarter >= ccSizes.size()) {
+					break;
+				}
+				this.tierMap.put(ccSizes.get(counter + (currentTier - 1) * quarter), quarter);
+			}
+		}
+
+		/*
+		 * Build the tier scale factor points once
+		 */
+		Collections.sort(noCustSizes);
+		this.tierScaleFactor.put(0, noCustSizes.get((int) Math.floor(noCustSizes.size()
+				* EconomicEngine.SCALE_FACTOR_POINT)));
+		for (int currentTier = 1; currentTier < 5; currentTier++) {
+			int startPoint = quarter * (currentTier - 1);
+			int range = Math.min(quarter, ccSizes.size() - startPoint);
+			this.tierScaleFactor.put(currentTier, this.theTopo.get(ccSizes.get((int) Math.floor(startPoint
+					+ (double) range * EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
+		}
 	}
 
 	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize,
 			ParallelTrafficStat trafficManager) {
-		for(int currentConeSize = start; currentConeSize <= end; currentConeSize += step){
+		for (int currentConeSize = start; currentConeSize <= end; currentConeSize += step) {
 			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, trafficManager);
 		}
 	}
@@ -302,14 +359,19 @@ public class EconomicEngine {
 	}
 
 	private double buildScaleFactor(EconomicAgent sendingAS, EconomicAgent recievingAS, int relation) {
-		double ipScale = 1.0;
+
+		int payingASN;
 		if (relation == AS.CUSTOMER_CODE) {
-			ipScale -= ((double) sendingAS.parent.getIPCustomerCone() / this.maxIPCount);
+			payingASN = sendingAS.parent.getASN();
 		} else {
-			ipScale -= ((double) recievingAS.parent.getIPCustomerCone() / this.maxIPCount);
+			payingASN = recievingAS.parent.getASN();
 		}
 
-		return ipScale * EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
+		int payingTier = this.tierMap.get(payingASN);
+		double ipScale = 5.0 - (double) payingTier;
+		double myDiscount = Math.min(EconomicEngine.DISCOUNT * this.theTopo.get(payingASN).parent.getIPCustomerCone()
+				/ this.tierScaleFactor.get(payingTier), EconomicEngine.DISCOUNT);
+		return (ipScale - myDiscount) * EconomicEngine.TRAFFIC_UNIT_TO_MBYTES * EconomicEngine.COST_PER_MBYTE;
 	}
 
 	private void resetForNewRound() {
