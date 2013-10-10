@@ -36,7 +36,7 @@ public class ASTopoParser {
 		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile,
 				Constants.SUPER_AS_FILE);
 		System.out.println("Raw topo size is: " + asMap.size());
-		ASTopoParser.parseIPScoreFile(asMap);
+		ASTopoParser.parseIPScoreFile(asMap, Constants.IP_COUNT_FILE);
 
 		return asMap;
 	}
@@ -66,7 +66,7 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading either config file
 	 */
-	private static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile)
+	public static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile)
 			throws IOException {
 
 		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
@@ -121,6 +121,14 @@ public class ASTopoParser {
 		fBuff.close();
 
 		/*
+		 * A little bit of short circuit logic bolted on so outside
+		 * classes/projects can use this and not need to re-do code
+		 */
+		if (wardenFile == null && superASFile == null) {
+			return retMap;
+		}
+
+		/*
 		 * read the warden AS file, toggle all warden ASes
 		 */
 		fBuff = new BufferedReader(new FileReader(wardenFile));
@@ -167,8 +175,8 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading from the IP count file
 	 */
-	private static void parseIPScoreFile(HashMap<Integer, DecoyAS> asMap) throws IOException {
-		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.IP_COUNT_FILE));
+	public static void parseIPScoreFile(HashMap<Integer, DecoyAS> asMap, String ipCountFile) throws IOException {
+		BufferedReader fBuff = new BufferedReader(new FileReader(ipCountFile));
 		while (fBuff.ready()) {
 			String pollString = fBuff.readLine().trim();
 			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
