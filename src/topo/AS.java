@@ -56,8 +56,12 @@ public abstract class AS implements TransitAgent {
 
 	/* store the traffic over each neighbor */
 	private HashMap<Integer, Double> trafficOverNeighbors;
+	private HashMap<Integer, Double> transitTrafficOverLink;
+	private HashMap<Integer, Double> lastHopDeliveryOverLink;
 
 	private HashMap<Integer, Double> volatileTraffic;
+	private HashMap<Integer, Double> volatileTransitTraffic;
+	private HashMap<Integer, Double> volatileLastHopDeliveryTraffic;
 	private Set<Integer> volatileDestinations;
 
 	public static final int PROIVDER_CODE = -1;
@@ -86,7 +90,11 @@ public abstract class AS implements TransitAgent {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new HashMap<Integer, Double>();
+		this.transitTrafficOverLink = new HashMap<Integer, Double>();
+		this.lastHopDeliveryOverLink = new HashMap<Integer, Double>();
 		this.volatileTraffic = new HashMap<Integer, Double>();
+		this.volatileTransitTraffic = new HashMap<Integer, Double>();
+		this.volatileLastHopDeliveryTraffic = new HashMap<Integer, Double>();
 		this.volatileDestinations = new HashSet<Integer>();
 
 		this.customerConeASList = new HashSet<Integer>();
@@ -132,6 +140,7 @@ public abstract class AS implements TransitAgent {
 		this.volatileDestinations = (Set<Integer>) serialIn.readObject();
 	}
 
+	//FIXME update this and above funtion for transit traffic as well
 	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.trafficOverNeighbors);
 		serialOut.writeObject(this.volatileTraffic);
@@ -238,8 +247,16 @@ public abstract class AS implements TransitAgent {
 		}
 		this.trafficOverNeighbors.put(otherAS.asn, 0.0);
 		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
+		this.transitTrafficOverLink.put(otherAS.asn, 0.0);
+		otherAS.transitTrafficOverLink.put(this.asn, 0.0);
+		this.lastHopDeliveryOverLink.put(otherAS.asn, 0.0);
+		otherAS.lastHopDeliveryOverLink.put(this.asn, 0.0);
 		this.volatileTraffic.put(otherAS.asn, 0.0);
 		otherAS.volatileTraffic.put(this.asn, 0.0);
+		this.volatileTransitTraffic.put(otherAS.asn, 0.0);
+		otherAS.volatileTransitTraffic.put(this.asn, 0.0);
+		this.volatileLastHopDeliveryTraffic.put(otherAS.asn, 0.0);
+		otherAS.volatileLastHopDeliveryTraffic.put(this.asn, 0.0);
 	}
 
 	private AS getNeighborByASN(int asn) {
@@ -899,8 +916,24 @@ public abstract class AS implements TransitAgent {
 		return this.trafficOverNeighbors.get(otherASN);
 	}
 
+	public double getTransitTrafficOverLink(int otherASN) {
+		return this.transitTrafficOverLink.get(otherASN);
+	}
+
+	public double getDeliveryTrafficOverLink(int otherASN) {
+		return this.lastHopDeliveryOverLink.get(otherASN);
+	}
+
 	public double getVolTraffic(int otherASN) {
 		return this.volatileTraffic.get(otherASN);
+	}
+
+	public double getVolTransitTraffic(int otherASN) {
+		return this.volatileTransitTraffic.get(otherASN);
+	}
+
+	public double getVolDeliveryTraffic(int otherASN) {
+		return this.volatileLastHopDeliveryTraffic.get(otherASN);
 	}
 
 	/**
@@ -911,11 +944,27 @@ public abstract class AS implements TransitAgent {
 	 * 
 	 * @param neighbor
 	 * @param amountOfTraffic
+	 * @param isVolatile
+	 * @param isTransit
 	 */
-	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile) {
+	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile,
+			boolean isTransit, boolean isDelivery) {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
+		if (isTransit) {
+			this.transitTrafficOverLink.put(neighbor, this.transitTrafficOverLink.get(neighbor) + amountOfTraffic);
+		}
+		if (isDelivery) {
+			this.lastHopDeliveryOverLink.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
+		}
 		if (isVolatile) {
 			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
+			if (isTransit) {
+				this.volatileTransitTraffic.put(neighbor, this.volatileTransitTraffic.get(neighbor) + amountOfTraffic);
+			}
+			if (isDelivery) {
+				this.volatileLastHopDeliveryTraffic.put(neighbor, this.volatileLastHopDeliveryTraffic.get(neighbor)
+						+ amountOfTraffic);
+			}
 		}
 	}
 
@@ -930,7 +979,13 @@ public abstract class AS implements TransitAgent {
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
+			this.transitTrafficOverLink.put(tASN, this.transitTrafficOverLink.get(tASN)
+					- this.volatileTransitTraffic.get(tASN));
+			this.lastHopDeliveryOverLink.put(tASN, this.lastHopDeliveryOverLink.get(tASN)
+					- this.volatileLastHopDeliveryTraffic.get(tASN));
 			this.volatileTraffic.put(tASN, 0.0);
+			this.volatileTransitTraffic.put(tASN, 0.0);
+			this.volatileLastHopDeliveryTraffic.put(tASN, 0.0);
 		}
 	}
 

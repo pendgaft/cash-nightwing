@@ -14,6 +14,7 @@ public class TransitProvider extends EconomicAgent {
 	}
 
 	private double moneyEarned;
+	private double transitIncome;
 	private boolean flipDecoyState;
 	private int lockIn;
 	private TransitProvider.DECOY_STRAT myStrat;
@@ -28,6 +29,7 @@ public class TransitProvider extends EconomicAgent {
 	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TransitProvider.DECOY_STRAT strat) {
 		super(parentAS, log);
 		this.moneyEarned = 0.0;
+		this.transitIncome = 0.0;
 		this.myStrat = strat;
 		this.flipDecoyState = false;
 		this.lockIn = 0;
@@ -91,8 +93,9 @@ public class TransitProvider extends EconomicAgent {
 		}
 	}
 
-	public void reportMoneyEarned(double moneyEarned) {
+	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
 		this.moneyEarned = moneyEarned;
+		this.transitIncome = transitEarned;
 	}
 
 }

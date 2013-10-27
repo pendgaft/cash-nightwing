@@ -15,6 +15,7 @@ public class EconomicEngine {
 	private HashMap<Integer, EconomicAgent> theTopo;
 	private HashMap<Integer, DecoyAS> activeTopology;
 	private HashMap<Integer, Double> cashForThisRound;
+	private HashMap<Integer, Double> transitCashForThisRound;
 
 	private HashMap<Integer, Integer> tierMap;
 	private HashMap<Integer, Long> tierScaleFactor;
@@ -37,6 +38,7 @@ public class EconomicEngine {
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
+		this.transitCashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
 
 		try {
@@ -281,7 +283,7 @@ public class EconomicEngine {
 		 * Do money reporting
 		 */
 		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN));
+			this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN), this.transitCashForThisRound.get(tASN));
 		}
 
 		/*
@@ -321,6 +323,7 @@ public class EconomicEngine {
 		}
 	}
 
+	//TODO populate transit cash
 	private void runMoneyTransfer() {
 		for (Integer tASN : this.theTopo.keySet()) {
 			EconomicAgent tAgent = this.theTopo.get(tASN);
@@ -343,14 +346,16 @@ public class EconomicEngine {
 				}
 
 				double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
+				double transitTraffic = tAgent.getTransitTrafficOverLink(tNeighbor);
+				double adjustedTransitTraffic = tAgent.getDeliveryTrafficOverLink(tNeighbor);
 				double scaleFactor = this.buildScaleFactor(tAgent, this.theTopo.get(tNeighbor), relation);
 				double moneyFlow = trafficVolume * scaleFactor;
 				if (relation == AS.PROIVDER_CODE) {
-					this.updateCashForThisRound(tASN, moneyFlow);
-					this.updateCashForThisRound(tNeighbor, moneyFlow * -1.0);
+					this.updateCashForThisRound(tASN, moneyFlow, transitTraffic * scaleFactor);
+					this.updateCashForThisRound(tNeighbor, moneyFlow * -1.0, (transitTraffic - adjustedTransitTraffic) * scaleFactor * -1.0);
 				} else if (relation == AS.CUSTOMER_CODE) {
-					this.updateCashForThisRound(tASN, moneyFlow * -1.0);
-					this.updateCashForThisRound(tNeighbor, moneyFlow);
+					this.updateCashForThisRound(tASN, moneyFlow * -1.0, (transitTraffic - adjustedTransitTraffic) * scaleFactor * -1.0);
+					this.updateCashForThisRound(tNeighbor, moneyFlow, transitTraffic * scaleFactor);
 				} else {
 					throw new RuntimeException("Invalid relationship passed to EconomicEngine: " + relation);
 				}
@@ -376,13 +381,16 @@ public class EconomicEngine {
 
 	private void resetForNewRound() {
 		this.cashForThisRound.clear();
+		this.transitCashForThisRound.clear();
 		for (int tASN : this.theTopo.keySet()) {
 			this.cashForThisRound.put(tASN, 0.0);
+			this.transitCashForThisRound.put(tASN, 0.0);
 		}
 	}
 
-	private void updateCashForThisRound(int asn, double amount) {
+	private void updateCashForThisRound(int asn, double amount, double transitCash) {
 		this.cashForThisRound.put(asn, this.cashForThisRound.get(asn) + amount);
+		this.transitCashForThisRound.put(asn, this.transitCashForThisRound.get(asn) + transitCash);
 	}
 
 	@SuppressWarnings("unchecked")

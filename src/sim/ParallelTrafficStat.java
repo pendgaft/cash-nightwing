@@ -331,7 +331,7 @@ public class ParallelTrafficStat {
 		 * Manually add traffic the source and the next hop on the path, as the
 		 * source will not appear on the path
 		 */
-		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile);
+		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false, thePath.getNextHop() == destAS.getASN());
 
 		List<Integer> pathList = thePath.getPath();
 		/*
@@ -340,7 +340,7 @@ public class ParallelTrafficStat {
 		for (int tASN = 0; tASN < pathList.size() - 1; ++tASN) {
 			DecoyAS currentAS = this.fullTopology.get(pathList.get(tASN));
 			DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
-			currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic, isVolatile);
+			currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic, isVolatile, true, nextAS.getASN() == destAS.getASN());
 		}
 
 		return amountOfTraffic;
@@ -364,7 +364,7 @@ public class ParallelTrafficStat {
 
 		List<Integer> pathList = thePath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
-		secondLastAS.updateTrafficOverOneNeighbor(destAS.getASN(), amountOfTraffic, isVolatile);
+		secondLastAS.updateTrafficOverOneNeighbor(destAS.getASN(), amountOfTraffic, isVolatile, true, true);
 	}
 
 	/**
@@ -504,7 +504,8 @@ public class ParallelTrafficStat {
 
 			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
 				double amountOfTraffic = srcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
-				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic, isVolatile);
+				//TODO check this logic out w/ direct delivery 
+				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic, isVolatile, false, false);
 				continue;
 			}
 			this.addTrafficToPathAndLastHop(tpath, srcActiveAS, tdestPurgedAS, false, isVolatile);
@@ -777,7 +778,8 @@ public class ParallelTrafficStat {
 			if (tpath.getPathLength() == 0) {
 				double amountOfTraffic = tDestPurgedAS.getTrafficFromEachSuperAS();
 				boolean volatilePath = tDestPurgedAS.isWardenAS() || srcSuperAS.isWardenAS();
-				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic, volatilePath);
+				//TODO sanity check this false, false for the last two args
+				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic, volatilePath, false, false);
 				continue;
 			}
 			this.addTrafficToPathAndLastHop(tpath, srcSuperAS, tDestPurgedAS, true, isVolatile);

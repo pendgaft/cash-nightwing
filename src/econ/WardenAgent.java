@@ -99,7 +99,7 @@ public class WardenAgent extends EconomicAgent {
 		this.parent.turnOnActiveAvoidance(this.buildDecoySet(), Constants.DEFAULT_AVOID_MODE);
 	}
 
-	public void reportMoneyEarned(double moneyEarned) {
+	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
 		/*
 		 * Currently warden ASes don't care about money
 		 */

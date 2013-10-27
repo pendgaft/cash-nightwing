@@ -30,7 +30,7 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * @param moneyEarned
 	 *            - the amount of money gained or lost this past round
 	 */
-	public abstract void reportMoneyEarned(double moneyEarned);
+	public abstract void reportMoneyEarned(double moneyEarned, double tranistEarned);
 
 	/**
 	 * Function that prompts the AS like object to make any changes to its
@@ -68,6 +68,14 @@ public abstract class EconomicAgent implements TransitAgent {
 	
 	public double getTrafficOverLinkBetween(int otherASN){
 		return this.parent.getTrafficOverLinkBetween(otherASN);
+	}
+	
+	public double getTransitTrafficOverLink(int otherASN){
+		return this.parent.getTransitTrafficOverLink(otherASN);
+	}
+	
+	public double getDeliveryTrafficOverLink(int otherASN){
+		return this.parent.getDeliveryTrafficOverLink(otherASN);
 	}
 	
 	public boolean isPurged(){
