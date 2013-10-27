@@ -26,7 +26,8 @@ public class TransitProvider extends EconomicAgent {
 		TransitProvider.FLIPCHANCE = chance;
 	}
 
-	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TransitProvider.DECOY_STRAT strat) {
+	public TransitProvider(DecoyAS parentAS, BufferedWriter log,
+			TransitProvider.DECOY_STRAT strat) {
 		super(parentAS, log);
 		this.moneyEarned = 0.0;
 		this.transitIncome = 0.0;
@@ -37,8 +38,9 @@ public class TransitProvider extends EconomicAgent {
 
 	public void doRoundLogging() {
 		try {
-			this.logStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.parent.isDecoy()
-					+ "\n");
+			this.logStream.write("" + this.parent.getASN() + ","
+					+ this.moneyEarned + "," + this.transitIncome + ","
+					+ this.parent.isDecoy() + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -60,7 +62,7 @@ public class TransitProvider extends EconomicAgent {
 	public void makeAdustments(Object supplementalInfo) {
 		if (this.lockIn > 0) {
 			this.lockIn--;
-			if(this.lockIn == 0 && this.parent.isDecoy()){
+			if (this.lockIn == 0 && this.parent.isDecoy()) {
 				this.flipDecoyState = true;
 			}
 			return;
@@ -84,9 +86,9 @@ public class TransitProvider extends EconomicAgent {
 			this.lockIn = 2;
 		} else if (this.myStrat == TransitProvider.DECOY_STRAT.NEVER) {
 			this.flipDecoyState = false;
-		} else if (this.myStrat == TransitProvider.DECOY_STRAT.DICTATED){
-			boolean passedValue = (Boolean)supplementalInfo;
-			if(passedValue){
+		} else if (this.myStrat == TransitProvider.DECOY_STRAT.DICTATED) {
+			boolean passedValue = (Boolean) supplementalInfo;
+			if (passedValue) {
 				this.flipDecoyState = true;
 			}
 			this.lockIn = 2;
