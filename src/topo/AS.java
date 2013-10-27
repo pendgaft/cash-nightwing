@@ -136,15 +136,23 @@ public abstract class AS implements TransitAgent {
 	@SuppressWarnings("unchecked")
 	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
 		this.trafficOverNeighbors = (HashMap<Integer, Double>) serialIn.readObject();
+		this.transitTrafficOverLink = (HashMap<Integer, Double>) serialIn.readObject();
+		this.lastHopDeliveryOverLink = (HashMap<Integer, Double>) serialIn.readObject();
 		this.volatileTraffic = (HashMap<Integer, Double>) serialIn.readObject();
+		this.volatileTransitTraffic = (HashMap<Integer, Double>) serialIn.readObject();
+		this.volatileLastHopDeliveryTraffic = (HashMap<Integer, Double>) serialIn.readObject();
 		this.volatileDestinations = (Set<Integer>) serialIn.readObject();
 	}
 
-	//FIXME update this and above funtion for transit traffic as well
 	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.trafficOverNeighbors);
+		serialOut.writeObject(this.transitTrafficOverLink);
+		serialOut.writeObject(this.lastHopDeliveryOverLink);
 		serialOut.writeObject(this.volatileTraffic);
+		serialOut.writeObject(this.volatileTransitTraffic);
+		serialOut.writeObject(this.volatileLastHopDeliveryTraffic);
 		serialOut.writeObject(this.volatileDestinations);
+		
 	}
 
 	/**
