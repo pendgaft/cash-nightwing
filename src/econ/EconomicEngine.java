@@ -158,7 +158,7 @@ public class EconomicEngine {
 				if (counter + (currentTier - 1) * quarter >= ccSizes.size()) {
 					break;
 				}
-				this.tierMap.put(ccSizes.get(counter + (currentTier - 1) * quarter), quarter);
+				this.tierMap.put(ccSizes.get(counter + (currentTier - 1) * quarter), currentTier);
 			}
 		}
 
