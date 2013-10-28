@@ -347,15 +347,15 @@ public class EconomicEngine {
 
 				double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
 				double transitTraffic = tAgent.getTransitTrafficOverLink(tNeighbor);
-				double adjustedTransitTraffic = tAgent.getDeliveryTrafficOverLink(tNeighbor);
+				double adjustedTransitTraffic = transitTraffic - tAgent.getDeliveryTrafficOverLink(tNeighbor);
 				double scaleFactor = this.buildScaleFactor(tAgent, this.theTopo.get(tNeighbor), relation);
 				double moneyFlow = trafficVolume * scaleFactor;
 				if (relation == AS.PROIVDER_CODE) {
 					this.updateCashForThisRound(tASN, moneyFlow, transitTraffic * scaleFactor);
-					this.updateCashForThisRound(tNeighbor, moneyFlow * -1.0, (transitTraffic - adjustedTransitTraffic) * scaleFactor * -1.0);
+					this.updateCashForThisRound(tNeighbor, moneyFlow * -1.0, adjustedTransitTraffic * scaleFactor * -1.0);
 				} else if (relation == AS.CUSTOMER_CODE) {
-					this.updateCashForThisRound(tASN, moneyFlow * -1.0, (transitTraffic - adjustedTransitTraffic) * scaleFactor * -1.0);
-					this.updateCashForThisRound(tNeighbor, moneyFlow, transitTraffic * scaleFactor);
+					this.updateCashForThisRound(tASN, moneyFlow * -1.0, transitTraffic * scaleFactor * -1.0);
+					this.updateCashForThisRound(tNeighbor, moneyFlow, adjustedTransitTraffic * scaleFactor);
 				} else {
 					throw new RuntimeException("Invalid relationship passed to EconomicEngine: " + relation);
 				}
