@@ -960,18 +960,22 @@ public abstract class AS implements TransitAgent {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
 		if (isTransit) {
 			this.transitTrafficOverLink.put(neighbor, this.transitTrafficOverLink.get(neighbor) + amountOfTraffic);
+			/*
+			 * Traffic can ONLY be marked as last hop delivery if it is transit to begin with
+			 */
+			if (isDelivery) {
+				this.lastHopDeliveryOverLink.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
+			}
 		}
-		if (isDelivery) {
-			this.lastHopDeliveryOverLink.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
-		}
+
 		if (isVolatile) {
 			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
 			if (isTransit) {
 				this.volatileTransitTraffic.put(neighbor, this.volatileTransitTraffic.get(neighbor) + amountOfTraffic);
-			}
-			if (isDelivery) {
-				this.volatileLastHopDeliveryTraffic.put(neighbor, this.volatileLastHopDeliveryTraffic.get(neighbor)
-						+ amountOfTraffic);
+				if (isDelivery) {
+					this.volatileLastHopDeliveryTraffic.put(neighbor, this.volatileLastHopDeliveryTraffic.get(neighbor)
+							+ amountOfTraffic);
+				}
 			}
 		}
 	}
