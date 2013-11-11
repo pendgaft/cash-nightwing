@@ -26,19 +26,20 @@ public class MaxParser {
 			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "transit-" + suffix.toLowerCase()
 					+ ".log";
 
-			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanBefore.csv", 1);
-			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanAfter.csv", 2);
-			self.computeWardenDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanDelta.csv");
-			self.computeProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			//FIXME fix the warden clean-ness parsing
+//			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/wardenCleanBefore.csv", 1);
+//			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/wardenCleanAfter.csv", 2);
+//			self.computeWardenDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/wardenCleanDelta.csv");
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/drProfitDelta.csv", true, 2);
-			self.computeProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRProfitDelta.csv", false, 2);
-			self.computeProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/drTranistProfitDelta.csv", true, 3);
-			self.computeProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRTranistProfitDelta.csv", false, 3);
 		}
 	}
@@ -47,18 +48,66 @@ public class MaxParser {
 
 	}
 
-	//FIXME adust to total,transit income format
-	private void computeProfitDeltas(String inFile, String outFile, boolean isDR, int column) throws IOException {
+	private void fullProfitDeltas(String inFile, String outFile, boolean isDR, int column) throws IOException {
+		HashMap<Double, HashMap<Integer, List<Double>>> results = new HashMap<Double, HashMap<Integer, List<Double>>>();
+		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
+			results.put(MaxParser.PERCENTILES[counter],
+					this.computeProfitDeltas(inFile, isDR, column, MaxParser.PERCENTILES[counter], true));
+		}
+
+		/*
+		 * Slightly ghetto hack to get the sample sizes
+		 */
+		List<Integer> sampleSizes = new ArrayList<Integer>();
+		for (int tKey : results.get(MaxParser.PERCENTILES[0]).keySet()) {
+			sampleSizes.add(tKey);
+		}
+		Collections.sort(sampleSizes);
+		HashMap<Integer, HashMap<Double, Double>> invertedMap = this.invertParsingIndicies(results, sampleSizes);
+
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+		this.writeTransitHeader(outBuff);
+		for (int tSize : sampleSizes) {
+			this.writePercentiles(tSize, invertedMap.get(tSize), outBuff);
+			outBuff.write("\n");
+		}
+		outBuff.close();
+	}
+	
+	private HashMap<Integer, HashMap<Double, Double>> invertParsingIndicies(HashMap<Double, HashMap<Integer, List<Double>>> original, List<Integer> sampleSizes){
+		/*
+		 * Build data struct to return result, seed in intial maps
+		 */
+		HashMap<Integer, HashMap<Double, Double>> result = new HashMap<Integer, HashMap<Double, Double>>();
+		for(int counter = 0; counter < sampleSizes.size(); counter++){
+			result.put(sampleSizes.get(counter), new HashMap<Double, Double>());
+		}
+		
+		/*
+		 * Iterate through the original, extracting medians and filling them into index
+		 */
+		for(int counter = 0; counter < MaxParser.PERCENTILES.length; counter++){
+			double tPerctile = MaxParser.PERCENTILES[counter];
+			HashMap<Integer, List<Double>> tempMap = original.get(tPerctile);
+			for(Integer tSize: tempMap.keySet()){
+				List<Double> tList = tempMap.get(tSize);
+				double value = this.extractValue(tList, 0.5);
+				result.get(tSize).put(tPerctile, value);
+			}
+		}
+		
+		return result;
+	}
+
+	// FIXME adust to total,transit income format
+	private HashMap<Integer, List<Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
+			double percentile, boolean normalized) throws IOException {
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
-		HashMap<Integer, List<Double>> sampleDeltaMedians = new HashMap<Integer, List<Double>>();
-		HashMap<Integer, List<Double>> normalizedDeltaMedians = new HashMap<Integer, List<Double>>();
-		HashMap<Integer, List<Double>> dataPointCounts = new HashMap<Integer, List<Double>>();
+		HashMap<Integer, List<Double>> results = new HashMap<Integer, List<Double>>();
 		List<Double> sampleDeltas = new ArrayList<Double>();
-		List<Double> normalizedDeltas = new ArrayList<Double>();
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
 
 		int roundFlag = 0;
-		double totalDataCount = 0.0;
 		while (inBuff.ready()) {
 			String pollStr = inBuff.readLine().trim();
 
@@ -77,43 +126,49 @@ public class MaxParser {
 				roundFlag = Integer.parseInt(controlMatcher.group(2));
 				int sampleSize = Integer.parseInt(controlMatcher.group(1));
 
+				/*
+				 * We're ready to actually extract deltas
+				 */
 				if (roundFlag == 0) {
 					if (sampleDeltas.size() > 0) {
-						double newMedian = this.extractMedian(sampleDeltas);
-						double normalizedMedian = this.extractMedian(normalizedDeltas);
-						if (!sampleDeltaMedians.containsKey(sampleSize)) {
-							sampleDeltaMedians.put(sampleSize, new ArrayList<Double>());
-							dataPointCounts.put(sampleSize, new ArrayList<Double>());
-							normalizedDeltaMedians.put(sampleSize, new ArrayList<Double>());
+						double thisRoundValue = this.extractValue(sampleDeltas, percentile);
+						/*
+						 * Check to make sure this isn't the first result at
+						 * this size
+						 */
+						if (!results.containsKey(sampleSize)) {
+							results.put(sampleSize, new ArrayList<Double>());
 						}
-						dataPointCounts.get(sampleSize).add(sampleDeltas.size() / totalDataCount);
-						sampleDeltaMedians.get(sampleSize).add(newMedian);
-						normalizedDeltaMedians.get(sampleSize).add(normalizedMedian);
+						results.get(sampleSize).add(thisRoundValue);
 					}
 					firstRoundValue.clear();
 					sampleDeltas.clear();
-					normalizedDeltas.clear();
-					totalDataCount = 0.0;
 				}
 
 				continue;
 			}
 
+			/*
+			 * This block of code handles any string that is NOT a control
+			 * string
+			 */
 			if (roundFlag != 0) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4)) == isDR) {
 						if (roundFlag == 1) {
-							totalDataCount++;
-							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
-									.group(column)));
+							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(column)));
 						} else {
 							double delta = Double.parseDouble(dataMatch.group(column))
 									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
 							if (delta != 0.0) {
-								sampleDeltas.add(delta);
-								normalizedDeltas.add(100.0 * delta
-										/ Math.abs(firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))));
+								if (normalized) {
+									sampleDeltas.add(100.0 * delta
+											/ Math.abs(firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))));
+								} else {
+									sampleDeltas.add(delta);
+								}
 							}
 						}
 					}
@@ -122,23 +177,7 @@ public class MaxParser {
 		}
 		inBuff.close();
 
-		List<Integer> sampleSizes = new ArrayList<Integer>();
-		for (int tKey : sampleDeltaMedians.keySet()) {
-			sampleSizes.add(tKey);
-		}
-		Collections.sort(sampleSizes);
-
-		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		this.writeTransitHeader(outBuff);
-		for (int tSize : sampleSizes) {
-			this.writePercentiles(tSize, sampleDeltaMedians.get(tSize), outBuff);
-			outBuff.write(",");
-			this.writePercentiles(tSize, normalizedDeltaMedians.get(tSize), outBuff);
-			outBuff.write(",");
-			this.writePercentiles(tSize, dataPointCounts.get(tSize), outBuff);
-			outBuff.write("\n");
-		}
-		outBuff.close();
+		return results;
 	}
 
 	private void computeWardenDeltas(String inFile, String outFile) throws IOException {
@@ -194,8 +233,8 @@ public class MaxParser {
 				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					if (roundFlag == 1) {
-						firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double
-								.parseDouble(dataMatch.group(2)));
+						firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
+								Double.parseDouble(dataMatch.group(2)));
 					} else {
 						deltasForThisSample.add(Double.parseDouble(dataMatch.group(2))
 								- firstRoundValue.get(Integer.parseInt(dataMatch.group(1))));
@@ -216,7 +255,7 @@ public class MaxParser {
 		for (int tSize : sampleSizes) {
 			List<Double> valueList = deltaMedians.get(tSize);
 			Collections.sort(valueList);
-			this.writePercentiles(tSize, valueList, outBuff);
+			//this.writePercentiles(tSize, valueList, outBuff);
 			outBuff.write("\n");
 		}
 		outBuff.close();
@@ -299,9 +338,9 @@ public class MaxParser {
 		for (int tSize : sampleSizes) {
 			List<Double> valueList = roundMediansFirstColumn.get(tSize);
 			List<Double> secondValueList = roundMediansSecondColumn.get(tSize);
-			this.writePercentiles(tSize, valueList, outBuff);
+			//this.writePercentiles(tSize, valueList, outBuff);
 			outBuff.write(",");
-			this.writePercentiles(tSize, secondValueList, outBuff);
+			//this.writePercentiles(tSize, secondValueList, outBuff);
 			outBuff.write("\n");
 		}
 		outBuff.close();
@@ -358,8 +397,7 @@ public class MaxParser {
 		outBuffer.write(header.toString());
 	}
 
-	private void writePercentiles(int size, List<Double> values, BufferedWriter outBuffer) throws IOException {
-		Collections.sort(values);
+	private void writePercentiles(int size, HashMap<Double, Double> values, BufferedWriter outBuffer) throws IOException {
 		StringBuilder outStr = new StringBuilder();
 		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
 			if (counter != 0) {
@@ -367,21 +405,14 @@ public class MaxParser {
 			}
 			outStr.append(Integer.toString(size));
 			outStr.append(",");
-			outStr
-					.append(Double.toString(values
-							.get((int) Math.floor(values.size() * MaxParser.PERCENTILES[counter]))));
+			outStr.append(Double.toString(values.get(MaxParser.PERCENTILES[counter])));
 		}
 		outBuffer.write(outStr.toString());
 	}
 
-	private double extractMedian(List<Double> valueList) {
+	private double extractValue(List<Double> valueList, double percentile) {
 		Collections.sort(valueList);
-		if (valueList.size() % 2 == 1) {
-			int pos = (int) Math.floor((double) valueList.size() / 2.0);
-			return valueList.get(pos);
-		} else {
-			int pos = (int) Math.floor((double) valueList.size() / 2.0);
-			return (valueList.get(pos) + valueList.get(pos - 1)) / 2.0;
-		}
+		int pos = (int) Math.floor(percentile * valueList.size());
+		return valueList.get(pos);
 	}
 }
