@@ -26,21 +26,20 @@ public class MaxParser {
 			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "transit-" + suffix.toLowerCase()
 					+ ".log";
 
-			//FIXME fix the warden clean-ness parsing
-//			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanBefore.csv", 1);
-//			self.computePercentiles(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanAfter.csv", 2);
-//			self.computeWardenDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanDelta.csv");
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/wardenCleanBefore.csv", 1, 2);
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/wardenCleanAfter.csv", 2, 2);
+			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/wardenCleanDelta.csv");
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/drProfitDelta.csv", true, 2);
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRProfitDelta.csv", false, 2);
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drTranistProfitDelta.csv", true, 3);
+					+ "/drTransitProfitDelta.csv", true, 3);
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRTranistProfitDelta.csv", false, 3);
+					+ "/nonDRTransitProfitDelta.csv", false, 3);
 		}
 	}
 
@@ -73,33 +72,7 @@ public class MaxParser {
 		}
 		outBuff.close();
 	}
-	
-	private HashMap<Integer, HashMap<Double, Double>> invertParsingIndicies(HashMap<Double, HashMap<Integer, List<Double>>> original, List<Integer> sampleSizes){
-		/*
-		 * Build data struct to return result, seed in intial maps
-		 */
-		HashMap<Integer, HashMap<Double, Double>> result = new HashMap<Integer, HashMap<Double, Double>>();
-		for(int counter = 0; counter < sampleSizes.size(); counter++){
-			result.put(sampleSizes.get(counter), new HashMap<Double, Double>());
-		}
-		
-		/*
-		 * Iterate through the original, extracting medians and filling them into index
-		 */
-		for(int counter = 0; counter < MaxParser.PERCENTILES.length; counter++){
-			double tPerctile = MaxParser.PERCENTILES[counter];
-			HashMap<Integer, List<Double>> tempMap = original.get(tPerctile);
-			for(Integer tSize: tempMap.keySet()){
-				List<Double> tList = tempMap.get(tSize);
-				double value = this.extractValue(tList, 0.5);
-				result.get(tSize).put(tPerctile, value);
-			}
-		}
-		
-		return result;
-	}
 
-	// FIXME adust to total,transit income format
 	private HashMap<Integer, List<Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
 			double percentile, boolean normalized) throws IOException {
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
@@ -180,9 +153,46 @@ public class MaxParser {
 		return results;
 	}
 
-	private void computeWardenDeltas(String inFile, String outFile) throws IOException {
+	private void computeFullWardenReachabilityDeltas(String inFile, String outFile) throws IOException {
+		HashMap<Double, HashMap<Integer, List<Double>>> valuesMap = new HashMap<Double, HashMap<Integer, List<Double>>>();
+		for (int counter = 0; counter < MaxParser.PERCENTILES[counter]; counter++) {
+			valuesMap.put(MaxParser.PERCENTILES[counter],
+					this.computeWardenReacabilityDeltaForPercentile(inFile, MaxParser.PERCENTILES[counter], 2));
+		}
+
+		// IO magic
+		ArrayList<Integer> sampleSizes = new ArrayList<Integer>();
+		for (int tSize : valuesMap.get(MaxParser.PERCENTILES[0]).keySet()) {
+			sampleSizes.add(tSize);
+		}
+		Collections.sort(sampleSizes);
+		HashMap<Integer, HashMap<Double, Double>> invertedMap = this.invertParsingIndicies(valuesMap, sampleSizes);
+
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+		this.writeWardenHeader(outBuff, 2);
+		for (int tSize : sampleSizes) {
+			this.writePercentiles(tSize, invertedMap.get(tSize), outBuff);
+			outBuff.write("\n");
+		}
+		outBuff.close();
+	}
+
+	/**
+	 * Parses delta in warden reachability. It outputs a map that has the Nth
+	 * percentile value for change in clean paths after warden for each sample,
+	 * the map is indexed by sample size.
+	 * 
+	 * @param inFile
+	 * @param percentile
+	 * @param column
+	 *            2 for IP based stats, 3 for AS based stats
+	 * @return
+	 * @throws IOException
+	 */
+	private HashMap<Integer, List<Double>> computeWardenReacabilityDeltaForPercentile(String inFile, double percentile,
+			int column) throws IOException {
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
-		HashMap<Integer, List<Double>> deltaMedians = new HashMap<Integer, List<Double>>();
+		HashMap<Integer, List<Double>> deltaValues = new HashMap<Integer, List<Double>>();
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
 		List<Double> deltasForThisSample = new ArrayList<Double>();
 
@@ -193,6 +203,9 @@ public class MaxParser {
 			int sampleSize = -1;
 			String pollStr = inBuff.readLine().trim();
 
+			/*
+			 * figure out if we're in a control sequence
+			 */
 			Matcher sampleMatch = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
 			if (sampleMatch.find()) {
 				controlFlag = true;
@@ -208,23 +221,18 @@ public class MaxParser {
 				roundValue = Integer.parseInt(sampleMatch.group(2));
 
 				roundFlag = roundValue;
-				if (roundValue == 2) {
-					deltasForThisSample.clear();
-				}
+				/*
+				 * If we're at the top of any sample other than the first, parse
+				 * the results of the last sample
+				 */
 				if (roundValue == (0) && deltasForThisSample.size() > 0) {
-					Collections.sort(deltasForThisSample);
-					if (!deltaMedians.containsKey(sampleSize)) {
-						deltaMedians.put(sampleSize, new ArrayList<Double>());
+					if (!deltaValues.containsKey(sampleSize)) {
+						deltaValues.put(sampleSize, new ArrayList<Double>());
 					}
-					if (deltasForThisSample.size() % 2 == 1) {
-						int pos = (int) Math.floor((double) deltasForThisSample.size() / 2.0);
-						deltaMedians.get(sampleSize).add(deltasForThisSample.get(pos));
-					} else {
-						int pos = (int) Math.floor((double) deltasForThisSample.size() / 2.0);
-						deltaMedians.get(sampleSize).add(
-								(deltasForThisSample.get(pos) + deltasForThisSample.get(pos - 1)) / 2.0);
-					}
+					deltaValues.get(sampleSize).add(this.extractValue(deltasForThisSample, percentile));
+
 					firstRoundValue.clear();
+					deltasForThisSample.clear();
 				}
 				continue;
 			}
@@ -234,9 +242,9 @@ public class MaxParser {
 				if (dataMatch.find()) {
 					if (roundFlag == 1) {
 						firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
-								Double.parseDouble(dataMatch.group(2)));
+								Double.parseDouble(dataMatch.group(column)));
 					} else {
-						deltasForThisSample.add(Double.parseDouble(dataMatch.group(2))
+						deltasForThisSample.add(Double.parseDouble(dataMatch.group(column))
 								- firstRoundValue.get(Integer.parseInt(dataMatch.group(1))));
 					}
 				}
@@ -244,29 +252,74 @@ public class MaxParser {
 		}
 		inBuff.close();
 
-		ArrayList<Integer> sampleSizes = new ArrayList<Integer>();
-		for (int tSize : deltaMedians.keySet()) {
+		return deltaValues;
+	}
+
+	/**
+	 * Master function for building warden reachability stats.
+	 * 
+	 * @param infile
+	 * @param outFile
+	 * @param round
+	 *            should be 1 if you want the reachability before reaction, 2 if
+	 *            you want reachability after reaction
+	 * @param column
+	 *            should be 2 if you want IP based information, 3 if you want AS
+	 *            based information
+	 * @throws IOException
+	 */
+	private void fullReachabilty(String infile, String outFile, int round, int column) throws IOException {
+
+		/*
+		 * Actually do the computations
+		 */
+		HashMap<Double, HashMap<Integer, List<Double>>> valueMap = new HashMap<Double, HashMap<Integer, List<Double>>>();
+		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
+			valueMap.put(MaxParser.PERCENTILES[counter],
+					this.parseWardenReachabilityForPercentile(infile, round, column, MaxParser.PERCENTILES[counter]));
+		}
+
+		/*
+		 * Invert the mapping
+		 */
+		List<Integer> sampleSizes = new LinkedList<Integer>();
+		for (int tSize : valueMap.get(MaxParser.PERCENTILES[0]).keySet()) {
 			sampleSizes.add(tSize);
 		}
-		Collections.sort(sampleSizes);
+		HashMap<Integer, HashMap<Double, Double>> invertedMap = this.invertParsingIndicies(valueMap, sampleSizes);
 
+		/*
+		 * IO magic gogo
+		 */
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		this.writeWardenHeader(outBuff);
+		this.writeWardenHeader(outBuff, column);
 		for (int tSize : sampleSizes) {
-			List<Double> valueList = deltaMedians.get(tSize);
-			Collections.sort(valueList);
-			//this.writePercentiles(tSize, valueList, outBuff);
+			this.writePercentiles(tSize, invertedMap.get(tSize), outBuff);
 			outBuff.write("\n");
 		}
 		outBuff.close();
 	}
 
-	private void computePercentiles(String inFile, String outFile, int round) throws IOException {
+	/**
+	 * Parses warden reachability information. It outputs a map that has the Nth
+	 * percentile value for clean paths for each sample, the map is indexed by
+	 * sample size.
+	 * 
+	 * @param inFile
+	 * @param round
+	 *            should be 1 for before warden reaction, 2 for after warden
+	 *            reaction
+	 * @param column
+	 *            should be 2 for IP based stats, 3 for AS based stats
+	 * @param percentile
+	 * @return
+	 * @throws IOException
+	 */
+	private HashMap<Integer, List<Double>> parseWardenReachabilityForPercentile(String inFile, int round, int column,
+			double percentile) throws IOException {
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
-		HashMap<Integer, List<Double>> roundMediansFirstColumn = new HashMap<Integer, List<Double>>();
-		HashMap<Integer, List<Double>> roundMediansSecondColumn = new HashMap<Integer, List<Double>>();
-		ArrayList<Double> currentFirstColumnValues = new ArrayList<Double>();
-		ArrayList<Double> currentSecondColumnValues = new ArrayList<Double>();
+		HashMap<Integer, List<Double>> values = new HashMap<Integer, List<Double>>();
+		ArrayList<Double> currentIPCleanness = new ArrayList<Double>();
 
 		boolean inTargetRound = false;
 		while (inBuff.ready()) {
@@ -275,6 +328,9 @@ public class MaxParser {
 			int sampleSize = -1;
 			String pollStr = inBuff.readLine().trim();
 
+			/*
+			 * Hunt if we're on a "control" line
+			 */
 			Matcher sampleMatch = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
 			if (sampleMatch.find()) {
 				controlFlag = true;
@@ -285,119 +341,109 @@ public class MaxParser {
 				}
 			}
 
+			/*
+			 * Handle the control line case (start logging, or stop logging and
+			 * dump stats, or nothing...)
+			 */
 			if (controlFlag) {
 				sampleSize = Integer.parseInt(sampleMatch.group(1));
 				roundValue = Integer.parseInt(sampleMatch.group(2));
 
+				/*
+				 * If it's the round we're told to record for, turn on value
+				 * parsing and reset a list
+				 */
 				if (roundValue == round) {
 					inTargetRound = true;
-					currentFirstColumnValues.clear();
-					currentSecondColumnValues.clear();
+					currentIPCleanness.clear();
 				}
+				/*
+				 * If it's the round directly after our round, then we should
+				 * actually parse the list, extracting the Nth percentile and
+				 * record it
+				 */
 				if (roundValue == ((round + 1) % 3) && inTargetRound) {
+					// stop logging
 					inTargetRound = false;
-					Collections.sort(currentFirstColumnValues);
-					Collections.sort(currentSecondColumnValues);
-					if (!roundMediansFirstColumn.containsKey(sampleSize)) {
-						roundMediansFirstColumn.put(sampleSize, new ArrayList<Double>());
-						roundMediansSecondColumn.put(sampleSize, new ArrayList<Double>());
+					/*
+					 * Dump in the list if it doesn't exist in the map
+					 */
+					if (!values.containsKey(sampleSize)) {
+						values.put(sampleSize, new ArrayList<Double>());
 					}
-					if (currentFirstColumnValues.size() % 2 == 1) {
-						int pos = (int) Math.floor((double) currentFirstColumnValues.size() / 2.0);
-						roundMediansFirstColumn.get(sampleSize).add(currentFirstColumnValues.get(pos));
-						roundMediansSecondColumn.get(sampleSize).add(currentSecondColumnValues.get(pos));
-					} else {
-						int pos = (int) Math.floor((double) currentFirstColumnValues.size() / 2.0);
-						roundMediansFirstColumn.get(sampleSize).add(
-								(currentFirstColumnValues.get(pos) + currentFirstColumnValues.get(pos - 1)) / 2.0);
-						roundMediansSecondColumn.get(sampleSize).add(
-								(currentSecondColumnValues.get(pos) + currentSecondColumnValues.get(pos - 1)) / 2.0);
-					}
+					values.get(sampleSize).add(this.extractValue(currentIPCleanness, percentile));
 				}
+				/*
+				 * No matter what we should skip the attempt to parse the line
+				 * as a data line
+				 */
 				continue;
 			}
 
+			/*
+			 * If we're in a log region we care about, parse it
+			 */
 			if (inTargetRound) {
 				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
-					currentFirstColumnValues.add(Double.parseDouble(dataMatch.group(2)));
-					currentSecondColumnValues.add(Double.parseDouble(dataMatch.group(3)));
+					currentIPCleanness.add(Double.parseDouble(dataMatch.group(column)));
 				}
 			}
 		}
 		inBuff.close();
 
-		ArrayList<Integer> sampleSizes = new ArrayList<Integer>();
-		for (int tSize : roundMediansFirstColumn.keySet()) {
-			sampleSizes.add(tSize);
-		}
-		Collections.sort(sampleSizes);
-
-		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		this.writeWardenHeader(outBuff);
-		for (int tSize : sampleSizes) {
-			List<Double> valueList = roundMediansFirstColumn.get(tSize);
-			List<Double> secondValueList = roundMediansSecondColumn.get(tSize);
-			//this.writePercentiles(tSize, valueList, outBuff);
-			outBuff.write(",");
-			//this.writePercentiles(tSize, secondValueList, outBuff);
-			outBuff.write("\n");
-		}
-		outBuff.close();
+		return values;
 	}
 
 	private void writeTransitHeader(BufferedWriter outBuffer) throws IOException {
 		StringBuilder header = new StringBuilder();
-		for (int counter = 0; counter < 3; counter++) {
-			for (int innerCounter = 0; innerCounter < MaxParser.PERCENTILES.length; innerCounter++) {
-				if (innerCounter != 0) {
-					header.append(",");
-				}
-				header.append("sample size,");
-				header.append(Double.toString(MaxParser.PERCENTILES[innerCounter]));
-				if (counter == 0) {
-					header.append(" aboslute profit delta");
-				} else if (counter == 1) {
-					header.append(" percentage profit delta");
-				} else {
-					header.append(" percentage with delta");
-				}
-			}
 
-			if (counter != 2) {
+		for (int innerCounter = 0; innerCounter < MaxParser.PERCENTILES.length; innerCounter++) {
+			if (innerCounter != 0) {
 				header.append(",");
-			} else {
-				header.append("\n");
 			}
+			header.append("sample size,");
+			header.append(Double.toString(MaxParser.PERCENTILES[innerCounter]));
+			header.append(" percentage profit delta");
 		}
+		header.append("/n");
+
 		outBuffer.write(header.toString());
 	}
 
-	private void writeWardenHeader(BufferedWriter outBuffer) throws IOException {
+	private void writeWardenHeader(BufferedWriter outBuffer, int column) throws IOException {
 		StringBuilder header = new StringBuilder();
-		for (int counter = 0; counter < 2; counter++) {
-			for (int innerCounter = 0; innerCounter < MaxParser.PERCENTILES.length; innerCounter++) {
-				if (innerCounter != 0) {
-					header.append(",");
-				}
-				header.append("sample size,");
-				header.append(Double.toString(MaxParser.PERCENTILES[innerCounter]));
-				if (counter == 0) {
-					header.append(" by IP count");
-				} else {
-					header.append(" by AS count");
-				}
-			}
-			if (counter == 0) {
+
+		for (int innerCounter = 0; innerCounter < MaxParser.PERCENTILES.length; innerCounter++) {
+			if (innerCounter != 0) {
 				header.append(",");
-			} else {
-				header.append("\n");
 			}
+			header.append("sample size,");
+			header.append(Double.toString(MaxParser.PERCENTILES[innerCounter]));
+			if (column == 2) {
+				header.append(" by IP count");
+			} else if (column == 3) {
+				header.append(" by AS count");
+			}
+			header.append("/n");
 		}
 		outBuffer.write(header.toString());
 	}
 
-	private void writePercentiles(int size, HashMap<Double, Double> values, BufferedWriter outBuffer) throws IOException {
+	/**
+	 * Helper function to write out to a file what is assumed to be a mapping
+	 * between certain percentiles and their represenetative values from another
+	 * list. Basically all this does is write on a single line the sample size,
+	 * a comma, and then the percentile values in ascending percentile order.
+	 * Does some assurances that interator order doesn't somehow screw us.
+	 * 
+	 * @param size
+	 * @param values
+	 * @param outBuffer
+	 * @throws IOException
+	 */
+	private void writePercentiles(int size, HashMap<Double, Double> values, BufferedWriter outBuffer)
+			throws IOException {
 		StringBuilder outStr = new StringBuilder();
 		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
 			if (counter != 0) {
@@ -410,6 +456,57 @@ public class MaxParser {
 		outBuffer.write(outStr.toString());
 	}
 
+	/**
+	 * Takes a mapping of percentiles to a second mapping of DR sizes to Nth
+	 * percentile values for each sample, and converts it into something we can
+	 * output. Specificially a mapping from DR sizes to a second mapping between
+	 * percentiles and the median value of the Nth percentile seen across all
+	 * corrisponding samples of.
+	 * 
+	 * Long as the short, if you are keeping with the paradim of the above
+	 * parsing, call this function before doing IO.
+	 * 
+	 * @param original
+	 * @param sampleSizes
+	 * @return
+	 */
+	private HashMap<Integer, HashMap<Double, Double>> invertParsingIndicies(
+			HashMap<Double, HashMap<Integer, List<Double>>> original, List<Integer> sampleSizes) {
+		/*
+		 * Build data struct to return result, seed in intial maps
+		 */
+		HashMap<Integer, HashMap<Double, Double>> result = new HashMap<Integer, HashMap<Double, Double>>();
+		for (int counter = 0; counter < sampleSizes.size(); counter++) {
+			result.put(sampleSizes.get(counter), new HashMap<Double, Double>());
+		}
+
+		/*
+		 * Iterate through the original, extracting medians and filling them
+		 * into index
+		 */
+		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
+			double tPerctile = MaxParser.PERCENTILES[counter];
+			HashMap<Integer, List<Double>> tempMap = original.get(tPerctile);
+			for (Integer tSize : tempMap.keySet()) {
+				List<Double> tList = tempMap.get(tSize);
+				double value = this.extractValue(tList, 0.5);
+				result.get(tSize).put(tPerctile, value);
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Simple function to extract the Nth percentile value of a list. Has the
+	 * side effect of sorting the list.
+	 * 
+	 * @param valueList
+	 *            - a list of doubles
+	 * @param percentile
+	 *            - the percentile you want to extract
+	 * @return
+	 */
 	private double extractValue(List<Double> valueList, double percentile) {
 		Collections.sort(valueList);
 		int pos = (int) Math.floor(percentile * valueList.size());
