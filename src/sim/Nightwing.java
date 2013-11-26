@@ -162,7 +162,7 @@ public class Nightwing {
 			 * Do the actual rounds of simulation
 			 */
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), Constants.SAMPLE_COUNT, 2, trafficStat);
+					.parseInt(args[5]), Constants.SAMPLE_COUNT, 2, trafficStat, false);
 			econEngine.endSim();
 		} else if (mode == Nightwing.ECON_MODE_2) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);

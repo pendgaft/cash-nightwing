@@ -183,7 +183,7 @@ public class EconomicEngine {
 	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize,
 			ParallelTrafficStat trafficManager) {
 		for (int currentConeSize = start; currentConeSize <= end; currentConeSize += step) {
-			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, trafficManager);
+			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, trafficManager, true);
 		}
 	}
 
@@ -199,7 +199,7 @@ public class EconomicEngine {
 	 *            randomType
 	 */
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize,
-			ParallelTrafficStat trafficManager) {
+			ParallelTrafficStat trafficManager, boolean logMinCCSize) {
 		Random rng = new Random();
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
@@ -256,7 +256,13 @@ public class EconomicEngine {
 
 				for (int counter = 0; counter < 3; counter++) {
 					trafficManager.runStat();
-					this.driveEconomicTurn("" + drCount + "," + counter, drSet, counter);
+					String roundHeader = null;
+					if(logMinCCSize){
+						roundHeader = "" + minCCSize + "," + counter;
+					}else{
+						roundHeader = "" + drCount + "," + counter;
+					}
+					this.driveEconomicTurn(roundHeader, drSet, counter);
 				}
 			}
 		}
