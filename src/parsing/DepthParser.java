@@ -113,7 +113,7 @@ public class DepthParser {
 					outBuff.write(",");
 				}
 				List<Double> tList = values.get(listCounter);
-				if (tList.size() < counter) {
+				if (tList.size() > counter) {
 					outBuff.write(Double.toString((double) counter / (double) tList.size()) + "," + tList.get(counter));
 				} else {
 					outBuff.write(",");
