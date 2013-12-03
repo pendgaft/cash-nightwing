@@ -595,11 +595,11 @@ public class MaxParser {
 		outBuff.write(header);
 
 		for (int counter = 0; counter < maxSize; counter++) {
-			for (int listCounter = 0; listCounter < values.size(); listCounter++) {
+			for(int listCounter = 0; listCounter < keyList.size(); listCounter++){
 				if (listCounter != 0) {
 					outBuff.write(",");
 				}
-				List<Double> tList = values.get(listCounter);
+				List<Double> tList = values.get(keyList.get(listCounter));
 				if (tList.size() > counter) {
 					outBuff.write(tList.get(counter) + "," + Double.toString((double) counter / (double) tList.size()));
 				} else {
