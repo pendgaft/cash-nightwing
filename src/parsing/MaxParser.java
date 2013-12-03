@@ -6,6 +6,9 @@ import java.util.regex.*;
 
 public class MaxParser {
 
+	private HashMap<Integer, Double> asToIP;
+
+	private static final String IP_FILE = "/scratch/minerva/schuch/cash-nightwing/ip-count.csv";
 	private static final String FILE_BASE = "/scratch/minerva2/public/nightwingData/";
 	private static final String OUTPUT_SUFFIX = "parsingResults_Run";
 	private static final String INPUT_SUFFIX = "rawData/";
@@ -18,7 +21,7 @@ public class MaxParser {
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
 
 	public static void main(String[] args) throws IOException {
-		MaxParser self = new MaxParser();
+		MaxParser self = new MaxParser(MaxParser.IP_FILE);
 		for (String suffix : args) {
 			System.out.println("Working on: " + suffix);
 			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "warden-" + suffix.toLowerCase()
@@ -26,32 +29,49 @@ public class MaxParser {
 			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "transit-" + suffix.toLowerCase()
 					+ ".log";
 
-//			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanBefore.csv", 1, 2);
-//			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanAfter.csv", 2, 2);
-			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanDelta.csv");
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drProfitDelta.csv", true, 2);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/nonDRProfitDelta.csv", false, 2);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drTransitProfitDelta.csv", true, 3);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/nonDRTransitProfitDelta.csv", false, 3);
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/wardenCleanBefore.csv", 1, 2);
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/wardenCleanAfter.csv", 2, 2);
+			// self.computeFullWardenReachabilityDeltas(wardenFile,
+			// MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/wardenCleanDelta.csv");
+			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/drProfitDelta.csv", true, 2);
+			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/nonDRProfitDelta.csv", false, 2);
+			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/drTransitProfitDelta.csv", true, 3);
+			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/nonDRTransitProfitDelta.csv", false, 3);
 		}
 	}
 
-	public MaxParser() {
-
+	public MaxParser(String ipFile) throws IOException {
+		this.asToIP = new HashMap<Integer, Double>();
+		BufferedReader fBuff = new BufferedReader(new FileReader(ipFile));
+		while (fBuff.ready()) {
+			String pollString = fBuff.readLine().trim();
+			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
+				continue;
+			}
+			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, ",");
+			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
+			double score = Double.parseDouble(tokenizerTokens.nextToken());
+			this.asToIP.put(tAS, score);
+		}
+		fBuff.close();
 	}
 
 	private void fullProfitDeltas(String inFile, String outFile, boolean isDR, int column) throws IOException {
 		HashMap<Double, HashMap<Integer, List<Double>>> results = new HashMap<Double, HashMap<Integer, List<Double>>>();
 		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
-			results.put(MaxParser.PERCENTILES[counter], this.computeProfitDeltas(inFile, isDR, column,
-					MaxParser.PERCENTILES[counter], true));
+			results.put(MaxParser.PERCENTILES[counter],
+					this.computeProfitDeltas(inFile, isDR, column, MaxParser.PERCENTILES[counter], true));
 		}
 
 		/*
@@ -122,23 +142,25 @@ public class MaxParser {
 			}
 
 			/*
-			 * This block of code handles any string that is NOT a control//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drProfitDelta.csv", true, 2);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/nonDRProfitDelta.csv", false, 2);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drTransitProfitDelta.csv", true, 3);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/nonDRTransitProfitDelta.csv", false, 3);
-			 * string
+			 * This block of code handles any string that is NOT a control//
+			 * self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			 * MaxParser.OUTPUT_SUFFIX + suffix // + "/drProfitDelta.csv", true,
+			 * 2); // self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			 * MaxParser.OUTPUT_SUFFIX + suffix // + "/nonDRProfitDelta.csv",
+			 * false, 2); // self.fullProfitDeltas(transitFile,
+			 * MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix // +
+			 * "/drTransitProfitDelta.csv", true, 3); //
+			 * self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+			 * MaxParser.OUTPUT_SUFFIX + suffix // +
+			 * "/nonDRTransitProfitDelta.csv", false, 3); string
 			 */
 			if (roundFlag != 0) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4)) == isDR) {
 						if (roundFlag == 1) {
-							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
-									.group(column)));
+							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(column)));
 						} else {
 							double delta = Double.parseDouble(dataMatch.group(column))
 									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
@@ -151,14 +173,18 @@ public class MaxParser {
 								}
 							}
 						}
-					}//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drProfitDelta.csv", true, 2);
-//					self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//							+ "/nonDRProfitDelta.csv", false, 2);
-//					self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//							+ "/drTransitProfitDelta.csv", true, 3);
-//					self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//							+ "/nonDRTransitProfitDelta.csv", false, 3);
+					}// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+						// MaxParser.OUTPUT_SUFFIX + suffix
+						// + "/drProfitDelta.csv", true, 2);
+					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+					// MaxParser.OUTPUT_SUFFIX + suffix
+					// + "/nonDRProfitDelta.csv", false, 2);
+					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+					// MaxParser.OUTPUT_SUFFIX + suffix
+					// + "/drTransitProfitDelta.csv", true, 3);
+					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
+					// MaxParser.OUTPUT_SUFFIX + suffix
+					// + "/nonDRTransitProfitDelta.csv", false, 3);
 				}
 			}
 		}
@@ -170,8 +196,8 @@ public class MaxParser {
 	private void computeFullWardenReachabilityDeltas(String inFile, String outFile) throws IOException {
 		HashMap<Double, HashMap<Integer, List<Double>>> valuesMap = new HashMap<Double, HashMap<Integer, List<Double>>>();
 		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
-			valuesMap.put(MaxParser.PERCENTILES[counter], this.computeWardenReacabilityDeltaForPercentile(inFile,
-					MaxParser.PERCENTILES[counter], 2, true));
+			valuesMap.put(MaxParser.PERCENTILES[counter],
+					this.computeWardenReacabilityDeltaForPercentile(inFile, MaxParser.PERCENTILES[counter], 2, true));
 		}
 
 		// IO magic
@@ -255,8 +281,8 @@ public class MaxParser {
 				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					if (roundFlag == 1) {
-						firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
-								.group(column)));
+						firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
+								Double.parseDouble(dataMatch.group(column)));
 					} else {
 						if (!normalized) {
 							deltasForThisSample.add(Double.parseDouble(dataMatch.group(column))
@@ -293,20 +319,24 @@ public class MaxParser {
 		/*
 		 * Actually do the computations
 		 */
-		HashMap<Double, HashMap<Integer, List<Double>>> valueMap = new HashMap<Double, HashMap<Integer, List<Double>>>();
-		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
-			valueMap.put(MaxParser.PERCENTILES[counter], this.parseWardenReachabilityForPercentile(infile, round,
-					column, MaxParser.PERCENTILES[counter]));
-		}
+		HashMap<Integer, List<Double>> values = this.parseWardenReachability(infile, round, column);
 
 		/*
 		 * Invert the mapping
 		 */
 		List<Integer> sampleSizes = new LinkedList<Integer>();
-		for (int tSize : valueMap.get(MaxParser.PERCENTILES[0]).keySet()) {
+		for (int tSize : values.keySet()) {
 			sampleSizes.add(tSize);
 		}
-		HashMap<Integer, HashMap<Double, Double>> invertedMap = this.invertParsingIndicies(valueMap, sampleSizes);
+		Collections.sort(sampleSizes);
+
+		HashMap<Integer, HashMap<Double, Double>> invertedMap = new HashMap<Integer, HashMap<Double, Double>>();
+		for (int tSize : values.keySet()) {
+			invertedMap.put(tSize, new HashMap<Double, Double>());
+			for (double tPerc : MaxParser.PERCENTILES) {
+				invertedMap.get(tSize).put(tPerc, this.extractValue(values.get(tSize), tPerc));
+			}
+		}
 
 		/*
 		 * IO magic gogo
@@ -318,6 +348,8 @@ public class MaxParser {
 			outBuff.write("\n");
 		}
 		outBuff.close();
+		
+		this.printCDF(values, outFile + "-CDF");
 	}
 
 	/**
@@ -331,15 +363,15 @@ public class MaxParser {
 	 *            reaction
 	 * @param column
 	 *            should be 2 for IP based stats, 3 for AS based stats
-	 * @param percentile
 	 * @return
 	 * @throws IOException
 	 */
-	private HashMap<Integer, List<Double>> parseWardenReachabilityForPercentile(String inFile, int round, int column,
-			double percentile) throws IOException {
+	private HashMap<Integer, List<Double>> parseWardenReachability(String inFile, int round, int column)
+			throws IOException {
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
 		HashMap<Integer, List<Double>> values = new HashMap<Integer, List<Double>>();
-		ArrayList<Double> currentIPCleanness = new ArrayList<Double>();
+		double currentIPCleanness = 0.0;
+		double currentIPCount = 0.0;
 
 		boolean inTargetRound = false;
 		while (inBuff.ready()) {
@@ -375,7 +407,8 @@ public class MaxParser {
 				 */
 				if (roundValue == round) {
 					inTargetRound = true;
-					currentIPCleanness.clear();
+					currentIPCleanness = 0.0;
+					currentIPCount = 0.0;
 				}
 				/*
 				 * If it's the round directly after our round, then we should
@@ -391,7 +424,7 @@ public class MaxParser {
 					if (!values.containsKey(sampleSize)) {
 						values.put(sampleSize, new ArrayList<Double>());
 					}
-					values.get(sampleSize).add(this.extractValue(currentIPCleanness, percentile));
+					values.get(sampleSize).add(currentIPCleanness / currentIPCount);
 				}
 				/*
 				 * No matter what we should skip the attempt to parse the line
@@ -406,7 +439,16 @@ public class MaxParser {
 			if (inTargetRound) {
 				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
-					currentIPCleanness.add(Double.parseDouble(dataMatch.group(column)));
+					Double ips = this.asToIP.get(Integer.parseInt(dataMatch.group(1)));
+					double cleanness = Double.parseDouble(dataMatch.group(column));
+					/*
+					 * there can be some "strangeness" from the graph not being
+					 * connected, deal with that here...
+					 */
+					if (cleanness > 0.01 && ips != null) {
+						currentIPCount += ips;
+						currentIPCleanness += cleanness * ips;
+					}
 				}
 			}
 		}
@@ -531,5 +573,41 @@ public class MaxParser {
 		Collections.sort(valueList);
 		int pos = (int) Math.floor(percentile * valueList.size());
 		return valueList.get(pos);
+	}
+
+	private void printCDF(HashMap<Integer, List<Double>> values, String outfile) throws IOException {
+		int maxSize = 0;
+		List<Integer> keyList = new LinkedList<Integer>();
+		keyList.addAll(values.keySet());
+		Collections.sort(keyList);
+
+		for (List<Double> tList : values.values()) {
+			Collections.sort(tList);
+			maxSize = Math.max(maxSize, tList.size());
+		}
+
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outfile));
+		String header = "";
+		for (int key : keyList) {
+			header += "," + key + ",";
+		}
+		header += "\n";
+		outBuff.write(header);
+
+		for (int counter = 0; counter < maxSize; counter++) {
+			for (int listCounter = 0; listCounter < values.size(); listCounter++) {
+				if (listCounter != 0) {
+					outBuff.write(",");
+				}
+				List<Double> tList = values.get(listCounter);
+				if (tList.size() > counter) {
+					outBuff.write(tList.get(counter) + "," + Double.toString((double) counter / (double) tList.size()));
+				} else {
+					outBuff.write(",");
+				}
+			}
+			outBuff.write("\n");
+		}
+		outBuff.close();
 	}
 }
