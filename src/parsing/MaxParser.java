@@ -33,21 +33,16 @@ public class MaxParser {
 					+ "/wardenCleanBefore.csv", 1, 2);
 			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/wardenCleanAfter.csv", 2, 2);
-			// self.computeFullWardenReachabilityDeltas(wardenFile,
-			// MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-			// + "/wardenCleanDelta.csv");
-			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			// MaxParser.OUTPUT_SUFFIX + suffix
-			// + "/drProfitDelta.csv", true, 2);
-			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			// MaxParser.OUTPUT_SUFFIX + suffix
-			// + "/nonDRProfitDelta.csv", false, 2);
-			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			// MaxParser.OUTPUT_SUFFIX + suffix
-			// + "/drTransitProfitDelta.csv", true, 3);
-			// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			// MaxParser.OUTPUT_SUFFIX + suffix
-			// + "/nonDRTransitProfitDelta.csv", false, 3);
+//			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/wardenCleanDelta.csv");
+//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/drProfitDelta.csv", true, 2);
+//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+//					+ "/nonDRProfitDelta.csv", false, 2);
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/drTransitProfitDelta.csv", true, 3);
+			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonDRTransitProfitDelta.csv", false, 3);
 		}
 	}
 
@@ -68,37 +63,33 @@ public class MaxParser {
 	}
 
 	private void fullProfitDeltas(String inFile, String outFile, boolean isDR, int column) throws IOException {
-		HashMap<Double, HashMap<Integer, List<Double>>> results = new HashMap<Double, HashMap<Integer, List<Double>>>();
-		for (int counter = 0; counter < MaxParser.PERCENTILES.length; counter++) {
-			results.put(MaxParser.PERCENTILES[counter],
-					this.computeProfitDeltas(inFile, isDR, column, MaxParser.PERCENTILES[counter], true));
-		}
+		HashMap<Integer, HashMap<Double, Double>> results = this.computeProfitDeltas(inFile, isDR, column, true);
 
 		/*
 		 * Slightly ghetto hack to get the sample sizes
 		 */
 		List<Integer> sampleSizes = new ArrayList<Integer>();
-		for (int tKey : results.get(MaxParser.PERCENTILES[0]).keySet()) {
+		for (int tKey : results.keySet()) {
 			sampleSizes.add(tKey);
 		}
 		Collections.sort(sampleSizes);
-		HashMap<Integer, HashMap<Double, Double>> invertedMap = this.invertParsingIndicies(results, sampleSizes);
 
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
 		this.writeTransitHeader(outBuff);
 		for (int tSize : sampleSizes) {
-			this.writePercentiles(tSize, invertedMap.get(tSize), outBuff);
+			this.writePercentiles(tSize, results.get(tSize), outBuff);
 			outBuff.write("\n");
 		}
 		outBuff.close();
 	}
 
-	private HashMap<Integer, List<Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
-			double percentile, boolean normalized) throws IOException {
+	private HashMap<Integer, HashMap<Double, Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
+			boolean normalized) throws IOException {
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
-		HashMap<Integer, List<Double>> results = new HashMap<Integer, List<Double>>();
+		HashMap<Integer, HashMap<Double, Double>> results = new HashMap<Integer, HashMap<Double, Double>>();
 		List<Double> sampleDeltas = new ArrayList<Double>();
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
+		int sampleSize = 0;
 
 		int roundFlag = 0;
 		while (inBuff.ready()) {
@@ -117,43 +108,28 @@ public class MaxParser {
 
 			if (controlFlag) {
 				roundFlag = Integer.parseInt(controlMatcher.group(2));
-				int sampleSize = Integer.parseInt(controlMatcher.group(1));
+				int oldSize = sampleSize;
+				sampleSize = Integer.parseInt(controlMatcher.group(1));
 
 				/*
 				 * We're ready to actually extract deltas
 				 */
 				if (roundFlag == 0) {
-					if (sampleDeltas.size() > 0) {
-						double thisRoundValue = this.extractValue(sampleDeltas, percentile);
-						/*
-						 * Check to make sure this isn't the first result at
-						 * this size
-						 */
-						if (!results.containsKey(sampleSize)) {
-							results.put(sampleSize, new ArrayList<Double>());
-						}
-						results.get(sampleSize).add(thisRoundValue);
-					}
 					firstRoundValue.clear();
-					sampleDeltas.clear();
+					if (oldSize != sampleSize && oldSize != 0) {
+						HashMap<Double, Double> extractMap = new HashMap<Double, Double>();
+						for (double tPercent : MaxParser.PERCENTILES) {
+							extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
+						}
+						results.put(oldSize, extractMap);
+						sampleDeltas.clear();
+					}
+
 				}
 
 				continue;
 			}
 
-			/*
-			 * This block of code handles any string that is NOT a control//
-			 * self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			 * MaxParser.OUTPUT_SUFFIX + suffix // + "/drProfitDelta.csv", true,
-			 * 2); // self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			 * MaxParser.OUTPUT_SUFFIX + suffix // + "/nonDRProfitDelta.csv",
-			 * false, 2); // self.fullProfitDeltas(transitFile,
-			 * MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix // +
-			 * "/drTransitProfitDelta.csv", true, 3); //
-			 * self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-			 * MaxParser.OUTPUT_SUFFIX + suffix // +
-			 * "/nonDRTransitProfitDelta.csv", false, 3); string
-			 */
 			if (roundFlag != 0) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
@@ -173,18 +149,7 @@ public class MaxParser {
 								}
 							}
 						}
-					}// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-						// MaxParser.OUTPUT_SUFFIX + suffix
-						// + "/drProfitDelta.csv", true, 2);
-					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-					// MaxParser.OUTPUT_SUFFIX + suffix
-					// + "/nonDRProfitDelta.csv", false, 2);
-					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-					// MaxParser.OUTPUT_SUFFIX + suffix
-					// + "/drTransitProfitDelta.csv", true, 3);
-					// self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE +
-					// MaxParser.OUTPUT_SUFFIX + suffix
-					// + "/nonDRTransitProfitDelta.csv", false, 3);
+					}
 				}
 			}
 		}
@@ -348,7 +313,7 @@ public class MaxParser {
 			outBuff.write("\n");
 		}
 		outBuff.close();
-		
+
 		this.printCDF(values, outFile + "-CDF");
 	}
 
@@ -595,7 +560,7 @@ public class MaxParser {
 		outBuff.write(header);
 
 		for (int counter = 0; counter < maxSize; counter++) {
-			for(int listCounter = 0; listCounter < keyList.size(); listCounter++){
+			for (int listCounter = 0; listCounter < keyList.size(); listCounter++) {
 				if (listCounter != 0) {
 					outBuff.write(",");
 				}
