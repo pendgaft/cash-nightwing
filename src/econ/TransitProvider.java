@@ -1,7 +1,7 @@
 package econ;
 
 import java.io.*;
-import java.util.Random;
+import java.util.*;
 
 import sim.Constants;
 
@@ -26,9 +26,9 @@ public class TransitProvider extends EconomicAgent {
 		TransitProvider.FLIPCHANCE = chance;
 	}
 
-	public TransitProvider(DecoyAS parentAS, BufferedWriter log,
+	public TransitProvider(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> activeTopo,
 			TransitProvider.DECOY_STRAT strat) {
-		super(parentAS, log);
+		super(parentAS, log, activeTopo);
 		this.moneyEarned = 0.0;
 		this.transitIncome = 0.0;
 		this.myStrat = strat;
@@ -57,9 +57,21 @@ public class TransitProvider extends EconomicAgent {
 			}
 		}
 		this.flipDecoyState = false;
+		
+		/*
+		 * The only case in which non-warden ASes need to scan their BGP tables
+		 * is if we're doing reverse poisoning
+		 */
+		if (Constants.REVERSE_POISON) {
+			this.parent.rescanBGPTable();
+		}
 	}
 
-	public void makeAdustments(Object supplementalInfo) {
+	public void makeAdustments(Set<Integer> decoyRouterSet) {
+		if(Constants.REVERSE_POISON){
+			this.parent.turnOnActiveAvoidance(this.buildDecoySet(), Constants.DEFAULT_POISON_MODE);
+		}
+		
 		if (this.lockIn > 0) {
 			this.lockIn--;
 			if (this.lockIn == 0 && this.parent.isDecoy()) {
@@ -68,6 +80,9 @@ public class TransitProvider extends EconomicAgent {
 			return;
 		}
 
+		/*
+		 * Testing code
+		 */
 		if (Constants.ECON_TESTING) {
 			if (this.parent.getASN() == 2) {
 				this.flipDecoyState = true;
@@ -79,6 +94,9 @@ public class TransitProvider extends EconomicAgent {
 			return;
 		}
 
+		/*
+		 * We're not locked in, consider flipping DR state
+		 */
 		if (this.myStrat == TransitProvider.DECOY_STRAT.RAND) {
 			if (TransitProvider.rng.nextDouble() < TransitProvider.FLIPCHANCE) {
 				this.flipDecoyState = true;
@@ -87,8 +105,7 @@ public class TransitProvider extends EconomicAgent {
 		} else if (this.myStrat == TransitProvider.DECOY_STRAT.NEVER) {
 			this.flipDecoyState = false;
 		} else if (this.myStrat == TransitProvider.DECOY_STRAT.DICTATED) {
-			boolean passedValue = (Boolean) supplementalInfo;
-			if (passedValue) {
+			if(decoyRouterSet.contains(this.parent.getASN())){
 				this.flipDecoyState = true;
 			}
 			this.lockIn = 2;

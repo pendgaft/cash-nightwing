@@ -52,20 +52,22 @@ public class EconomicEngine {
 		}
 
 		for (DecoyAS tAS : prunedMap.values()) {
-			this.theTopo
-					.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, TransitProvider.DECOY_STRAT.NEVER));
+			this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
+					TransitProvider.DECOY_STRAT.NEVER));
 		}
 		for (DecoyAS tAS : activeMap.values()) {
 			if (tAS.isWardenAS()) {
 				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap));
 			} else {
-				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut,
+				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 						TransitProvider.DECOY_STRAT.DICTATED));
 			}
 		}
 
 		this.calculateCustomerCone();
-		this.setupPricingTiers();
+		if (EconomicEngine.APPLY_FANCY_ECON) {
+			this.setupPricingTiers();
+		}
 		this.maxIPCount = 0.0;
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			this.maxIPCount = Math.max(this.maxIPCount, (double) tAS.getIPCustomerCone());
@@ -257,9 +259,9 @@ public class EconomicEngine {
 				for (int counter = 0; counter < 3; counter++) {
 					trafficManager.runStat();
 					String roundHeader = null;
-					if(logMinCCSize){
+					if (logMinCCSize) {
 						roundHeader = "" + minCCSize + "," + counter;
-					}else{
+					} else {
 						roundHeader = "" + drCount + "," + counter;
 					}
 					this.driveEconomicTurn(roundHeader, drSet, counter);
@@ -268,7 +270,7 @@ public class EconomicEngine {
 		}
 	}
 
-	private void driveEconomicTurn(String roundLeader, Object supData, int round) {
+	private void driveEconomicTurn(String roundLeader, Set<Integer> drSet, int round) {
 		/*
 		 * Write the round terminators to logging files
 		 */
@@ -308,7 +310,7 @@ public class EconomicEngine {
 		 * Let the agents ponder their move
 		 */
 		for (int tASN : this.theTopo.keySet()) {
-			this.makeAdjustmentHelper(tASN, supData);
+			this.makeAdjustmentHelper(tASN, drSet);
 		}
 
 		/*
@@ -372,7 +374,7 @@ public class EconomicEngine {
 					} else {
 						throw new RuntimeException("Invalid relationship passed to EconomicEngine: " + relation);
 					}
-				}else{
+				} else {
 					double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
 					double transitTraffic = tAgent.getTransitTrafficOverLink(tNeighbor);
 					if (relation == AS.PROIVDER_CODE) {
@@ -418,7 +420,7 @@ public class EconomicEngine {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void makeAdjustmentHelper(int asn, Object supData) {
+	private void makeAdjustmentHelper(int asn, Set<Integer> decoySet) {
 		/*
 		 * If we're just a stub AS we don't do anything, consequently we don't
 		 * need any info
@@ -433,8 +435,7 @@ public class EconomicEngine {
 		 * need to push any added info
 		 */
 		if (!this.activeTopology.get(asn).isWardenAS()) {
-			Set<Integer> drSet = (Set<Integer>) supData;
-			this.theTopo.get(asn).makeAdustments(new Boolean(drSet.contains(asn)));
+			this.theTopo.get(asn).makeAdustments(decoySet);
 		} else {
 			this.theTopo.get(asn).makeAdustments(null);
 		}

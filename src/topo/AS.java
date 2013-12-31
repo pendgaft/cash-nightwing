@@ -23,7 +23,7 @@ import econ.TransitAgent;
 public abstract class AS implements TransitAgent {
 
 	public enum AvoidMode {
-		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak;
+		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak, StrictReversePoison, PermissiveReversePoison;
 	}
 
 	private int asn;
@@ -36,6 +36,7 @@ public abstract class AS implements TransitAgent {
 	private boolean wardenAS;
 	private boolean activeAvoidance;
 	private Set<Integer> avoidSet;
+	private Set<Integer> wardenSet;
 	private AvoidMode currentAvoidMode;
 
 	private int numberOfIPs;
@@ -50,6 +51,7 @@ public abstract class AS implements TransitAgent {
 	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
 	// adjancey
 	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
+	//FIXME change this to Integers rather than ASes
 	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
@@ -354,7 +356,7 @@ public abstract class AS implements TransitAgent {
 		 */
 		boolean routeRemoved = false;
 		List<BGPPath> advRibList = this.adjInRib.get(advPeer);
-		//FIXME why isn't this a map for O(1) lookups?
+		//TODO why isn't this a map for O(1) lookups?
 		for (int counter = 0; counter < advRibList.size(); counter++) {
 			if (advRibList.get(counter).getDest() == dest) {
 				advRibList.remove(counter);
@@ -391,10 +393,6 @@ public abstract class AS implements TransitAgent {
 	public void rescanBGPTable() {
 		for (int tDest : this.locRib.keySet()) {
 			this.recalcBestPath(tDest);
-		}
-		
-		if(Constants.REVERSE_POISON){
-			
 		}
 	}
 
@@ -509,6 +507,17 @@ public abstract class AS implements TransitAgent {
 		 * can, if not don't lose connectivity
 		 */
 		BGPPath avoidPath = this.internalPathSelection(possList, true);
+		
+		/*
+		 * In strict avoidance we're refusing ANY route through a DR
+		 */
+		if(this.currentAvoidMode == AS.AvoidMode.StrictReversePoison){
+			return avoidPath;
+		}
+		
+		/*
+		 * Any other avoidance mode, find a path, even if it is dirty
+		 */
 		if (avoidPath != null) {
 			return avoidPath;
 		}
@@ -534,7 +543,9 @@ public abstract class AS implements TransitAgent {
 			 * routes that are NOT clean, this is corrected in path selection if
 			 * this leaves us w/ no viable routes
 			 */
-			if (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref) {
+			if (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref
+					|| ((this.currentAvoidMode == AS.AvoidMode.StrictReversePoison || this.currentAvoidMode == AS.AvoidMode.PermissiveReversePoison) 
+							&& this.wardenSet.contains(tPath.getDest()))) {
 				if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
 					continue;
 				}
@@ -577,12 +588,12 @@ public abstract class AS implements TransitAgent {
 					currentRel = newRel;
 					continue;
 				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
-					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if (avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
 
@@ -812,12 +823,12 @@ public abstract class AS implements TransitAgent {
 	public boolean isWardenAS() {
 		return this.wardenAS;
 	}
+	
+	public void setWardenSet(Set<Integer> wardenASes){
+		this.wardenSet = wardenASes;
+	}
 
 	public void turnOnActiveAvoidance(Set<Integer> avoidList, AvoidMode newAvoidMode) {
-		if (!this.isWardenAS()) {
-			throw new IllegalStateException("Attempted to toggle avoidance on non-warden.");
-		}
-
 		this.activeAvoidance = true;
 		this.avoidSet = avoidList;
 		this.currentAvoidMode = newAvoidMode;

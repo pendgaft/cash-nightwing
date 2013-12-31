@@ -11,17 +11,16 @@ import decoy.DecoyAS;
 
 public class WardenAgent extends EconomicAgent {
 
-	private HashMap<Integer, DecoyAS> activeTopo;
+	
 	private HashMap<Integer, DecoyAS> prunedTopo;
 
 	public WardenAgent(DecoyAS parentObject, BufferedWriter log, HashMap<Integer, DecoyAS> activeTopo,
 			HashMap<Integer, DecoyAS> prunedTopo) {
-		super(parentObject, log);
+		super(parentObject, log, activeTopo);
 		if (!parentObject.isWardenAS()) {
 			throw new IllegalArgumentException("Passed a non warden DecoyAS object to WardenAgent constructor.");
 		}
 
-		this.activeTopo = activeTopo;
 		this.prunedTopo = prunedTopo;
 	}
 
@@ -91,7 +90,7 @@ public class WardenAgent extends EconomicAgent {
 	}
 
 	@Override
-	public void makeAdustments(Object supplementalInfo) {
+	public void makeAdustments(Set<Integer> decoyRouterSet) {
 		/*
 		 * Turns on decoy router avoidance code for this round with the known
 		 * set of decoy routers as the avoidance set
@@ -103,15 +102,5 @@ public class WardenAgent extends EconomicAgent {
 		/*
 		 * Currently warden ASes don't care about money
 		 */
-	}
-
-	private Set<Integer> buildDecoySet() {
-		HashSet<Integer> decoySet = new HashSet<Integer>();
-		for (DecoyAS tAS : this.activeTopo.values()) {
-			if (tAS.isDecoy()) {
-				decoySet.add(tAS.getASN());
-			}
-		}
-		return decoySet;
 	}
 }

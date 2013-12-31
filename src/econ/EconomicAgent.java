@@ -1,5 +1,7 @@
 package econ;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Set;
 import java.io.BufferedWriter;
 import decoy.DecoyAS;
@@ -17,10 +19,12 @@ public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
 	protected BufferedWriter logStream;
+	protected HashMap<Integer, DecoyAS> activeTopo;
 	
-	public EconomicAgent(DecoyAS parentAS, BufferedWriter log){
+	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> topo){
 		this.parent = parentAS;
 		this.logStream = log;
+		this.activeTopo = topo;
 	}
 	
 	/**
@@ -39,7 +43,7 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * anything, it should just stage changes, the finalize function will do the
 	 * actual pushing of changes.
 	 */
-	public abstract void makeAdustments(Object supplementalInfo);
+	public abstract void makeAdustments(Set<Integer> decoyRouterSet);
 
 	/**
 	 * Method for informing the AS type object to do any logging for this round,
@@ -84,5 +88,15 @@ public abstract class EconomicAgent implements TransitAgent {
 	
 	public void resetTraffic(){
 		this.parent.resetTraffic();
+	}
+	
+	protected Set<Integer> buildDecoySet() {
+		HashSet<Integer> decoySet = new HashSet<Integer>();
+		for (DecoyAS tAS : this.activeTopo.values()) {
+			if (tAS.isDecoy()) {
+				decoySet.add(tAS.getASN());
+			}
+		}
+		return decoySet;
 	}
 }

@@ -21,9 +21,11 @@ public class Constants {
 	
 	public static final int NTHREADS = 10;
 	
-	public static final int SAMPLE_COUNT = 50;
+	public static final int SAMPLE_COUNT = 100;
 	
 	public static final AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
+	public static final boolean REVERSE_POISON = false;
+	public static final AS.AvoidMode DEFAULT_POISON_MODE = AS.AvoidMode.StrictReversePoison;
 
 }
 
