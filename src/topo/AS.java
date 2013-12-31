@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import sim.Constants;
+
 import econ.TransitAgent;
 
 /**
@@ -352,6 +354,7 @@ public abstract class AS implements TransitAgent {
 		 */
 		boolean routeRemoved = false;
 		List<BGPPath> advRibList = this.adjInRib.get(advPeer);
+		//FIXME why isn't this a map for O(1) lookups?
 		for (int counter = 0; counter < advRibList.size(); counter++) {
 			if (advRibList.get(counter).getDest() == dest) {
 				advRibList.remove(counter);
@@ -388,6 +391,10 @@ public abstract class AS implements TransitAgent {
 	public void rescanBGPTable() {
 		for (int tDest : this.locRib.keySet()) {
 			this.recalcBestPath(tDest);
+		}
+		
+		if(Constants.REVERSE_POISON){
+			
 		}
 	}
 
@@ -469,9 +476,15 @@ public abstract class AS implements TransitAgent {
 
 		List<BGPPath> possList = this.inRib.get(dest);
 		BGPPath currentBest = this.pathSelection(possList);
-
 		BGPPath currentInstall = this.locRib.get(dest);
-		changed = (currentInstall == null || !currentBest.equals(currentInstall));
+		
+		/*
+		 * We need to handle advertisements in one of two cases
+		 *   a) we have found a new best path and it's not the same as our current best path
+		 *   b) we had a best path prior, but currently do not
+		 */
+		changed = (currentBest != null && (currentInstall == null || !currentBest.equals(currentInstall)))
+				|| (currentBest == null && currentInstall != null);
 		this.locRib.put(dest, currentBest);
 
 		/*
@@ -597,6 +610,10 @@ public abstract class AS implements TransitAgent {
 		Set<AS> newAdvTo = new HashSet<AS>();
 		BGPPath pathOfMerit = this.locRib.get(dest);
 
+		/*
+		 * If we have a current best path to the destination, build a copy of
+		 * it, apply export policy and advertise the route
+		 */
 		if (pathOfMerit != null) {
 			BGPPath pathToAdv = pathOfMerit.deepCopy();
 			pathToAdv.prependASToPath(this.asn);
@@ -614,16 +631,24 @@ public abstract class AS implements TransitAgent {
 					newAdvTo.add(tProv);
 				}
 			}
-
-			//this.adjOutRib.put(dest, newAdvTo);
 		}
 
+		/*
+		 * Handle the case where we had a route at one point, but have since
+		 * lost any route, so obviously we should send a withdrawl
+		 */
 		if (prevAdvedTo != null) {
 			prevAdvedTo.removeAll(newAdvTo);
 			for (AS tAS : prevAdvedTo) {
 				tAS.withdrawPath(this, dest);
 			}
 		}
+
+		/*
+		 * Update the adj-out-rib with the correct set of ASes we have
+		 * adverstised the current best path to
+		 */
+		this.adjOutRib.put(dest, newAdvTo);
 	}
 
 	/**
