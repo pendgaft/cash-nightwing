@@ -186,6 +186,7 @@ public class Nightwing {
 			
 			econEngine.manageSortedWardenSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
 					Integer.parseInt(args[5]), Boolean.parseBoolean(args[6]), trafficStat);
+			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
