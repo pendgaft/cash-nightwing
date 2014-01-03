@@ -48,10 +48,8 @@ public abstract class AS implements TransitAgent {
 
 	private Set<Integer> customerConeASList;
 
-	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from
-	// adjancey
+	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
 	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
-	//FIXME change this to Integers rather than ASes
 	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
@@ -109,16 +107,33 @@ public abstract class AS implements TransitAgent {
 		this.inRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
 		this.adjInRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
 		this.locRib = (HashMap<Integer, BGPPath>) serialIn.readObject();
-
-		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>) serialIn.readObject();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
-		for (int tASN : tempAdjOut.keySet()) {
+		
+		for (int tDestASN : this.locRib.keySet()) {
 			Set<AS> tempSet = new HashSet<AS>();
-			for (int tAdvNeighbor : tempAdjOut.get(tASN)) {
-				tempSet.add(this.getNeighborByASN(tAdvNeighbor));
+			for (AS tCust : this.customers) {
+				tempSet.add(tCust);
 			}
-			this.adjOutRib.put(tASN, tempSet);
+			if (tDestASN == this.asn || (this.getRel(this.locRib.get(tDestASN).getNextHop()) == 1)) {
+				for (AS tPeer : this.peers) {
+					tempSet.add(tPeer);
+				}
+				for (AS tProv : this.providers) {
+					tempSet.add(tProv);
+				}
+			}
+			this.adjOutRib.put(tDestASN, tempSet);
 		}
+
+//		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>) serialIn.readObject();
+//		this.adjOutRib = new HashMap<Integer, Set<AS>>();
+//		for (int tASN : tempAdjOut.keySet()) {
+//			Set<AS> tempSet = new HashSet<AS>();
+//			for (int tAdvNeighbor : tempAdjOut.get(tASN)) {
+//				tempSet.add(this.getNeighborByASN(tAdvNeighbor));
+//			}
+//			this.adjOutRib.put(tASN, tempSet);
+//		}
 	}
 
 	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException {
@@ -126,15 +141,15 @@ public abstract class AS implements TransitAgent {
 		serialOut.writeObject(this.adjInRib);
 		serialOut.writeObject(this.locRib);
 
-		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
-		for (int tDest : this.adjOutRib.keySet()) {
-			Set<Integer> tempSet = new HashSet<Integer>();
-			for (AS tAS : this.adjOutRib.get(tDest)) {
-				tempSet.add(tAS.getASN());
-			}
-			tempAdjOut.put(tDest, tempSet);
-		}
-		serialOut.writeObject(tempAdjOut);
+//		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
+//		for (int tDest : this.adjOutRib.keySet()) {
+//			Set<Integer> tempSet = new HashSet<Integer>();
+//			for (AS tAS : this.adjOutRib.get(tDest)) {
+//				tempSet.add(tAS.getASN());
+//			}
+//			tempAdjOut.put(tDest, tempSet);
+//		}
+//		serialOut.writeObject(tempAdjOut);
 	}
 
 	@SuppressWarnings("unchecked")
