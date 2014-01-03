@@ -182,6 +182,86 @@ public class EconomicEngine {
 		}
 	}
 
+	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne,
+			ParallelTrafficStat trafficManager) {
+
+		/*
+		 * Step 1, build the sizes of these ASes, sort them
+		 */
+		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
+		for(DecoyAS tAS: this.activeTopology.values()){
+			valueMap.put(tAS.getASN(), 0.0);
+		}
+		for(DecoyAS tAS: this.activeTopology.values()){
+			if(tAS.isWardenAS()){
+				for(int tDestASN: this.theTopo.keySet()){
+					List<Integer> thePath = tAS.getPath(tDestASN).getPath();
+					for(int tHop: thePath){
+						if(valueMap.containsKey(tHop)){
+							valueMap.put(tHop, valueMap.get(tHop) + 1);
+						}
+					}
+				}
+			}
+		}
+		
+		/*
+		 * Strip out the wardens, and if we're skipping ring one, those as well
+		 */
+		for(DecoyAS tAS: this.activeTopology.values()){
+			if(tAS.isWardenAS()){
+				valueMap.remove(tAS.getASN());
+			}
+			else if(excludeRingOne && tAS.connectedToWarden()){
+				valueMap.remove(tAS.getASN());
+			}
+		}
+
+		List<ASRanker> rankList = new ArrayList<ASRanker>(valueMap.size());
+		for (int tASN : valueMap.keySet()) {
+			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
+		}
+		Collections.sort(rankList);
+
+		/*
+		 * Actually do the sim now
+		 */
+		for (int drCount = startCount; drCount <= endCount; drCount += step) {
+			System.out.println("Starting processing for Decoy Count of: " + drCount);
+
+			/*
+			 * Write the size terminators to logging files
+			 */
+			try {
+				this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+				this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
+			/*
+			 * Build decoy set for this round
+			 */
+			Set<Integer> drSet = new HashSet<Integer>();
+			int listPos = rankList.size() - 1;
+			while (drSet.size() != drCount) {
+				drSet.add(rankList.get(listPos).getASN());
+				listPos--;
+			}
+
+			/*
+			 * Actually do the sim rounds
+			 */
+			for (int counter = 0; counter < 3; counter++) {
+				trafficManager.runStat();
+				String roundHeader = null;
+				roundHeader = "" + drCount + "," + counter;
+				this.driveEconomicTurn(roundHeader, drSet, counter);
+			}
+		}
+	}
+
 	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize,
 			ParallelTrafficStat trafficManager) {
 		for (int currentConeSize = start; currentConeSize <= end; currentConeSize += step) {
@@ -419,7 +499,6 @@ public class EconomicEngine {
 		this.transitCashForThisRound.put(asn, this.transitCashForThisRound.get(asn) + transitCash);
 	}
 
-	@SuppressWarnings("unchecked")
 	private void makeAdjustmentHelper(int asn, Set<Integer> decoySet) {
 		/*
 		 * If we're just a stub AS we don't do anything, consequently we don't
@@ -438,6 +517,31 @@ public class EconomicEngine {
 			this.theTopo.get(asn).makeAdustments(decoySet);
 		} else {
 			this.theTopo.get(asn).makeAdustments(null);
+		}
+	}
+
+	private class ASRanker implements Comparable<ASRanker> {
+
+		private int asn;
+		private double value;
+
+		public ASRanker(int myASN, double myValue) {
+			this.asn = myASN;
+			this.value = myValue;
+		}
+
+		public int getASN() {
+			return this.asn;
+		}
+
+		public int compareTo(ASRanker rhs) {
+			if (this.value < rhs.value) {
+				return -1;
+			}
+			if (this.value > rhs.value) {
+				return 1;
+			}
+			return 0;
 		}
 	}
 }

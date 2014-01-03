@@ -27,6 +27,8 @@ public class Nightwing {
 	private static final String ECON_P1_STRING = "econ1";
 	private static final int ECON_MODE_2 = 8;
 	private static final String ECON_M2_STRING = "econ2";
+	private static final int ECON_MODE_3 = 9;
+	private static final String  ECON_M3_STRING = "econ3";
 
 	public static void main(String[] args) throws IOException {
 
@@ -70,6 +72,13 @@ public class Nightwing {
 			if (args.length != 7) {
 				System.out
 						.println("Economic mode 2 (min cust cone exploration) usage: ./Nightwing <mode> <warden file> <traffic split file> <decoy size> <starting cone size> <ending cone size> <step size>");
+				return;
+			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M3_STRING)) {
+			mode = Nightwing.ECON_MODE_3;
+			if (args.length != 7) {
+				System.out
+						.println("Economic mode 3 (amir's deploy style) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting size> <ending size> <step size> <avoid ring 1 (true/false)>");
 				return;
 			}
 		} else {
@@ -168,9 +177,15 @@ public class Nightwing {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 
-			econEngine.manageCustConeExploration(Integer.parseInt(args[4]), Integer.parseInt(args[5]), Integer
-					.parseInt(args[6]), Constants.SAMPLE_COUNT, Integer.parseInt(args[3]), trafficStat);
+			econEngine.manageCustConeExploration(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
+					Integer.parseInt(args[6]), Constants.SAMPLE_COUNT, Integer.parseInt(args[3]), trafficStat);
 			econEngine.endSim();
+		} else if (mode == Nightwing.ECON_MODE_3) {
+			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
+			
+			econEngine.manageSortedWardenSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
+					Integer.parseInt(args[5]), Boolean.parseBoolean(args[6]), trafficStat);
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
