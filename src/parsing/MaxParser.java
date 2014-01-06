@@ -19,6 +19,8 @@ public class MaxParser {
 	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),(.+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
+	
+	private static final int IP_REACHABILITY_COL = 2;
 
 	public static void main(String[] args) throws IOException {
 		MaxParser self = new MaxParser(MaxParser.IP_FILE);
@@ -30,9 +32,15 @@ public class MaxParser {
 					+ ".log";
 
 			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanBefore.csv", 1, 2);
+					+ "/wardenCleanBefore.csv", 1, MaxParser.IP_REACHABILITY_COL);
 			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanAfter.csv", 2, 2);
+					+ "/wardenCleanAfter.csv", 2, MaxParser.IP_REACHABILITY_COL);
+			
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonCoopCleanBefore.csv", 1);
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonCoopCleanAfter.csv", 2);
+			
 //			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 //					+ "/wardenCleanDelta.csv");
 //			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
@@ -47,6 +55,7 @@ public class MaxParser {
 	}
 
 	public MaxParser(String ipFile) throws IOException {
+		//FIXME please make this handle ASes that don't show up in the IP count file
 		this.asToIP = new HashMap<Integer, Double>();
 		BufferedReader fBuff = new BufferedReader(new FileReader(ipFile));
 		while (fBuff.ready()) {
@@ -265,6 +274,206 @@ public class MaxParser {
 
 		return deltaValues;
 	}
+	
+	public void handleNonCoopCleanness(String wardenFile, String transitFile, String outFile, int round) throws IOException{
+		List<Double> coopShadowIPSize = this.buildCoopSizeList(transitFile);
+		
+		double allIPCount = 0.0;
+		for(double tValue: this.asToIP.values()){
+			allIPCount += tValue;
+		}
+	
+		HashMap<Integer, List<Double>> parseMap = this.computeNonCoopReachability(wardenFile, outFile, round, coopShadowIPSize, allIPCount);
+		/*
+		 * Invert the mapping
+		 */
+		List<Integer> sampleSizes = new LinkedList<Integer>();
+		for (int tSize : parseMap.keySet()) {
+			sampleSizes.add(tSize);
+		}
+		Collections.sort(sampleSizes);
+
+		HashMap<Integer, HashMap<Double, Double>> invertedMap = new HashMap<Integer, HashMap<Double, Double>>();
+		for (int tSize : parseMap.keySet()) {
+			invertedMap.put(tSize, new HashMap<Double, Double>());
+			for (double tPerc : MaxParser.PERCENTILES) {
+				invertedMap.get(tSize).put(tPerc, this.extractValue(parseMap.get(tSize), tPerc));
+			}
+		}
+
+		/*
+		 * IO magic gogo
+		 */
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+		this.writeWardenHeader(outBuff, MaxParser.IP_REACHABILITY_COL);
+		for (int tSize : sampleSizes) {
+			this.writePercentiles(tSize, invertedMap.get(tSize), outBuff);
+			outBuff.write("\n");
+		}
+		outBuff.close();
+	}
+
+	private List<Double> buildCoopSizeList(String inFile) throws IOException {
+		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
+
+		List<Double> coopShadow = new ArrayList<Double>();
+		double currentCount = 0.0;
+
+		while (inBuff.ready()) {
+			boolean controlFlag = false;
+			String pollStr = inBuff.readLine().trim();
+
+			/*
+			 * Hunt if we're on a "control" line
+			 */
+			Matcher sampleMatch = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+			if (sampleMatch.find()) {
+				controlFlag = true;
+			} else {
+				sampleMatch = MaxParser.ROUND_PATTERN.matcher(pollStr);
+				if (sampleMatch.find()) {
+					controlFlag = true;
+				}
+			}
+
+			/*
+			 * This code is rather un-intelligent, but it matches up the other code
+			 */
+			if (controlFlag) {
+				coopShadow.add(currentCount);
+				currentCount = 0.0;
+				continue;
+			}
+
+			/*
+			 * If we're in a log region we care about, parse it
+			 */
+			Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+			if (dataMatch.find()) {
+				boolean isDR = Boolean.parseBoolean(dataMatch.group(4));
+				if (isDR) {
+					int asn = Integer.parseInt(dataMatch.group(1));
+					if (this.asToIP.containsKey(asn)) {
+						currentCount += this.asToIP.get(asn);
+					} else {
+						currentCount += 1.0;
+					}
+				}
+			}
+
+		}
+		inBuff.close();
+		return coopShadow;
+	}
+	
+	private HashMap<Integer, List<Double>> computeNonCoopReachability(String inFile, String outFile, int round,
+			List<Double> coopShadowSize, double allIPCount) throws IOException {
+		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
+		
+		HashMap<Integer, List<Double>> values = new HashMap<Integer, List<Double>>();
+		double currentIPCleanness = 0.0;
+		double currentIPCount = 0.0;
+		double currentCoopShadow = 0.0;
+		int measurePos = 0;
+
+		boolean inTargetRound = false;
+		while (inBuff.ready()) {
+			boolean controlFlag = false;
+			int roundValue = -1;
+			int sampleSize = -1;
+			String pollStr = inBuff.readLine().trim();
+
+			/*
+			 * Hunt if we're on a "control" line
+			 */
+			Matcher sampleMatch = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+			if (sampleMatch.find()) {
+				controlFlag = true;
+			} else {
+				sampleMatch = MaxParser.ROUND_PATTERN.matcher(pollStr);
+				if (sampleMatch.find()) {
+					controlFlag = true;
+				}
+			}
+
+			/*
+			 * Handle the control line case (start logging, or stop logging and
+			 * dump stats, or nothing...)
+			 */
+			if (controlFlag) {
+				currentCoopShadow = coopShadowSize.get(measurePos);
+				measurePos++;
+				
+				sampleSize = Integer.parseInt(sampleMatch.group(1));
+				roundValue = Integer.parseInt(sampleMatch.group(2));
+
+				/*
+				 * If it's the round we're told to record for, turn on value
+				 * parsing and reset a list
+				 */
+				if (roundValue == round) {
+					inTargetRound = true;
+					currentIPCleanness = 0.0;
+					currentIPCount = 0.0;
+				}
+				/*
+				 * If it's the round directly after our round, then we should
+				 * actually parse the list, extracting the Nth percentile and
+				 * record it
+				 */
+				if (roundValue == ((round + 1) % 3) && inTargetRound) {
+					// stop logging
+					inTargetRound = false;
+					/*
+					 * Dump in the list if it doesn't exist in the map
+					 */
+					if (!values.containsKey(sampleSize)) {
+						values.put(sampleSize, new ArrayList<Double>());
+					}
+					values.get(sampleSize).add(currentIPCleanness / currentIPCount);
+				}
+				/*
+				 * No matter what we should skip the attempt to parse the line
+				 * as a data line
+				 */
+				continue;
+			}
+
+			/*
+			 * If we're in a log region we care about, parse it
+			 */
+			if (inTargetRound) {
+				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					Double ips = this.asToIP.get(Integer.parseInt(dataMatch.group(1)));
+					double cleanness = Double.parseDouble(dataMatch.group(MaxParser.IP_REACHABILITY_COL));
+					/*
+					 * there can be some "strangeness" from the graph not being
+					 * connected, deal with that here...
+					 */
+					if (cleanness > 0.01 && ips != null) {
+						currentIPCount += ips;
+						/*
+						 * Ok, note to future max:  you're going to look at this line and say "WTF", it's actually right
+						 * if you were to just add back in the coop shadow you would OVER ESTIMATE how well you do
+						 * since you would be computing the percentage of ALL IPs that are inside the non-coop shadow
+						 * but that means that if the coop shadow is large, you're going to shrink this, which isn't really
+						 * that meaningful to you, what you want is what fraction of the IPs NOT in the coop shadow are in
+						 * the non-coop shadow, this way you don't look like you do better at larger deployments via a
+						 * trick of statistics
+						 */
+						double dirtyness = 1.0 - cleanness;
+						double adjustedCleanness = 1.0 - (dirtyness * (allIPCount - ips) - currentCoopShadow)
+								/ (allIPCount - ips - currentCoopShadow);
+						currentIPCleanness += (adjustedCleanness) * ips;
+					}
+				}
+			}
+		}
+		inBuff.close();
+
+		return values;
+	}
 
 	/**
 	 * Master function for building warden reachability stats.
@@ -279,7 +488,7 @@ public class MaxParser {
 	 *            based information
 	 * @throws IOException
 	 */
-	private void fullReachabilty(String infile, String outFile, int round, int column) throws IOException {
+	public void fullReachabilty(String infile, String outFile, int round, int column) throws IOException {
 
 		/*
 		 * Actually do the computations
