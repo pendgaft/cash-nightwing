@@ -290,8 +290,13 @@ public class EconomicEngine {
 				validDecoyASes.add(tAS.getASN());
 			}
 		}
+		
+		int numberOfTrials = (int)(Math.floor((end - start) / step) + 1);
+		long sliceStartTime;
+		int sliceCounter = 1;
 
 		for (int drCount = start; drCount <= end; drCount += step) {
+			sliceStartTime = System.currentTimeMillis();
 			if (drCount > validDecoyASes.size()) {
 				System.out.println("DR count exceeds total possible.");
 				return;
@@ -317,8 +322,10 @@ public class EconomicEngine {
 				 */
 				if (trialNumber == nextMark) {
 					long secondTime = System.currentTimeMillis();
-					System.out.println("" + nextMark / tenPercentMark * 10 + "% complete (chunk took: "
-							+ (secondTime - time) / 60000 + " minutes)");
+					int tenFactor = nextMark / tenPercentMark;
+					long estTime = (secondTime - time) * (10 - tenFactor) / 60000;
+					System.out.println("" + tenFactor * 10 + "% complete, chunk took: " + (secondTime - time) / 60000
+							+ " minutes, est remaining time for slice: " + estTime + " minutes based on this chunk");
 					time = secondTime;
 					nextMark += tenPercentMark;
 				}
@@ -347,6 +354,13 @@ public class EconomicEngine {
 					this.driveEconomicTurn(roundHeader, drSet, counter);
 				}
 			}
+			
+			long sliceEndTime = System.currentTimeMillis();
+			long timeDelta = (sliceEndTime - sliceStartTime) / 3600000;
+			long estRemaining = timeDelta * (numberOfTrials - sliceCounter);
+			System.out.println("Slice completed in " + timeDelta + " hours, estimated remaining sim time: "
+					+ estRemaining);
+			sliceCounter++;
 		}
 	}
 
@@ -403,6 +417,7 @@ public class EconomicEngine {
 		/*
 		 * Do a fresh round of BGPProcessing
 		 */
+		BGPMaster.REPORT_TIME = false;
 		BGPMaster.driveBGPProcessing(this.activeTopology);
 	}
 

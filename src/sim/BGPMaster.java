@@ -18,6 +18,8 @@ public class BGPMaster {
 
 	private static final int NUM_THREADS = 8;
 	private static final int WORK_BLOCK_SIZE = 40;
+	
+	public static boolean REPORT_TIME = true;
 
 	@SuppressWarnings("unchecked")
 	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(String wardenFile) throws IOException {
@@ -102,7 +104,9 @@ public class BGPMaster {
 		}
 
 		long bgpStartTime = System.currentTimeMillis();
-		System.out.println("Starting up the BGP processing.");
+		if (BGPMaster.REPORT_TIME) {
+			System.out.println("Starting up the BGP processing.");
+		}
 
 		boolean stuffToDo = true;
 		boolean skipToMRAI = false;
@@ -161,7 +165,9 @@ public class BGPMaster {
 		}
 
 		bgpStartTime = System.currentTimeMillis() - bgpStartTime;
-		System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
+		if (BGPMaster.REPORT_TIME) {
+			System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
+		}
 	}
 
 	public BGPMaster(int blockCount) {
