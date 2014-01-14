@@ -9,6 +9,7 @@ import sim.BGPMaster;
 import sim.Constants;
 import sim.ParallelTrafficStat;
 import topo.AS;
+import topo.ASRanker;
 
 public class EconomicEngine {
 
@@ -520,28 +521,5 @@ public class EconomicEngine {
 		}
 	}
 
-	private class ASRanker implements Comparable<ASRanker> {
 
-		private int asn;
-		private double value;
-
-		public ASRanker(int myASN, double myValue) {
-			this.asn = myASN;
-			this.value = myValue;
-		}
-
-		public int getASN() {
-			return this.asn;
-		}
-
-		public int compareTo(ASRanker rhs) {
-			if (this.value < rhs.value) {
-				return -1;
-			}
-			if (this.value > rhs.value) {
-				return 1;
-			}
-			return 0;
-		}
-	}
 }
