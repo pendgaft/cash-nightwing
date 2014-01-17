@@ -64,6 +64,7 @@ public class EconExample {
 			}
 		}
 		inBuff.close();
+		System.out.println("" + seenMap.size() + " unique ASes seen");
 
 		List<ASRanker> orderedList = new ArrayList<ASRanker>(seenMap.size());
 		for(int tASN: seenMap.keySet()){
@@ -72,7 +73,7 @@ public class EconExample {
 		Collections.sort(orderedList);
 		
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(FILE_BASE + OUTPUT_SUFFIX + this.fileStub + "/top-" + size + ".csv"));
-		for(int counter = orderedList.size() - 1; counter <= 0; counter--){
+		for(int counter = orderedList.size() - 1; counter >= 0; counter--){
 			outBuff.write(orderedList.get(counter) + "\n");
 		}
 		outBuff.close();
