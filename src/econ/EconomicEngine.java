@@ -10,6 +10,7 @@ import sim.Constants;
 import sim.ParallelTrafficStat;
 import topo.AS;
 import topo.ASRanker;
+import topo.BGPPath;
 
 public class EconomicEngine {
 
@@ -196,7 +197,11 @@ public class EconomicEngine {
 		for(DecoyAS tAS: this.activeTopology.values()){
 			if(tAS.isWardenAS()){
 				for(int tDestASN: this.theTopo.keySet()){
-					List<Integer> thePath = tAS.getPath(tDestASN).getPath();
+					BGPPath tPath = tAS.getPath(tDestASN);
+					if(tPath == null){
+						continue;
+					}
+					List<Integer> thePath = tPath.getPath();
 					for(int tHop: thePath){
 						if(valueMap.containsKey(tHop)){
 							valueMap.put(tHop, valueMap.get(tHop) + 1);
