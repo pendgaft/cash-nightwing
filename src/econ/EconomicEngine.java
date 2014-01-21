@@ -85,7 +85,7 @@ public class EconomicEngine {
 		 * for the econ part of the sim
 		 */
 		for (EconomicAgent tAgent : this.theTopo.values()) {
-			this.buildIndividualCustomerCone(tAgent.parent);
+			EconomicEngine.buildIndividualCustomerCone(tAgent.parent);
 
 			long ipCCSize = 0;
 			for (int tASN : tAgent.parent.getCustomerConeASList()) {
@@ -108,7 +108,7 @@ public class EconomicEngine {
 	 * @param currentAS
 	 * @return
 	 */
-	private void buildIndividualCustomerCone(AS currentAS) {
+	public static void buildIndividualCustomerCone(AS currentAS) {
 
 		/*
 		 * Skip ASes that have already been built at an earlier stage
@@ -121,7 +121,7 @@ public class EconomicEngine {
 			currentAS.addOnCustomerConeList(tASN);
 		}
 		for (AS nextAS : currentAS.getCustomers()) {
-			this.buildIndividualCustomerCone(nextAS);
+			EconomicEngine.buildIndividualCustomerCone(nextAS);
 			for (int tASN : nextAS.getCustomerConeASList()) {
 				currentAS.addOnCustomerConeList(tASN);
 			}
