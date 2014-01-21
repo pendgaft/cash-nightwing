@@ -437,7 +437,6 @@ public class EconomicEngine {
 		}
 	}
 
-	// TODO populate transit cash
 	private void runMoneyTransfer() {
 		for (Integer tASN : this.theTopo.keySet()) {
 			EconomicAgent tAgent = this.theTopo.get(tASN);

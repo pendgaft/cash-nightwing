@@ -14,7 +14,7 @@ public class TopoTest {
 	 */
 	public static void main(String[] args) throws IOException{
 		
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild();
+		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild("china-as.txt");
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
 		
 		HashSet<Integer> largest = new HashSet<Integer>();

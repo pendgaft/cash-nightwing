@@ -781,7 +781,6 @@ public class ParallelTrafficStat {
 			if (tpath.getPathLength() == 0) {
 				double amountOfTraffic = tDestPurgedAS.getTrafficFromEachSuperAS();
 				boolean volatilePath = tDestPurgedAS.isWardenAS() || srcSuperAS.isWardenAS();
-				//TODO sanity check this false, false for the last two args
 				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic, volatilePath, false,
 						false);
 				continue;
@@ -804,7 +803,6 @@ public class ParallelTrafficStat {
 			if (!tAS.isSuperAS())
 				continue;
 
-			//TODO the first round flag needs to be actually populated
 			/* traffic from tAS which is in the activeMap to activeMap */
 			statTrafficFromSuperASActiveToActive(tAS, this.firstRound);
 
