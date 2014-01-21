@@ -19,7 +19,7 @@ public class EconExample {
 	
 	public EconExample(String fileStub) {
 		this.fileStub = fileStub;
-		this.transitFile = FILE_BASE + INPUT_SUFFIX + "warden-" + this.fileStub.toLowerCase() + ".log";
+		this.transitFile = FILE_BASE + INPUT_SUFFIX + "transit-" + this.fileStub.toLowerCase() + ".log";
 	}
 
 	public void topFlippers(int size) throws IOException{
