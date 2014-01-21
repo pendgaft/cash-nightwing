@@ -48,8 +48,8 @@ public abstract class AS implements TransitAgent {
 
 	private Set<Integer> customerConeASList;
 
-	private HashMap<Integer, List<BGPPath>> adjInRib; // only learned from adjancey
-	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
+	private HashMap<Integer, HashMap<Integer, BGPPath>> adjInRib; // only learned from adjancey
+	private HashMap<Integer, HashMap<Integer, BGPPath>> inRib; // all pathes
 	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
@@ -83,8 +83,8 @@ public abstract class AS implements TransitAgent {
 		this.providers = new HashSet<AS>();
 		this.purgedNeighbors = new HashSet<Integer>();
 
-		this.adjInRib = new HashMap<Integer, List<BGPPath>>();
-		this.inRib = new HashMap<Integer, List<BGPPath>>();
+		this.adjInRib = new HashMap<Integer, HashMap<Integer, BGPPath>>();
+		this.inRib = new HashMap<Integer, HashMap<Integer, BGPPath>>();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
 		this.locRib = new HashMap<Integer, BGPPath>();
 
@@ -104,8 +104,8 @@ public abstract class AS implements TransitAgent {
 
 	@SuppressWarnings("unchecked")
 	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
-		this.inRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
-		this.adjInRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
+		this.inRib = (HashMap<Integer, HashMap<Integer, BGPPath>>) serialIn.readObject();
+		this.adjInRib = (HashMap<Integer, HashMap<Integer, BGPPath>>) serialIn.readObject();
 		this.locRib = (HashMap<Integer, BGPPath>) serialIn.readObject();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
 		
@@ -358,10 +358,10 @@ public abstract class AS implements TransitAgent {
 		 * Setup some objects if this the first time seeing a peer/dest
 		 */
 		if (this.adjInRib.get(advPeer) == null) {
-			this.adjInRib.put(advPeer, new ArrayList<BGPPath>());
+			this.adjInRib.put(advPeer, new HashMap<Integer, BGPPath>());
 		}
 		if (this.inRib.get(dest) == null) {
-			this.inRib.put(dest, new ArrayList<BGPPath>());
+			this.inRib.put(dest, new HashMap<Integer, BGPPath>());
 		}
 
 		/*
@@ -370,36 +370,26 @@ public abstract class AS implements TransitAgent {
 		 * then have an implicit withdrawl
 		 */
 		boolean routeRemoved = false;
-		List<BGPPath> advRibList = this.adjInRib.get(advPeer);
-		//TODO why isn't this a map for O(1) lookups?
-		for (int counter = 0; counter < advRibList.size(); counter++) {
-			if (advRibList.get(counter).getDest() == dest) {
-				advRibList.remove(counter);
-				routeRemoved = true;
-				break;
-			}
-		}
+		HashMap<Integer, BGPPath> advRibList = this.adjInRib.get(advPeer);
+		BGPPath removedPath = advRibList.remove(dest);
+		routeRemoved = (removedPath == null);
 
 		/*
 		 * If there was a rotue to remove from the adjInRib, clean up the inRib
 		 * as well
 		 */
-		List<BGPPath> destRibList = this.inRib.get(dest);
+		HashMap<Integer, BGPPath> destRibList = this.inRib.get(dest);
 		if (routeRemoved) {
-			for (int counter = 0; counter < destRibList.size(); counter++) {
-				if (destRibList.get(counter).getNextHop() == advPeer) {
-					destRibList.remove(counter);
-					break;
-				}
-			}
+			destRibList.remove(advPeer);
 		}
 
 		/*
-		 * If it is a loop don't add it to ribs
+		 * Add the new route to the ribs, if it is a loop then DON'T add it to
+		 * ribs
 		 */
 		if ((!nextUpdate.isWithdrawal()) && (!nextUpdate.getPath().containsLoop(this.asn))) {
-			advRibList.add(nextUpdate.getPath());
-			destRibList.add(nextUpdate.getPath());
+			advRibList.put(dest, nextUpdate.getPath());
+			destRibList.put(advPeer, nextUpdate.getPath());
 		}
 
 		recalcBestPath(dest);
@@ -487,8 +477,8 @@ public abstract class AS implements TransitAgent {
 	private void recalcBestPath(int dest) {
 		boolean changed;
 
-		List<BGPPath> possList = this.inRib.get(dest);
-		BGPPath currentBest = this.pathSelection(possList);
+		HashMap<Integer, BGPPath> possList = this.inRib.get(dest);
+		BGPPath currentBest = this.pathSelection(possList.values());
 		BGPPath currentInstall = this.locRib.get(dest);
 		
 		/*
@@ -508,7 +498,7 @@ public abstract class AS implements TransitAgent {
 		}
 	}
 
-	public BGPPath pathSelection(List<BGPPath> possList) {
+	public BGPPath pathSelection(Collection<BGPPath> possList) {
 		/*
 		 * If we're not doing active avoidance of decoy routers, just find the
 		 * best path and move on w/ life
@@ -547,7 +537,7 @@ public abstract class AS implements TransitAgent {
 	 *            - the possible valid routes
 	 * @return - the "best" of the valid routes by usual BGP metrics
 	 */
-	private BGPPath internalPathSelection(List<BGPPath> possList, boolean avoidDecoys) {
+	private BGPPath internalPathSelection(Collection<BGPPath> possList, boolean avoidDecoys) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
 		for (BGPPath tPath : possList) {
@@ -753,11 +743,11 @@ public abstract class AS implements TransitAgent {
 	 * @return - a list of all paths to the destination, an empty list if we
 	 *         have none
 	 */
-	public List<BGPPath> getAllPathsTo(int dest) {
+	public Collection<BGPPath> getAllPathsTo(int dest) {
 		if (!this.inRib.containsKey(dest)) {
 			return new LinkedList<BGPPath>();
 		}
-		return this.inRib.get(dest);
+		return this.inRib.get(dest).values();
 	}
 
 	public Set<AS> getCustomers() {
