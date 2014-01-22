@@ -528,6 +528,11 @@ public abstract class AS implements TransitAgent {
 	private BGPPath internalPathSelection(Collection<BGPPath> possList, boolean avoidDecoys) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
+		/*
+		 * TODO while this might not be simple, in many cases I don't think we
+		 * need to do this work over the whole list of routes, just the best and
+		 * the changed/new/whatever doesn't work in the case of loss of best route obvi
+		 */
 		for (BGPPath tPath : possList) {
 
 			/*
