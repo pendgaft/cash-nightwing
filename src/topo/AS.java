@@ -48,8 +48,7 @@ public abstract class AS implements TransitAgent {
 
 	private Set<Integer> customerConeASList;
 
-	private HashMap<Integer, HashMap<Integer, BGPPath>> adjInRib; // only learned from adjancey
-	private HashMap<Integer, HashMap<Integer, BGPPath>> inRib; // all pathes
+	private HashMap<Integer, List<BGPPath>> inRib; // all pathes
 	private HashMap<Integer, Set<AS>> adjOutRib; // only to adjancy
 	private HashMap<Integer, BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
@@ -83,8 +82,7 @@ public abstract class AS implements TransitAgent {
 		this.providers = new HashSet<AS>();
 		this.purgedNeighbors = new HashSet<Integer>();
 
-		this.adjInRib = new HashMap<Integer, HashMap<Integer, BGPPath>>();
-		this.inRib = new HashMap<Integer, HashMap<Integer, BGPPath>>();
+		this.inRib = new HashMap<Integer, List<BGPPath>>();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
 		this.locRib = new HashMap<Integer, BGPPath>();
 
@@ -104,8 +102,7 @@ public abstract class AS implements TransitAgent {
 
 	@SuppressWarnings("unchecked")
 	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
-		this.inRib = (HashMap<Integer, HashMap<Integer, BGPPath>>) serialIn.readObject();
-		this.adjInRib = (HashMap<Integer, HashMap<Integer, BGPPath>>) serialIn.readObject();
+		this.inRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
 		this.locRib = (HashMap<Integer, BGPPath>) serialIn.readObject();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
 		
@@ -138,7 +135,6 @@ public abstract class AS implements TransitAgent {
 
 	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.inRib);
-		serialOut.writeObject(this.adjInRib);
 		serialOut.writeObject(this.locRib);
 
 //		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
@@ -194,7 +190,9 @@ public abstract class AS implements TransitAgent {
 		return this.numberOfIPs;
 	}
 
-	/**
+	/**		if (this.adjInRib.get(advPeer) == null) {
+			this.adjInRib.put(advPeer, new HashMap<Integer, BGPPath>());
+		}
 	 * sets the percentage of ipCount in the total normal ASes' ipCount
 	 * 
 	 * @param ipP
@@ -357,30 +355,21 @@ public abstract class AS implements TransitAgent {
 		/*
 		 * Setup some objects if this the first time seeing a peer/dest
 		 */
-		if (this.adjInRib.get(advPeer) == null) {
-			this.adjInRib.put(advPeer, new HashMap<Integer, BGPPath>());
-		}
 		if (this.inRib.get(dest) == null) {
-			this.inRib.put(dest, new HashMap<Integer, BGPPath>());
-		}
-
-		/*
-		 * Hunt for an existing route in the adjInRib. If it's a withdrawl we
-		 * want to remove it, and if it is an adv and a route already exists we
-		 * then have an implicit withdrawl
-		 */
-		boolean routeRemoved = false;
-		HashMap<Integer, BGPPath> advRibList = this.adjInRib.get(advPeer);
-		BGPPath removedPath = advRibList.remove(dest);
-		routeRemoved = (removedPath == null);
+			this.inRib.put(dest, new ArrayList<BGPPath>());
+		}	
 
 		/*
 		 * If there was a rotue to remove from the adjInRib, clean up the inRib
 		 * as well
 		 */
-		HashMap<Integer, BGPPath> destRibList = this.inRib.get(dest);
-		if (routeRemoved) {
-			destRibList.remove(advPeer);
+		List<BGPPath> destRibList = this.inRib.get(dest);
+		for (int counter = 0; counter < destRibList.size(); counter++) {
+			if (destRibList.get(counter).getNextHop() == advPeer) {
+				destRibList.remove(counter);
+				
+				break;
+			}
 		}
 
 		/*
@@ -388,8 +377,7 @@ public abstract class AS implements TransitAgent {
 		 * ribs
 		 */
 		if ((!nextUpdate.isWithdrawal()) && (!nextUpdate.getPath().containsLoop(this.asn))) {
-			advRibList.put(dest, nextUpdate.getPath());
-			destRibList.put(advPeer, nextUpdate.getPath());
+			destRibList.add(nextUpdate.getPath());
 		}
 
 		recalcBestPath(dest);
@@ -477,8 +465,8 @@ public abstract class AS implements TransitAgent {
 	private void recalcBestPath(int dest) {
 		boolean changed;
 
-		HashMap<Integer, BGPPath> possList = this.inRib.get(dest);
-		BGPPath currentBest = this.pathSelection(possList.values());
+		List<BGPPath> possList = this.inRib.get(dest);
+		BGPPath currentBest = this.pathSelection(possList);
 		BGPPath currentInstall = this.locRib.get(dest);
 		
 		/*
@@ -747,7 +735,7 @@ public abstract class AS implements TransitAgent {
 		if (!this.inRib.containsKey(dest)) {
 			return new LinkedList<BGPPath>();
 		}
-		return this.inRib.get(dest).values();
+		return this.inRib.get(dest);
 	}
 
 	public Set<AS> getCustomers() {
@@ -767,7 +755,7 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public String printDebugString() {
-		return this.toString() + "\nADJ IN RIB\n" + this.adjInRib.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n"
+		return this.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n"
 				+ this.locRib.toString() + "\nADJ OUT\n" + this.adjOutRib.toString();
 	}
 
