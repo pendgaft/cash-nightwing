@@ -363,6 +363,21 @@ public class MaxParser {
 
 		}
 		inBuff.close();
+		
+		/*
+		 * Edge condition number 1, we step off the end of the list, and don't
+		 * hit another control sequence, but we have the last round of data to
+		 * add, do so manually
+		 */
+		coopShadow.add(currentCount);
+		
+		/*
+		 * Edge condition number 2, the initial control sequence (before any
+		 * data appears) triggers the code that adds an item to the list, this
+		 * item obviously should not exist, since it does not corrispond to any
+		 * actual data, drop it from the list
+		 */
+		coopShadow.remove(0);
 		return coopShadow;
 	}
 	
