@@ -1,5 +1,6 @@
 package sim;
 
+import econ.EconomicEngine;
 import topo.AS;
 
 public class Constants {
@@ -26,6 +27,6 @@ public class Constants {
 	public static final AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
 	public static final boolean REVERSE_POISON = false;
 	public static final AS.AvoidMode DEFAULT_POISON_MODE = AS.AvoidMode.StrictReversePoison;
-
+	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.IPWeighted;
 }
 

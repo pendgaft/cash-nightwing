@@ -13,6 +13,10 @@ import topo.ASRanker;
 import topo.BGPPath;
 
 public class EconomicEngine {
+	
+	public enum OrderMode{
+		PathAppearance, IPWeighted;
+	}
 
 	private HashMap<Integer, EconomicAgent> theTopo;
 	private HashMap<Integer, DecoyAS> activeTopology;
@@ -202,9 +206,16 @@ public class EconomicEngine {
 						continue;
 					}
 					List<Integer> thePath = tPath.getPath();
+					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
 					for(int tHop: thePath){
 						if(valueMap.containsKey(tHop)){
-							valueMap.put(tHop, valueMap.get(tHop) + 1);
+							if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
+								valueMap.put(tHop, valueMap.get(tHop) + 1);
+							} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
+								valueMap.put(tHop, valueMap.get(tHop) + ipSize);
+							} else {
+								throw new RuntimeException("Bad AS ordering mode!");
+							}
 						}
 					}
 				}
@@ -228,6 +239,22 @@ public class EconomicEngine {
 			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
 		}
 		Collections.sort(rankList);
+		
+		/*
+		 * Write it to a file just in case we want it for reference
+		 */
+		try {
+			BufferedWriter outBuff = new BufferedWriter(
+					new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
+
+			for (int counter = rankList.size() - 1; counter >= 0; counter--) {
+				outBuff.write(rankList.get(counter).toString() + "\n");
+			}
+			outBuff.close();
+		} catch (IOException e) {
+			System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
+			e.printStackTrace();
+		}
 
 		/*
 		 * Actually do the sim now
