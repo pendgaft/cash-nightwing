@@ -137,27 +137,8 @@ public class Nightwing {
 		/*
 		 * Run the correct mode
 		 */
-		if (mode == Nightwing.FIND_MODE) {
-			FindSim simDriver = new FindSim(liveTopo, prunedTopo);
 
-			simDriver.run(wardenFile + "-decoy-hunt-random.csv");
-			simDriver.runLargeASOnlyTests(true, wardenFile + "-decoy-hunt-single.csv");
-			simDriver.runLargeASOnlyTests(false, wardenFile + "-decoy-hunt-nlargest.csv");
-
-			Rings ringDriver = new Rings(liveTopo, prunedTopo);
-			ringDriver.runTests(wardenFile);
-			simDriver.runRings(wardenFile);
-			// simDriver.printResults();
-		} else if (mode == Nightwing.REPEAT_MODE) {
-			System.out.println("NOT IMPLEMENTED YET");
-			System.exit(-2);
-		} else if (mode == Nightwing.ASYM_MODE) {
-			PathAsym simDriver = new PathAsym(liveTopo, prunedTopo);
-			simDriver.buildPathSymCDF();
-		} else if (mode == Nightwing.RING_MODE) {
-			Rings simDriver = new Rings(liveTopo, prunedTopo);
-			simDriver.runTests(wardenFile);
-		} else if (mode == Nightwing.TRAFFICSTAT1_MODE) {
+		if (mode == Nightwing.TRAFFICSTAT1_MODE) {
 			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			statInParallel.runStat();
 		} else if (mode == Nightwing.ECON_PHASE_1) {
