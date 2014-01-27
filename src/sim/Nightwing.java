@@ -29,6 +29,8 @@ public class Nightwing {
 	private static final String ECON_M2_STRING = "econ2";
 	private static final int ECON_MODE_3 = 9;
 	private static final String  ECON_M3_STRING = "econ3";
+	private static final int ECON_MODE_4 = 10;
+	private static final String ECON_M4_STRING = "econ4";
 
 	public static void main(String[] args) throws IOException {
 
@@ -79,6 +81,12 @@ public class Nightwing {
 			if (args.length != 7) {
 				System.out
 						.println("Economic mode 3 (amir's deploy style) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting size> <ending size> <step size> <avoid ring 1 (true/false)>");
+				return;
+			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M4_STRING)){
+			mode = Nightwing.ECON_MODE_4;
+			if(args.length != 4){
+				System.out.println("Economic mode 4 (dictated list) usage: ./Nightwing <mode> <warden file> <traffic split file> <dr deploy file>");
 				return;
 			}
 		} else {
@@ -167,6 +175,11 @@ public class Nightwing {
 			
 			econEngine.manageSortedWardenSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
 					Integer.parseInt(args[5]), Boolean.parseBoolean(args[6]), trafficStat);
+			econEngine.endSim();
+		} else if(mode == Nightwing.ECON_MODE_4){
+			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
+			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
+			econEngine.manageDictatedDRSim(args[3], trafficStat);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);

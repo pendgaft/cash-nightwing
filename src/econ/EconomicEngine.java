@@ -187,6 +187,87 @@ public class EconomicEngine {
 							* EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
 		}
 	}
+	
+	public void manageDictatedDRSim(String drFile, ParallelTrafficStat trafficManager){
+		List<Set<Integer>> roundConfigs = new LinkedList<Set<Integer>>();
+		
+		/*
+		 * Parse the config file to load up each rounds DR deployment
+		 */
+		try{
+			BufferedReader drBuffer = new BufferedReader(new FileReader(drFile));
+			Set<Integer> currentRoundValues = new HashSet<Integer>();
+			
+			while(drBuffer.ready()){
+				String pollStr = drBuffer.readLine().trim();
+				/*
+				 * End of round will be signified by a line containing only whitespace
+				 */
+				if(pollStr.length() == 0){
+					roundConfigs.add(currentRoundValues);
+					currentRoundValues = new HashSet<Integer>();
+					continue;
+				}
+				
+				currentRoundValues.add(Integer.parseInt(pollStr));
+			}
+			
+			drBuffer.close();
+		} catch(IOException e){
+			System.err.println("Error while parsing DR file.");
+			e.printStackTrace();
+			return;
+		}
+		
+		/*
+		 * Do some bookkeeping for completion estimation
+		 */
+		int sliceSize = roundConfigs.size() / 10;
+		int sampleCounter = 0;
+		int current = 1;
+		long startTime = System.currentTimeMillis();
+		
+		/*
+		 * Actually do the sim now
+		 */
+		for(Set<Integer> drSet: roundConfigs){
+
+			/*
+			 * Write the size terminators to logging files
+			 */
+			try {
+				this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+				this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
+			/*
+			 * Actually do the sim rounds
+			 */
+			for (int counter = 0; counter < 3; counter++) {
+				trafficManager.runStat();
+				String roundHeader = null;
+				roundHeader = "" + drSet.size() + "," + counter;
+				this.driveEconomicTurn(roundHeader, drSet, counter);
+			}
+			
+			/*
+			 * Do some progress tracking and logging
+			 */
+			sampleCounter++;
+			if (sampleCounter == sliceSize * current) {
+				long currentTime = System.currentTimeMillis();
+				System.out.println("" + current * 10 + "% complete, this slice took "
+						+ Long.toString((currentTime - startTime) / 60000) + " minutes.");
+				System.out.println("Estimated time to completion: "
+						+ Long.toString((10 - current) * (currentTime - startTime) / 60000) + " minutes.");
+				current++;
+				startTime = currentTime;
+			}
+		}
+	}
 
 	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne,
 			ParallelTrafficStat trafficManager) {
