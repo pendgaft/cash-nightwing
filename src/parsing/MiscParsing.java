@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Matcher;
 
+import sim.Constants;
 import topo.ASTopoParser;
 import decoy.DecoyAS;
 import econ.EconomicEngine;
@@ -14,7 +15,39 @@ public class MiscParsing {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException {
-		MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
+		//MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
+		MiscParsing.buildFixedASSimList(10000, 100, 50);
+	}
+	
+	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
+		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile("as-rel.txt", "china-as.txt", "superAS.txt");
+		for(DecoyAS tAS: asMap.values()){
+			EconomicEngine.buildIndividualCustomerCone(tAS);
+		}
+		
+		List<Integer> possSet = new ArrayList<Integer>();
+		for(DecoyAS tAS: asMap.values()){
+			if(tAS.getCustomerConeSize() >= minCCSize && !tAS.isWardenAS() && !tAS.isSuperAS()){
+				possSet.add(tAS.getASN());
+			}
+		}
+		
+		if(possSet.size() < numberOfASes){
+			System.out.println("too few ASes (" + possSet.size() + ")");
+			return;
+		} else{
+			System.out.println("poss  ASes: " + possSet.size());
+		}
+		
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter("drConfig.txt"));
+		for(int counter = 0; counter < numberOfRounds; counter++){
+			Collections.shuffle(possSet);
+			for(int numberCounter = 0; numberCounter < numberOfASes; numberCounter++){
+				outBuff.write("" + possSet.get(numberCounter) + "\n");
+			}
+			outBuff.write(" \n");
+		}
+		outBuff.close();
 	}
 
 	private static HashMap<Integer, Integer> buildCCSize() {
