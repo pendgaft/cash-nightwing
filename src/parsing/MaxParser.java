@@ -538,7 +538,7 @@ public class MaxParser {
 		}
 		outBuff.close();
 
-		this.printCDF(values, outFile + "-CDF");
+		MaxParser.printCDF(values, outFile + "-CDF");
 	}
 
 	/**
@@ -764,7 +764,7 @@ public class MaxParser {
 		return valueList.get(pos);
 	}
 
-	private void printCDF(HashMap<Integer, List<Double>> values, String outfile) throws IOException {
+	public static void printCDF(HashMap<Integer, List<Double>> values, String outfile) throws IOException {
 		int maxSize = 0;
 		List<Integer> keyList = new LinkedList<Integer>();
 		keyList.addAll(values.keySet());
