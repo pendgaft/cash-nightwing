@@ -15,8 +15,7 @@ public class MiscParsing {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException {
-		//MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
-		MiscParsing.buildFixedASSimList(10000, 100, 50);
+		MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
 	}
 	
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
