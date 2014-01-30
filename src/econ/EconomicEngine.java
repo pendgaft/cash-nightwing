@@ -400,7 +400,7 @@ public class EconomicEngine {
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
 		for (DecoyAS tAS : this.activeTopology.values()) {
-			if (tAS.getCustomerConeSize() >= minCCSize) {
+			if (tAS.getCustomerConeSize() >= minCCSize && !tAS.isWardenAS() && !tAS.isSuperAS()) {
 				validDecoyASes.add(tAS.getASN());
 			}
 		}
@@ -448,13 +448,9 @@ public class EconomicEngine {
 				 * Build decoy set for this round
 				 */
 				Set<Integer> drSet = new HashSet<Integer>();
-				while (drSet.size() != drCount) {
-					int arrayPos = rng.nextInt(validDecoyASes.size());
-					int testAS = validDecoyASes.get(arrayPos);
-					if (drSet.contains(testAS) || this.activeTopology.get(testAS).isWardenAS()) {
-						continue;
-					}
-					drSet.add(testAS);
+				Collections.shuffle(validDecoyASes);
+				for(int counter = 0; counter < drCount; counter++){
+					drSet.add(validDecoyASes.get(counter));
 				}
 
 				for (int counter = 0; counter < 3; counter++) {
