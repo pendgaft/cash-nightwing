@@ -121,6 +121,7 @@ public class MiscParsing {
 				if (roundFlag == 0) {
 					if (roundDeltas.size() != 0) {
 						results.put(iteration, roundDeltas);
+						iteration++;
 						roundDeltas = new HashMap<Integer, Double>();
 						firstRoundValue.clear();
 					}
@@ -145,6 +146,7 @@ public class MiscParsing {
 				}
 			}
 		}
+		results.put(iteration, roundDeltas);
 		inBuff.close();
 
 		return results;
@@ -153,6 +155,9 @@ public class MiscParsing {
 	private static void directAStoASComparison(String fileA, String fileB, String outFile) throws IOException {
 		HashMap<Integer, HashMap<Integer, Double>> roundADeltas = MiscParsing.computeProfitDeltas(fileA, true, 3, true);
 		HashMap<Integer, HashMap<Integer, Double>> roundBDeltas = MiscParsing.computeProfitDeltas(fileB, true, 3, true);
+
+		System.out.println("A size: " + roundADeltas.size());
+		System.out.println("B size: " + roundBDeltas.size());
 
 		HashMap<Integer, HashMap<Integer, Double>> change = new HashMap<Integer, HashMap<Integer, Double>>();
 		for (int roundKey : roundADeltas.keySet()) {
@@ -170,7 +175,7 @@ public class MiscParsing {
 					System.err.println("the two AS sets don't match up!");
 					return;
 				}
-				roundChanges.put(tASN, (bValue - aValue) / aValue * -1.0);
+				roundChanges.put(tASN, (bValue - aValue) / aValue * -100.0);
 			}
 
 			change.put(roundKey, roundChanges);
