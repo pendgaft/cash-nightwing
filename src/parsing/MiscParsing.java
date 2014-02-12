@@ -139,8 +139,9 @@ public class MiscParsing {
 							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
 									Double.parseDouble(dataMatch.group(column)));
 						} else {
-							double delta = Double.parseDouble(dataMatch.group(column))
-									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
+						    double delta = (Double.parseDouble(dataMatch.group(column))
+								    - firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))) /
+							firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));   
 							roundDeltas.put(Integer.parseInt(dataMatch.group(1)), delta);
 						}
 					}
@@ -157,8 +158,12 @@ public class MiscParsing {
 		HashMap<Integer, HashMap<Integer, Double>> roundADeltas = MiscParsing.computeProfitDeltas(fileA, true, 3, true);
 		HashMap<Integer, HashMap<Integer, Double>> roundBDeltas = MiscParsing.computeProfitDeltas(fileB, true, 3, true);
 
-		System.out.println("A size: " + roundADeltas.size());
-		System.out.println("B size: " + roundBDeltas.size());
+		HashMap<Integer, List<Double>> origLosses = new HashMap<Integer, List<Double>>();
+		origLosses.put(0, new ArrayList<Double>());
+		origLosses.put(1, new ArrayList<Double>());
+		origLosses.get(0).addAll(roundADeltas.get(0).values());
+		origLosses.get(1).addAll(roundBDeltas.get(0).values());
+		MaxParser.printCDF(origLosses, outFileBase + "-origLossCDF.csv");
 
 		HashMap<Integer, HashMap<Integer, Double>> change = new HashMap<Integer, HashMap<Integer, Double>>();
 		for (int roundKey : roundADeltas.keySet()) {
