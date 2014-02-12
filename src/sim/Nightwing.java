@@ -64,9 +64,9 @@ public class Nightwing {
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
 			mode = Nightwing.ECON_PHASE_1;
-			if (args.length != 6) {
+			if (args.length != 7) {
 				System.out
-						.println("Economic mode 1 (only provide, number of DR exploration) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size>");
+						.println("Economic mode 1 (only provide, number of DR exploration) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting decoy count> <ending decoy count> <step size> <min CC size>");
 				return;
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M2_STRING)) {
@@ -160,7 +160,7 @@ public class Nightwing {
 			 * Do the actual rounds of simulation
 			 */
 			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), Constants.SAMPLE_COUNT, 2, trafficStat, false);
+					.parseInt(args[5]), Constants.SAMPLE_COUNT, Integer.parseInt(args[6]), trafficStat, false);
 			econEngine.endSim();
 		} else if (mode == Nightwing.ECON_MODE_2) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
