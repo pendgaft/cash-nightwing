@@ -16,7 +16,8 @@ public class MiscParsing {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException {
-		MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
+		//MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
+		MiscParsing.ringOneSize(args[0]);
 	}
 
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
@@ -242,6 +243,42 @@ public class MiscParsing {
 			sliceValues.put(tSlice, sliceValueList);
 		}
 		MaxParser.printCDF(sliceValues, outFileBase + "-sliceDeltaCDF.csv");
+	}
+	
+	public static void ringOneSize(String wardenFile) throws IOException {
+		HashMap<Integer, DecoyAS> theTopo = ASTopoParser.doNetworkBuild(wardenFile);
+		Set<Integer> wardenSet = new HashSet<Integer>();
+		
+		for(DecoyAS tAS: theTopo.values()){
+			if(tAS.isWardenAS()){
+				wardenSet.add(tAS.getASN());
+			}
+		}
+		
+		int r1Count = 0;
+		int r1TransitCount = 0;
+		int r1ProviderCount = 0;
+		for(DecoyAS tAS: theTopo.values()){
+			if(wardenSet.contains(tAS.getASN())){
+				continue;
+			}
+			
+			for(int tWardenASN: wardenSet){
+				DecoyAS tWarden = theTopo.get(tWardenASN);
+				if(tWarden.getNeighbors().contains(tAS.getASN())){
+					r1Count++;
+					if(tAS.getCustomers().size() > 0){
+					    r1TransitCount++;
+					}
+					if(tAS.getCustomers().contains(tWarden)){
+					    r1ProviderCount++;
+					}
+					break;
+				}
+			}
+		}
+		
+		System.out.println("r1 size: " + r1Count + " warden size: " + wardenSet.size() + " tranist Size: " + r1TransitCount + " provider count: " + r1ProviderCount);
 	}
 
 }
