@@ -392,10 +392,10 @@ public class MaxParser {
 		int measurePos = 0;
 
 		boolean inTargetRound = false;
+		int sampleSize = -1;
 		while (inBuff.ready()) {
 			boolean controlFlag = false;
 			int roundValue = -1;
-			int sampleSize = -1;
 			String pollStr = inBuff.readLine().trim();
 
 			/*
@@ -419,7 +419,7 @@ public class MaxParser {
 				currentCoopShadow = coopShadowSize.get(measurePos);
 				measurePos++;
 				
-				sampleSize = Integer.parseInt(sampleMatch.group(1));
+				int newSampleSize = Integer.parseInt(sampleMatch.group(1));
 				roundValue = Integer.parseInt(sampleMatch.group(2));
 
 				/*
@@ -451,6 +451,7 @@ public class MaxParser {
 				 * No matter what we should skip the attempt to parse the line
 				 * as a data line
 				 */
+				sampleSize = newSampleSize;
 				continue;
 			}
 
@@ -486,6 +487,21 @@ public class MaxParser {
 			}
 		}
 		inBuff.close();
+		
+		/*
+		 * Handle the last round which fails to have a trailing control flag
+		 */
+		if (round == 2) {
+			// stop logging
+			inTargetRound = false;
+			/*
+			 * Dump in the list if it doesn't exist in the map
+			 */
+			if (!values.containsKey(sampleSize)) {
+				values.put(sampleSize, new ArrayList<Double>());
+			}
+			values.get(sampleSize).add(currentIPCleanness / currentIPCount);
+		}
 
 		return values;
 	}
