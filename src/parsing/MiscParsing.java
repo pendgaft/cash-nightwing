@@ -5,8 +5,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 
 import sim.Constants;
-import topo.ASTopoParser;
-import topo.ASRanker;
+import topo.*;
 import decoy.DecoyAS;
 import econ.EconomicEngine;
 
@@ -17,7 +16,8 @@ public class MiscParsing {
 	 */
 	public static void main(String[] args) throws IOException {
 		//MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
-		MiscParsing.ringOneSize(args[0]);
+		//MiscParsing.ringOneSize(args[0]);
+		MiscParsing.computeIPandIPCC(args[0]);
 	}
 
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
@@ -281,4 +281,41 @@ public class MiscParsing {
 		System.out.println("r1 size: " + r1Count + " warden size: " + wardenSet.size() + " tranist Size: " + r1TransitCount + " provider count: " + r1ProviderCount);
 	}
 
+	public static void computeIPandIPCC(String wardenFile) throws IOException{
+		HashMap<Integer, DecoyAS> theTopo = ASTopoParser.doNetworkBuild(wardenFile);
+		
+		long wardenIP = 0;
+		long ccIP = 0;
+		
+		Set<Integer> ccASSet = new HashSet<Integer>();
+		for(DecoyAS tAS: theTopo.values()){
+			if(tAS.isWardenAS()){
+				wardenIP += tAS.getIPCount();
+				ccASSet.add(tAS.getASN());
+				Set<Integer> toVisit = new HashSet<Integer>();
+				for(AS custAS: tAS.getCustomers()){
+					toVisit.add(custAS.getASN());
+				}
+				while(!toVisit.isEmpty()){
+					HashSet<Integer> nextToVisit = new HashSet<Integer>();
+					for(int tCustASN: toVisit){
+						ccASSet.add(tCustASN);
+						DecoyAS custASObj = theTopo.get(tCustASN);
+						for(AS tCustCustAS: custASObj.getCustomers()){
+							if(!ccASSet.contains(tCustCustAS.getASN())){
+								nextToVisit.add(tCustCustAS.getASN());
+							}
+						}
+					}
+					toVisit = nextToVisit;
+				}
+			}
+		}
+		
+		for(int tASN: ccASSet){
+			ccIP += theTopo.get(tASN).getIPCount();
+		}
+		
+		System.out.println("Results for: " + wardenFile + " Internal warden IP: " + wardenIP + " CC IP size: " + ccIP);
+	}
 }
