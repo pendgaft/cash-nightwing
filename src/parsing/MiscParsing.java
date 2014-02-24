@@ -316,6 +316,6 @@ public class MiscParsing {
 			ccIP += theTopo.get(tASN).getIPCount();
 		}
 		
-		System.out.println("Results for: " + wardenFile + " Internal warden IP: " + wardenIP + " CC IP size: " + ccIP);
+		System.out.println("Results for: " + wardenFile + " Internal warden IP: " + (wardenIP/256) + " CC IP size: " + (ccIP/256));
 	}
 }
