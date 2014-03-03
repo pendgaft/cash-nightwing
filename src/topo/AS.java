@@ -105,7 +105,7 @@ public abstract class AS implements TransitAgent {
 		this.inRib = (HashMap<Integer, List<BGPPath>>) serialIn.readObject();
 		this.locRib = (HashMap<Integer, BGPPath>) serialIn.readObject();
 		this.adjOutRib = new HashMap<Integer, Set<AS>>();
-		
+
 		for (int tDestASN : this.locRib.keySet()) {
 			Set<AS> tempSet = new HashSet<AS>();
 			for (AS tCust : this.customers) {
@@ -122,30 +122,32 @@ public abstract class AS implements TransitAgent {
 			this.adjOutRib.put(tDestASN, tempSet);
 		}
 
-//		HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer, Set<Integer>>) serialIn.readObject();
-//		this.adjOutRib = new HashMap<Integer, Set<AS>>();
-//		for (int tASN : tempAdjOut.keySet()) {
-//			Set<AS> tempSet = new HashSet<AS>();
-//			for (int tAdvNeighbor : tempAdjOut.get(tASN)) {
-//				tempSet.add(this.getNeighborByASN(tAdvNeighbor));
-//			}
-//			this.adjOutRib.put(tASN, tempSet);
-//		}
+		// HashMap<Integer, Set<Integer>> tempAdjOut = (HashMap<Integer,
+		// Set<Integer>>) serialIn.readObject();
+		// this.adjOutRib = new HashMap<Integer, Set<AS>>();
+		// for (int tASN : tempAdjOut.keySet()) {
+		// Set<AS> tempSet = new HashSet<AS>();
+		// for (int tAdvNeighbor : tempAdjOut.get(tASN)) {
+		// tempSet.add(this.getNeighborByASN(tAdvNeighbor));
+		// }
+		// this.adjOutRib.put(tASN, tempSet);
+		// }
 	}
 
 	public void saveASToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.inRib);
 		serialOut.writeObject(this.locRib);
 
-//		HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer, Set<Integer>>();
-//		for (int tDest : this.adjOutRib.keySet()) {
-//			Set<Integer> tempSet = new HashSet<Integer>();
-//			for (AS tAS : this.adjOutRib.get(tDest)) {
-//				tempSet.add(tAS.getASN());
-//			}
-//			tempAdjOut.put(tDest, tempSet);
-//		}
-//		serialOut.writeObject(tempAdjOut);
+		// HashMap<Integer, Set<Integer>> tempAdjOut = new HashMap<Integer,
+		// Set<Integer>>();
+		// for (int tDest : this.adjOutRib.keySet()) {
+		// Set<Integer> tempSet = new HashSet<Integer>();
+		// for (AS tAS : this.adjOutRib.get(tDest)) {
+		// tempSet.add(tAS.getASN());
+		// }
+		// tempAdjOut.put(tDest, tempSet);
+		// }
+		// serialOut.writeObject(tempAdjOut);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -167,7 +169,7 @@ public abstract class AS implements TransitAgent {
 		serialOut.writeObject(this.volatileTransitTraffic);
 		serialOut.writeObject(this.volatileLastHopDeliveryTraffic);
 		serialOut.writeObject(this.volatileDestinations);
-		
+
 	}
 
 	/**
@@ -190,10 +192,10 @@ public abstract class AS implements TransitAgent {
 		return this.numberOfIPs;
 	}
 
-	/**		if (this.adjInRib.get(advPeer) == null) {
-			this.adjInRib.put(advPeer, new HashMap<Integer, BGPPath>());
-		}
-	 * sets the percentage of ipCount in the total normal ASes' ipCount
+	/**
+	 * if (this.adjInRib.get(advPeer) == null) { this.adjInRib.put(advPeer, new
+	 * HashMap<Integer, BGPPath>()); } sets the percentage of ipCount in the
+	 * total normal ASes' ipCount
 	 * 
 	 * @param ipP
 	 */
@@ -357,7 +359,7 @@ public abstract class AS implements TransitAgent {
 		 */
 		if (this.inRib.get(dest) == null) {
 			this.inRib.put(dest, new ArrayList<BGPPath>());
-		}	
+		}
 
 		/*
 		 * If there was a rotue to remove from the adjInRib, clean up the inRib
@@ -367,7 +369,7 @@ public abstract class AS implements TransitAgent {
 		for (int counter = 0; counter < destRibList.size(); counter++) {
 			if (destRibList.get(counter).getNextHop() == advPeer) {
 				destRibList.remove(counter);
-				
+
 				break;
 			}
 		}
@@ -468,11 +470,11 @@ public abstract class AS implements TransitAgent {
 		List<BGPPath> possList = this.inRib.get(dest);
 		BGPPath currentBest = this.pathSelection(possList);
 		BGPPath currentInstall = this.locRib.get(dest);
-		
+
 		/*
-		 * We need to handle advertisements in one of two cases
-		 *   a) we have found a new best path and it's not the same as our current best path
-		 *   b) we had a best path prior, but currently do not
+		 * We need to handle advertisements in one of two cases a) we have found
+		 * a new best path and it's not the same as our current best path b) we
+		 * had a best path prior, but currently do not
 		 */
 		changed = (currentBest != null && (currentInstall == null || !currentBest.equals(currentInstall)))
 				|| (currentBest == null && currentInstall != null);
@@ -500,14 +502,14 @@ public abstract class AS implements TransitAgent {
 		 * can, if not don't lose connectivity
 		 */
 		BGPPath avoidPath = this.internalPathSelection(possList, true);
-		
+
 		/*
 		 * In strict avoidance we're refusing ANY route through a DR
 		 */
-		if(this.currentAvoidMode == AS.AvoidMode.StrictReversePoison){
+		if (this.currentAvoidMode == AS.AvoidMode.StrictReversePoison) {
 			return avoidPath;
 		}
-		
+
 		/*
 		 * Any other avoidance mode, find a path, even if it is dirty
 		 */
@@ -531,7 +533,8 @@ public abstract class AS implements TransitAgent {
 		/*
 		 * TODO while this might not be simple, in many cases I don't think we
 		 * need to do this work over the whole list of routes, just the best and
-		 * the changed/new/whatever doesn't work in the case of loss of best route obvi
+		 * the changed/new/whatever doesn't work in the case of loss of best
+		 * route obvi
 		 */
 		for (BGPPath tPath : possList) {
 
@@ -542,8 +545,8 @@ public abstract class AS implements TransitAgent {
 			 * this leaves us w/ no viable routes
 			 */
 			if (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref
-					|| ((this.currentAvoidMode == AS.AvoidMode.StrictReversePoison || this.currentAvoidMode == AS.AvoidMode.PermissiveReversePoison) 
-							&& this.wardenSet.contains(tPath.getDest()))) {
+					|| ((this.currentAvoidMode == AS.AvoidMode.StrictReversePoison || this.currentAvoidMode == AS.AvoidMode.PermissiveReversePoison) && this.wardenSet
+							.contains(tPath.getDest()))) {
 				if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
 					continue;
 				}
@@ -586,12 +589,14 @@ public abstract class AS implements TransitAgent {
 					currentRel = newRel;
 					continue;
 				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+							&& currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+							&& !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
 
@@ -701,7 +706,18 @@ public abstract class AS implements TransitAgent {
 	 *            - the ASN of the destination network
 	 * @return - the current best path, or null if we have none
 	 */
-	public BGPPath getPath(int dest) {
+	public BGPPath getPath(int dest, boolean forbidDirtyPath) {
+		if (forbidDirtyPath && this.isWardenAS() && this.activeAvoidance) {
+			BGPPath thePath = this.locRib.get(dest);
+			if (thePath != null) {
+				List<Integer> hops = thePath.getPath();
+				for (int tHop : hops) {
+					if(this.avoidSet.contains(tHop)){
+						return null;
+					}
+				}
+			}
+		}
 		return this.locRib.get(dest);
 	}
 
@@ -720,7 +736,7 @@ public abstract class AS implements TransitAgent {
 	public BGPPath getPathToPurged(List<Integer> hookASNs) {
 		List<BGPPath> listPossPaths = new LinkedList<BGPPath>();
 		for (Integer tHook : hookASNs) {
-			BGPPath tempPath = this.getPath(tHook);
+			BGPPath tempPath = this.getPath(tHook, false);
 			if (tempPath != null) {
 				listPossPaths.add(tempPath);
 			}
@@ -760,8 +776,8 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public String printDebugString() {
-		return this.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n"
-				+ this.locRib.toString() + "\nADJ OUT\n" + this.adjOutRib.toString();
+		return this.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n" + this.locRib.toString() + "\nADJ OUT\n"
+				+ this.adjOutRib.toString();
 	}
 
 	/**
@@ -821,8 +837,8 @@ public abstract class AS implements TransitAgent {
 	public boolean isWardenAS() {
 		return this.wardenAS;
 	}
-	
-	public void setWardenSet(Set<Integer> wardenASes){
+
+	public void setWardenSet(Set<Integer> wardenASes) {
 		this.wardenSet = wardenASes;
 	}
 
@@ -995,10 +1011,12 @@ public abstract class AS implements TransitAgent {
 		if (isTransit) {
 			this.transitTrafficOverLink.put(neighbor, this.transitTrafficOverLink.get(neighbor) + amountOfTraffic);
 			/*
-			 * Traffic can ONLY be marked as last hop delivery if it is transit to begin with
+			 * Traffic can ONLY be marked as last hop delivery if it is transit
+			 * to begin with
 			 */
 			if (isDelivery) {
-				this.lastHopDeliveryOverLink.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
+				this.lastHopDeliveryOverLink
+						.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
 			}
 		}
 
@@ -1025,8 +1043,8 @@ public abstract class AS implements TransitAgent {
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
-			this.transitTrafficOverLink.put(tASN, this.transitTrafficOverLink.get(tASN)
-					- this.volatileTransitTraffic.get(tASN));
+			this.transitTrafficOverLink.put(tASN,
+					this.transitTrafficOverLink.get(tASN) - this.volatileTransitTraffic.get(tASN));
 			this.lastHopDeliveryOverLink.put(tASN, this.lastHopDeliveryOverLink.get(tASN)
 					- this.volatileLastHopDeliveryTraffic.get(tASN));
 			this.volatileTraffic.put(tASN, 0.0);

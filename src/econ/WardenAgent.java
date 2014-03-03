@@ -43,7 +43,7 @@ public class WardenAgent extends EconomicAgent {
 				continue;
 			}
 
-			BGPPath tPath = this.parent.getPath(tDest);
+			BGPPath tPath = this.parent.getPath(tDest, false);
 			if (tPath == null) {
 				nullCount++;
 				continue;

@@ -282,7 +282,7 @@ public class EconomicEngine {
 		for(DecoyAS tAS: this.activeTopology.values()){
 			if(tAS.isWardenAS()){
 				for(int tDestASN: this.theTopo.keySet()){
-					BGPPath tPath = tAS.getPath(tDestASN);
+					BGPPath tPath = tAS.getPath(tDestASN, false);
 					if(tPath == null){
 						continue;
 					}
