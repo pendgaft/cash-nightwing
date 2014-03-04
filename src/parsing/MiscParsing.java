@@ -9,14 +9,16 @@ import topo.*;
 import decoy.DecoyAS;
 import econ.EconomicEngine;
 
+import scijava.stats.CDF;
+
 public class MiscParsing {
 
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException {
-		//MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
-		//MiscParsing.ringOneSize(args[0]);
+		// MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
+		// MiscParsing.ringOneSize(args[0]);
 		MiscParsing.computeIPandIPCC(args[0]);
 	}
 
@@ -140,9 +142,9 @@ public class MiscParsing {
 							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
 									Double.parseDouble(dataMatch.group(column)));
 						} else {
-						    double delta = (Double.parseDouble(dataMatch.group(column))
-								    - firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))) /
-							firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));   
+							double delta = (Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
+									.parseInt(dataMatch.group(1))))
+									/ firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
 							roundDeltas.put(Integer.parseInt(dataMatch.group(1)), delta);
 						}
 					}
@@ -244,65 +246,66 @@ public class MiscParsing {
 		}
 		MaxParser.printCDF(sliceValues, outFileBase + "-sliceDeltaCDF.csv");
 	}
-	
+
 	public static void ringOneSize(String wardenFile) throws IOException {
 		HashMap<Integer, DecoyAS> theTopo = ASTopoParser.doNetworkBuild(wardenFile);
 		Set<Integer> wardenSet = new HashSet<Integer>();
-		
-		for(DecoyAS tAS: theTopo.values()){
-			if(tAS.isWardenAS()){
+
+		for (DecoyAS tAS : theTopo.values()) {
+			if (tAS.isWardenAS()) {
 				wardenSet.add(tAS.getASN());
 			}
 		}
-		
+
 		int r1Count = 0;
 		int r1TransitCount = 0;
 		int r1ProviderCount = 0;
-		for(DecoyAS tAS: theTopo.values()){
-			if(wardenSet.contains(tAS.getASN())){
+		for (DecoyAS tAS : theTopo.values()) {
+			if (wardenSet.contains(tAS.getASN())) {
 				continue;
 			}
-			
-			for(int tWardenASN: wardenSet){
+
+			for (int tWardenASN : wardenSet) {
 				DecoyAS tWarden = theTopo.get(tWardenASN);
-				if(tWarden.getNeighbors().contains(tAS.getASN())){
+				if (tWarden.getNeighbors().contains(tAS.getASN())) {
 					r1Count++;
-					if(tAS.getCustomers().size() > 0){
-					    r1TransitCount++;
+					if (tAS.getCustomers().size() > 0) {
+						r1TransitCount++;
 					}
-					if(tAS.getCustomers().contains(tWarden)){
-					    r1ProviderCount++;
+					if (tAS.getCustomers().contains(tWarden)) {
+						r1ProviderCount++;
 					}
 					break;
 				}
 			}
 		}
-		
-		System.out.println("r1 size: " + r1Count + " warden size: " + wardenSet.size() + " tranist Size: " + r1TransitCount + " provider count: " + r1ProviderCount);
+
+		System.out.println("r1 size: " + r1Count + " warden size: " + wardenSet.size() + " tranist Size: "
+				+ r1TransitCount + " provider count: " + r1ProviderCount);
 	}
 
-	public static void computeIPandIPCC(String wardenFile) throws IOException{
+	public static void computeIPandIPCC(String wardenFile) throws IOException {
 		HashMap<Integer, DecoyAS> theTopo = ASTopoParser.doNetworkBuild(wardenFile);
-		
+
 		long wardenIP = 0;
 		long ccIP = 0;
-		
+
 		Set<Integer> ccASSet = new HashSet<Integer>();
-		for(DecoyAS tAS: theTopo.values()){
-			if(tAS.isWardenAS()){
+		for (DecoyAS tAS : theTopo.values()) {
+			if (tAS.isWardenAS()) {
 				wardenIP += tAS.getIPCount();
 				ccASSet.add(tAS.getASN());
 				Set<Integer> toVisit = new HashSet<Integer>();
-				for(AS custAS: tAS.getCustomers()){
+				for (AS custAS : tAS.getCustomers()) {
 					toVisit.add(custAS.getASN());
 				}
-				while(!toVisit.isEmpty()){
+				while (!toVisit.isEmpty()) {
 					HashSet<Integer> nextToVisit = new HashSet<Integer>();
-					for(int tCustASN: toVisit){
+					for (int tCustASN : toVisit) {
 						ccASSet.add(tCustASN);
 						DecoyAS custASObj = theTopo.get(tCustASN);
-						for(AS tCustCustAS: custASObj.getCustomers()){
-							if(!ccASSet.contains(tCustCustAS.getASN())){
+						for (AS tCustCustAS : custASObj.getCustomers()) {
+							if (!ccASSet.contains(tCustCustAS.getASN())) {
 								nextToVisit.add(tCustCustAS.getASN());
 							}
 						}
@@ -311,11 +314,91 @@ public class MiscParsing {
 				}
 			}
 		}
-		
-		for(int tASN: ccASSet){
+
+		for (int tASN : ccASSet) {
 			ccIP += theTopo.get(tASN).getIPCount();
 		}
-		
-		System.out.println("Results for: " + wardenFile + " Internal warden IP: " + (wardenIP/256) + " CC IP size: " + (ccIP/256));
+
+		System.out.println("Results for: " + wardenFile + " Internal warden IP: " + (wardenIP / 256) + " CC IP size: "
+				+ (ccIP / 256));
+	}
+
+	public void profitSameASCDF(String inFile, String outFile) throws IOException {
+		HashSet<Integer> targetASSet = null;
+		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
+		List<Collection<Double>> results = new ArrayList<Collection<Double>>();
+		HashMap<Integer, Double> deltas = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
+		int sampleSize = 0;
+
+		int roundFlag = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int oldSize = sampleSize;
+				sampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0) {
+					firstRoundValue.clear();
+					if (oldSize != sampleSize && oldSize != 0) {
+						if (targetASSet == null) {
+							targetASSet = new HashSet<Integer>();
+							targetASSet.addAll(deltas.keySet());
+						}
+						List<Double> resultList = new ArrayList<Double>();
+						for (int tASN : targetASSet) {
+							resultList.add(deltas.get(tASN));
+						}
+						results.add(resultList);
+						deltas.clear();
+					}
+
+				}
+
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4))) {
+						if (roundFlag == 1) {
+							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(3)));
+						} else {
+							double delta = Double.parseDouble(dataMatch.group(3))
+									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
+							if (delta != 0.0) {
+
+								deltas.put(
+										Integer.parseInt(dataMatch.group(1)),
+										100.0 * delta
+												/ Math.abs(firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))));
+
+							}
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+
+		CDF.printCDFs(results, outFile);
 	}
 }
