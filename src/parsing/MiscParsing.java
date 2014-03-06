@@ -323,6 +323,79 @@ public class MiscParsing {
 				+ (ccIP / 256));
 	}
 
+	/*
+	 * Used for parsing a detector set
+	 */
+	public void generateDefectorConfig(String logFile, String outFile, int size) throws IOException {
+		List<Integer> masterASList = new ArrayList<Integer>(size);
+
+		BufferedReader oldLogBuff = new BufferedReader(new FileReader(logFile));
+		boolean inRegion = false;
+		while (oldLogBuff.ready()) {
+			String pollStr = oldLogBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				int roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int sampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (sampleSize == size) {
+					if (roundFlag == 2) {
+						break;
+					}else if(roundFlag == 1){
+						inRegion = true;
+					}
+				}
+
+				continue;
+			}
+
+			if (inRegion) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4))) {
+						masterASList.add(Integer.parseInt(dataMatch.group(1)));
+					}
+				}
+			}
+
+		}
+		oldLogBuff.close();
+
+		/*
+		 * Write each N choose N - 1 combo to the out file
+		 */
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+		for (int counter = 0; counter < size; counter++) {
+			for (int posCounter = 0; posCounter < size; posCounter++) {
+				if (posCounter == counter) {
+					continue;
+				}
+				outBuff.write(Integer.toString(masterASList.get(posCounter)) + "\n");
+			}
+			outBuff.write("\n");
+		}
+		outBuff.close();
+	}
+
+	/*
+	 * Outputs the CDFs of profit losses for the same set of ASes each deploy,
+	 * no matter what the actual set of deployers is, the set of ASes outputted
+	 * is the first set of deployers
+	 */
 	public void profitSameASCDF(String inFile, String outFile) throws IOException {
 		HashSet<Integer> targetASSet = null;
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
@@ -398,6 +471,9 @@ public class MiscParsing {
 			}
 		}
 		inBuff.close();
+
+		// FIXME we're missing the last data point because we don't see a
+		// control seq
 
 		CDF.printCDFs(results, outFile);
 	}
