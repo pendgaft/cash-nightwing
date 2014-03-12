@@ -19,7 +19,7 @@ public class MiscParsing {
 	public static void main(String[] args) throws IOException {
 		// MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
 		// MiscParsing.ringOneSize(args[0]);
-		MiscParsing.computeIPandIPCC(args[0]);
+		MiscParsing.directAStoASComparison("/home/pendgaft/research/drEcon/rawData/transit-bbb.log", "/home/pendgaft/research/drEcon/rawData/transit-dd.log", "/home/pendgaft/research/drEcon/econDeltas/extToLite");
 	}
 
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
@@ -142,9 +142,9 @@ public class MiscParsing {
 							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
 									Double.parseDouble(dataMatch.group(column)));
 						} else {
-							double delta = (Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
+							double delta = -1.0 * ((Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
 									.parseInt(dataMatch.group(1))))
-									/ firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
+									/ firstRoundValue.get(Integer.parseInt(dataMatch.group(1))));
 							roundDeltas.put(Integer.parseInt(dataMatch.group(1)), delta);
 						}
 					}
@@ -157,7 +157,7 @@ public class MiscParsing {
 		return results;
 	}
 
-	private static void directAStoASComparison(String fileA, String fileB, String outFileBase) throws IOException {
+	public static void directAStoASComparison(String fileA, String fileB, String outFileBase) throws IOException {
 		HashMap<Integer, HashMap<Integer, Double>> roundADeltas = MiscParsing.computeProfitDeltas(fileA, true, 3, true);
 		HashMap<Integer, HashMap<Integer, Double>> roundBDeltas = MiscParsing.computeProfitDeltas(fileB, true, 3, true);
 
@@ -168,9 +168,9 @@ public class MiscParsing {
 		origLosses.get(1).addAll(roundBDeltas.get(0).values());
 		MaxParser.printCDF(origLosses, outFileBase + "-origLossCDF.csv");
 
-		HashMap<Integer, HashMap<Integer, Double>> change = new HashMap<Integer, HashMap<Integer, Double>>();
+		List<Collection<Double>> changes = new ArrayList<Collection<Double>>();
 		for (int roundKey : roundADeltas.keySet()) {
-			HashMap<Integer, Double> roundChanges = new HashMap<Integer, Double>();
+			List<Double> roundDeltas = new ArrayList<Double>();
 			HashMap<Integer, Double> a = roundADeltas.get(roundKey);
 			HashMap<Integer, Double> b = roundBDeltas.get(roundKey);
 			if (a == null || b == null) {
@@ -184,67 +184,13 @@ public class MiscParsing {
 					System.err.println("the two AS sets don't match up!");
 					return;
 				}
-				roundChanges.put(tASN, (bValue - aValue) / aValue * 100.0);
+				roundDeltas.add((bValue - aValue) / aValue * 100.0);
 			}
 
-			change.put(roundKey, roundChanges);
+			changes.add(roundDeltas);
 		}
-
-		HashMap<Integer, List<Double>> outMap = new HashMap<Integer, List<Double>>();
-		for (int tRoundKey : change.keySet()) {
-			List<Double> roundDeltas = new ArrayList<Double>();
-			roundDeltas.addAll(change.get(tRoundKey).values());
-			outMap.put(tRoundKey, roundDeltas);
-		}
-		MaxParser.printCDF(outMap, outFileBase + "-splitDeltaCDF.csv");
-		HashMap<Integer, List<Double>> compressedMap = new HashMap<Integer, List<Double>>();
-		List<Double> compressedValues = new ArrayList<Double>();
-		for (List<Double> tList : outMap.values()) {
-			compressedValues.addAll(tList);
-		}
-		compressedMap.put(0, compressedValues);
-		MaxParser.printCDF(compressedMap, outFileBase + "-compressedDeltaCDF.csv");
-
-		/*
-		 * Split the CDFs up by their initial losses, see if we can draw
-		 * conclusions, step one, figure out which ASes belong in which slots
-		 * based on their FIRST ROUND LOSSES
-		 */
-		int numberOfBuckets = 5;
-		HashMap<Integer, List<Integer>> sliceNodes = new HashMap<Integer, List<Integer>>();
-		List<ASRanker> values = new ArrayList<ASRanker>();
-		HashMap<Integer, Double> sampleMap = roundADeltas.get(0);
-		for (int tASN : sampleMap.keySet()) {
-			values.add(new ASRanker(tASN, sampleMap.get(tASN)));
-		}
-		Collections.sort(values);
-		int sliceSize = (int) Math.floor((double) values.size() / (double) numberOfBuckets);
-		int pos = 0;
-		for (int counter = 0; counter < numberOfBuckets; counter++) {
-			List<Integer> currentSliceMembers = new ArrayList<Integer>(sliceSize);
-			for (int innerCounter = 0; innerCounter < sliceSize; innerCounter++) {
-				currentSliceMembers.add(values.get(pos).getASN());
-				pos++;
-			}
-			sliceNodes.put(counter, currentSliceMembers);
-		}
-		while (pos < values.size()) {
-			sliceNodes.get(numberOfBuckets - 1).add(values.get(pos).getASN());
-			pos++;
-		}
-
-		/*
-		 * Populate the slices with the actual deltas and output
-		 */
-		HashMap<Integer, List<Double>> sliceValues = new HashMap<Integer, List<Double>>();
-		for (int tSlice : sliceNodes.keySet()) {
-			List<Double> sliceValueList = new ArrayList<Double>(sliceSize);
-			for (int tASN : sliceNodes.get(tSlice)) {
-				sliceValueList.add(change.get(0).get(tASN));
-			}
-			sliceValues.put(tSlice, sliceValueList);
-		}
-		MaxParser.printCDF(sliceValues, outFileBase + "-sliceDeltaCDF.csv");
+		
+		CDF.printCDFs(changes, outFileBase + "-lossDeltas");
 	}
 
 	public static void ringOneSize(String wardenFile) throws IOException {
