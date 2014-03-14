@@ -4,6 +4,8 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
+import scijava.stats.CDF;
+
 public class MaxParser {
 
 	private HashMap<Integer, Double> asToIP;
@@ -47,10 +49,11 @@ public class MaxParser {
 //					+ "/drProfitDelta.csv", true, 2);
 //			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 //					+ "/nonDRProfitDelta.csv", false, 2);
+			//TODO add cdf file arg after output file arg
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drTransitProfitDelta.csv", true, 3);
+					      + "/drTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/drProfitCDF.csv", true, 3);
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRTransitProfitDelta.csv", false, 3);
+					      + "/nonDRTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRProfitCDF.csv", false, 3);
 		}
 	}
 
@@ -71,8 +74,8 @@ public class MaxParser {
 		fBuff.close();
 	}
 
-	private void fullProfitDeltas(String inFile, String outFile, boolean isDR, int column) throws IOException {
-		HashMap<Integer, HashMap<Double, Double>> results = this.computeProfitDeltas(inFile, isDR, column, true);
+    private void fullProfitDeltas(String inFile, String outFile, String cdfFile, boolean isDR, int column) throws IOException {
+	HashMap<Integer, HashMap<Double, Double>> results = this.computeProfitDeltas(inFile, isDR, column, true, cdfFile);
 
 		/*
 		 * Slightly ghetto hack to get the sample sizes
@@ -93,12 +96,14 @@ public class MaxParser {
 	}
 
 	private HashMap<Integer, HashMap<Double, Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
-			boolean normalized) throws IOException {
+									      boolean normalized, String profitCDFFile) throws IOException {
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
 		HashMap<Integer, HashMap<Double, Double>> results = new HashMap<Integer, HashMap<Double, Double>>();
 		List<Double> sampleDeltas = new ArrayList<Double>();
+		List<Collection<Double>> fullDeltas = new ArrayList<Collection<Double>>();
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
 		int sampleSize = 0;
+		int oldSize = 0;
 
 		int roundFlag = 0;
 		while (inBuff.ready()) {
@@ -117,7 +122,7 @@ public class MaxParser {
 
 			if (controlFlag) {
 				roundFlag = Integer.parseInt(controlMatcher.group(2));
-				int oldSize = sampleSize;
+				oldSize = sampleSize;
 				sampleSize = Integer.parseInt(controlMatcher.group(1));
 
 				/*
@@ -127,6 +132,11 @@ public class MaxParser {
 					firstRoundValue.clear();
 					if (oldSize != sampleSize && oldSize != 0) {
 						HashMap<Double, Double> extractMap = new HashMap<Double, Double>();
+						List<Double> listClone = new ArrayList<Double>(sampleDeltas.size());
+						for(double tVal: sampleDeltas){
+						    listClone.add(-1.0 * tVal);
+						}
+						fullDeltas.add(listClone);
 						for (double tPercent : MaxParser.PERCENTILES) {
 							extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
 						}
@@ -163,6 +173,20 @@ public class MaxParser {
 			}
 		}
 		inBuff.close();
+
+		HashMap<Double, Double> extractMap = new HashMap<Double, Double>();
+		List<Double> listClone = new ArrayList<Double>(sampleDeltas.size());
+		for(double tVal: sampleDeltas){
+		    listClone.add(-1.0 * tVal);
+		}
+		fullDeltas.add(listClone);
+		for (double tPercent : MaxParser.PERCENTILES) {
+		    extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
+		}
+		results.put(oldSize, extractMap);
+		sampleDeltas.clear();
+		
+		CDF.printCDFs(fullDeltas, profitCDFFile);
 
 		return results;
 	}
