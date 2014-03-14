@@ -19,7 +19,9 @@ public class MiscParsing {
 	public static void main(String[] args) throws IOException {
 		// MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
 		// MiscParsing.ringOneSize(args[0]);
-		MiscParsing.directAStoASComparison("/home/pendgaft/research/drEcon/rawData/transit-bbb.log", "/home/pendgaft/research/drEcon/rawData/transit-dd.log", "/home/pendgaft/research/drEcon/econDeltas/extToLite");
+		MiscParsing.directAStoASComparison("/home/pendgaft/research/drEcon/rawData/transit-gg.log",
+				"/home/pendgaft/research/drEcon/rawData/transit-t.log",
+				"/home/pendgaft/research/drEcon/econChanges/sendNoTraffic");
 	}
 
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
@@ -142,9 +144,10 @@ public class MiscParsing {
 							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
 									Double.parseDouble(dataMatch.group(column)));
 						} else {
-							double delta = -1.0 * ((Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
-									.parseInt(dataMatch.group(1))))
-									/ firstRoundValue.get(Integer.parseInt(dataMatch.group(1))));
+							double delta = -1.0
+									* ((Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
+											.parseInt(dataMatch.group(1)))) / firstRoundValue.get(Integer
+											.parseInt(dataMatch.group(1))));
 							roundDeltas.put(Integer.parseInt(dataMatch.group(1)), delta);
 						}
 					}
@@ -189,7 +192,7 @@ public class MiscParsing {
 
 			changes.add(roundDeltas);
 		}
-		
+
 		CDF.printCDFs(changes, outFileBase + "-lossDeltas");
 	}
 
@@ -301,7 +304,7 @@ public class MiscParsing {
 				if (sampleSize == size) {
 					if (roundFlag == 2) {
 						break;
-					}else if(roundFlag == 1){
+					} else if (roundFlag == 1) {
 						inRegion = true;
 					}
 				}
@@ -423,4 +426,5 @@ public class MiscParsing {
 
 		CDF.printCDFs(results, outFile);
 	}
+	
 }
