@@ -17,11 +17,7 @@ public class MiscParsing {
 	 * @param args
 	 */
 	public static void main(String[] args) throws IOException {
-		// MiscParsing.directAStoASComparison(args[0], args[1], args[2]);
-		// MiscParsing.ringOneSize(args[0]);
-		MiscParsing.directAStoASComparison("/home/pendgaft/research/drEcon/rawData/transit-gg.log",
-				"/home/pendgaft/research/drEcon/rawData/transit-t.log",
-				"/home/pendgaft/research/drEcon/econChanges/sendNoTraffic");
+
 	}
 
 	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
@@ -275,7 +271,7 @@ public class MiscParsing {
 	/*
 	 * Used for parsing a detector set
 	 */
-	public void generateDefectorConfig(String logFile, String outFile, int size) throws IOException {
+	public static void generateDefectorConfig(String logFile, String outFile, int size) throws IOException {
 		List<Integer> masterASList = new ArrayList<Integer>(size);
 
 		BufferedReader oldLogBuff = new BufferedReader(new FileReader(logFile));
