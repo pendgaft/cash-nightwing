@@ -427,4 +427,134 @@ public class MiscParsing {
 		CDF.printCDFs(results, outFile);
 	}
 	
+	public static void parseDefectorRun(String baseLogFile, String defectorRunLogFile, String defectorListFile,
+			String outFile) throws IOException {
+
+		List<Integer> defectorList = new ArrayList<Integer>();
+		HashMap<Integer, Double> trafficNotDefecting = new HashMap<Integer, Double>();
+		HashMap<Integer, Double> deltas = new HashMap<Integer, Double>();
+		HashMap<Integer, Double> change = new HashMap<Integer, Double>();
+		HashMap<Integer, Double> normalizationValues = new HashMap<Integer, Double>();
+
+		BufferedReader inBuff = new BufferedReader(new FileReader(defectorListFile));
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+			if (pollStr.length() > 0) {
+				defectorList.add(Integer.parseInt(pollStr));
+			}
+		}
+		inBuff.close();
+
+		int targetSize = defectorList.size();
+		int roundFlag = 0;
+		int sampleSize = 0;
+		boolean inRegion = false;
+		inBuff = new BufferedReader(new FileReader(baseLogFile));
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				sampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0) {
+					if (sampleSize == targetSize) {
+						inRegion = true;
+					} else if (inRegion) {
+						break;
+					}
+				}
+
+				continue;
+			}
+
+			if (inRegion) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					int asnThisLine = Integer.parseInt(dataMatch.group(1));
+					if (roundFlag == 1) {
+						normalizationValues.put(asnThisLine, Double.parseDouble(dataMatch.group(3)));
+					} else if (roundFlag == 2) {
+						if (defectorList.contains(asnThisLine)) {
+							trafficNotDefecting.put(asnThisLine, Double.parseDouble(dataMatch.group(3)));
+						}
+					}
+				}
+			}
+
+		}
+		inBuff.close();
+
+		int slot = -1;
+		inBuff = new BufferedReader(new FileReader(defectorRunLogFile));
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				sampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0) {
+					slot++;
+				}
+
+				continue;
+			}
+
+			if (roundFlag == 2) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					int asnThisLine = Integer.parseInt(dataMatch.group(1));
+					if (defectorList.get(slot) == asnThisLine) {
+						deltas.put(asnThisLine,
+								(Double.parseDouble(dataMatch.group(3)) - trafficNotDefecting.get(asnThisLine))
+										/ normalizationValues.get(asnThisLine) * 100.0);
+						System.out.println("" + asnThisLine + " " + dataMatch.group(3) + " "
+								+ trafficNotDefecting.get(asnThisLine) + " " + normalizationValues.get(asnThisLine));
+						double origLoss = (normalizationValues.get(asnThisLine) - trafficNotDefecting.get(asnThisLine))
+								/ normalizationValues.get(asnThisLine) * 100.0;
+						change.put(asnThisLine, (deltas.get(asnThisLine) - origLoss) / origLoss * 100.0);
+					}
+				}
+			}
+
+		}
+		inBuff.close();
+
+		List<Double> vals = new ArrayList<Double>(deltas.size());
+		vals.addAll(deltas.values());
+		CDF.printCDF(vals, outFile + "-lossCDF");
+		vals.clear();
+		vals.addAll(change.values());
+		CDF.printCDF(vals, outFile + "-changeCDF");
+	}
+	
 }
