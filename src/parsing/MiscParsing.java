@@ -537,7 +537,8 @@ public class MiscParsing {
 								+ trafficNotDefecting.get(asnThisLine) + " " + normalizationValues.get(asnThisLine));
 						double origLoss = (normalizationValues.get(asnThisLine) - trafficNotDefecting.get(asnThisLine))
 								/ normalizationValues.get(asnThisLine) * 100.0;
-						change.put(asnThisLine, (deltas.get(asnThisLine) - origLoss) / origLoss * 100.0);
+						//change.put(asnThisLine, (deltas.get(asnThisLine) - origLoss) / origLoss * 100.0);
+						change.put(asnThisLine, deltas.get(asnThisLine));
 					}
 				}
 			}
