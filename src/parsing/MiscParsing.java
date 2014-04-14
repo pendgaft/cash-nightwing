@@ -8,7 +8,6 @@ import sim.Constants;
 import topo.*;
 import decoy.DecoyAS;
 import econ.EconomicEngine;
-
 import scijava.stats.CDF;
 
 public class MiscParsing {
@@ -422,7 +421,7 @@ public class MiscParsing {
 
 		CDF.printCDFs(results, outFile);
 	}
-	
+
 	public static void parseDefectorRun(String baseLogFile, String defectorRunLogFile, String defectorListFile,
 			String outFile) throws IOException {
 
@@ -537,7 +536,8 @@ public class MiscParsing {
 								+ trafficNotDefecting.get(asnThisLine) + " " + normalizationValues.get(asnThisLine));
 						double origLoss = (normalizationValues.get(asnThisLine) - trafficNotDefecting.get(asnThisLine))
 								/ normalizationValues.get(asnThisLine) * 100.0;
-						//change.put(asnThisLine, (deltas.get(asnThisLine) - origLoss) / origLoss * 100.0);
+						// change.put(asnThisLine, (deltas.get(asnThisLine) -
+						// origLoss) / origLoss * 100.0);
 						change.put(asnThisLine, deltas.get(asnThisLine));
 					}
 				}
@@ -553,5 +553,107 @@ public class MiscParsing {
 		vals.addAll(change.values());
 		CDF.printCDF(vals, outFile + "-changeCDF");
 	}
-	
+
+	public static void parseRealMoney(String logFile, String outFile) throws IOException {
+
+		HashMap<Integer, HashMap<Integer, Double>> roundResults = new HashMap<Integer, HashMap<Integer, Double>>();
+
+		HashMap<Integer, Double> roundValues = null;
+		HashMap<Integer, Double> firstRoundValues = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
+		int roundFlag = 0;
+		int sampleSize = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag != 0) {
+					firstRoundValues.clear();
+					roundResults.put(sampleSize, roundValues);
+				}
+
+				roundValues = new HashMap<Integer, Double>();
+				sampleSize = newSampleSize;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+						if (roundFlag == 1) {
+							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(3)));
+						} else {
+							int asn = Integer.parseInt(dataMatch.group(1));
+							double delta = Double.parseDouble(dataMatch.group(3)) - firstRoundValues.get(asn);
+							// TODO need to actually get the as object pulled in
+							// here at some point
+							double value = MiscParsing.convertTrafficToDollars(delta, null);
+							roundValues.put(asn, value);
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+		/*
+		 * Dont' forget to do the last round
+		 */
+		firstRoundValues.clear();
+		roundResults.put(sampleSize, roundValues);
+
+		List<Integer> roundSizes = new ArrayList<Integer>(roundResults.size());
+		roundSizes.addAll(roundResults.keySet());
+		Collections.sort(roundSizes);
+
+		/*
+		 * Output CDF of the costs for each round on a per AS basis
+		 */
+		List<Collection<Double>> cdfLists = new ArrayList<Collection<Double>>(roundSizes.size());
+		for (int tSize : roundSizes) {
+			cdfLists.add(roundResults.get(tSize).values());
+		}
+		CDF.printCDFs(cdfLists, outFile + "-CDF");
+
+		/*
+		 * Output the total cost of each round
+		 */
+		List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
+		for (int size : roundSizes) {
+			double sum = 0;
+			for (Double tVal : roundResults.get(size).values()) {
+				sum += tVal;
+			}
+			perRoundCost.add(sum);
+		}
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost"));
+		for (int counter = 0; counter < perRoundCost.size(); counter++) {
+			outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
+		}
+		outBuff.close();
+	}
+
+	private static double convertTrafficToDollars(double amount, DecoyAS as) {
+		// TODO implement
+		return amount * 0.000001287;
+	}
+
 }
