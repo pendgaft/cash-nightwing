@@ -651,6 +651,122 @@ public class MiscParsing {
 		outBuff.close();
 	}
 
+	public static void parseDefectionRealMoney(String baseFile, String logFile, String defectorConfig, String outFile)
+			throws IOException {
+
+		List<Integer> defectionList = new ArrayList<Integer>();
+		BufferedReader confBuff = new BufferedReader(new FileReader(defectorConfig));
+		while (confBuff.ready()) {
+			String pollStr = confBuff.readLine().trim();
+			if (pollStr.length() > 0) {
+				defectionList.add(Integer.parseInt(pollStr));
+			}
+		}
+		confBuff.close();
+
+		HashMap<Integer, Double> roundValues = new HashMap<Integer, Double>();
+		HashMap<Integer, Double> lowWaterMark = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(baseFile));
+		int roundFlag = 0;
+		int sampleSize = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0) {
+					if (sampleSize == defectionList.size()) {
+						break;
+					} else {
+						lowWaterMark.clear();
+					}
+				}
+				sampleSize = newSampleSize;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+						if (roundFlag == 2) {
+							lowWaterMark.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(3)));
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+
+		inBuff = new BufferedReader(new FileReader(logFile));
+		sampleSize = 0;
+		int targetAS = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0) {
+					targetAS = defectionList.get(sampleSize);
+				}
+				sampleSize++;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					int asn = Integer.parseInt(dataMatch.group(1));
+					if (asn == targetAS) {
+						if (roundFlag == 2) {
+							roundValues.put(
+									asn,
+									MiscParsing.convertTrafficToDollars(
+											lowWaterMark.get(asn) - Double.parseDouble(dataMatch.group(3)), null));
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+
+		List<Double> resultsList = new ArrayList<Double>(roundValues.size());
+		resultsList.addAll(roundValues.values());
+		CDF.printCDF(resultsList, outFile);
+	}
+
 	private static double convertTrafficToDollars(double amount, DecoyAS as) {
 		// TODO implement
 		return amount * 0.000001287;
