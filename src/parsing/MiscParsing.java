@@ -584,7 +584,7 @@ public class MiscParsing {
 				/*
 				 * We're ready to actually extract deltas
 				 */
-				if (roundFlag != 0) {
+				if (roundFlag == 0 && sampleSize != 0) {
 					firstRoundValues.clear();
 					roundResults.put(sampleSize, roundValues);
 				}
