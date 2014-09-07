@@ -19,6 +19,7 @@ public class Constants {
 	
 	public static final boolean DEBUG = false;
 	public static final boolean ECON_TESTING = false;
+	public static final boolean DUMP_READABLE_PATHS = false;
 	
 	public static final int NTHREADS = 10;
 	

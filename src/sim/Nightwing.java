@@ -10,6 +10,7 @@ import topo.SerializationMaster;
  import decoy.Rings;*/
 import decoy.*;
 import econ.EconomicEngine;
+import topo.BGPPath;
 
 public class Nightwing {
 
@@ -28,7 +29,7 @@ public class Nightwing {
 	private static final int ECON_MODE_2 = 8;
 	private static final String ECON_M2_STRING = "econ2";
 	private static final int ECON_MODE_3 = 9;
-	private static final String  ECON_M3_STRING = "econ3";
+	private static final String ECON_M3_STRING = "econ3";
 	private static final int ECON_MODE_4 = 10;
 	private static final String ECON_M4_STRING = "econ4";
 
@@ -83,10 +84,11 @@ public class Nightwing {
 						.println("Economic mode 3 (amir's deploy style) usage: ./Nightwing <mode> <warden file> <traffic split file> <starting size> <ending size> <step size> <avoid ring 1 (true/false)>");
 				return;
 			}
-		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M4_STRING)){
+		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M4_STRING)) {
 			mode = Nightwing.ECON_MODE_4;
-			if(args.length != 4){
-				System.out.println("Economic mode 4 (dictated list) usage: ./Nightwing <mode> <warden file> <traffic split file> <dr deploy file>");
+			if (args.length != 4) {
+				System.out
+						.println("Economic mode 4 (dictated list) usage: ./Nightwing <mode> <warden file> <traffic split file> <dr deploy file>");
 				return;
 			}
 		} else {
@@ -117,6 +119,28 @@ public class Nightwing {
 			System.out.println("Topo built and BGP converged.");
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
+		}
+
+		/*
+		 * Handle dumping paths from the warden, needed to for confirming Amir's
+		 * latency measurements
+		 */
+		if (Constants.DUMP_READABLE_PATHS) {
+			BufferedWriter preRADPathBuffer = new BufferedWriter(new FileWriter(
+					"/scratch/arethusa2/iPlane/simPrePaths.txt"));
+			for (DecoyAS tAS : liveTopo.values()) {
+				if (!tAS.isWardenAS()) {
+					continue;
+				}
+				for(int tASN: liveTopo.keySet()){
+					BGPPath tPath = tAS.getPath(tASN, false);
+					if(tPath == null){
+						continue;
+					}
+					preRADPathBuffer.write(tPath.getLoggingString() + "\n");
+				}
+			}
+			preRADPathBuffer.close();
 		}
 
 		if (Constants.DEBUG) {
@@ -159,8 +183,8 @@ public class Nightwing {
 			/*
 			 * Do the actual rounds of simulation
 			 */
-			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]), Integer
-					.parseInt(args[5]), Constants.SAMPLE_COUNT, Integer.parseInt(args[6]), trafficStat, false);
+			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
+					Integer.parseInt(args[5]), Constants.SAMPLE_COUNT, Integer.parseInt(args[6]), trafficStat, false);
 			econEngine.endSim();
 		} else if (mode == Nightwing.ECON_MODE_2) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
@@ -172,11 +196,11 @@ public class Nightwing {
 		} else if (mode == Nightwing.ECON_MODE_3) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
-			
+
 			econEngine.manageSortedWardenSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
 					Integer.parseInt(args[5]), Boolean.parseBoolean(args[6]), trafficStat);
 			econEngine.endSim();
-		} else if(mode == Nightwing.ECON_MODE_4){
+		} else if (mode == Nightwing.ECON_MODE_4) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 			econEngine.manageDictatedDRSim(args[3], trafficStat);

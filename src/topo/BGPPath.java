@@ -165,6 +165,14 @@ public class BGPPath implements Serializable{
 		}
 		return base;
 	}
+	
+	public String getLoggingString(){
+		String base = "";
+		for(int tAS: this.path){
+			base = base + " " + tAS;
+		}
+		return base;
+	}
 
 	/**
 	 * Hash code based on hash code of the print string
