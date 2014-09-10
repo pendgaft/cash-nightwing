@@ -499,9 +499,11 @@ public class EconomicEngine {
 		/*
 		 * Do money reporting
 		 */
-		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN),
-					this.transitCashForThisRound.get(tASN));
+		if (!EconomicEngine.AVOID_ECON_DUMP_PATHS) {
+			for (int tASN : this.theTopo.keySet()) {
+				this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN),
+						this.transitCashForThisRound.get(tASN));
+			}
 		}
 
 		/*
