@@ -13,8 +13,8 @@ import topo.ASRanker;
 import topo.BGPPath;
 
 public class EconomicEngine {
-	
-	public enum OrderMode{
+
+	public enum OrderMode {
 		PathAppearance, IPWeighted;
 	}
 
@@ -42,6 +42,7 @@ public class EconomicEngine {
 	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	private static final boolean APPLY_FANCY_ECON = false;
+	public static final boolean AVOID_ECON_DUMP_PATHS = false;
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
@@ -176,49 +177,48 @@ public class EconomicEngine {
 		 * Build the tier scale factor points once
 		 */
 		Collections.sort(noCustSizes);
-		this.tierScaleFactor.put(0,
-				noCustSizes.get((int) Math.floor(noCustSizes.size() * EconomicEngine.SCALE_FACTOR_POINT)));
+		this.tierScaleFactor.put(0, noCustSizes.get((int) Math.floor(noCustSizes.size()
+				* EconomicEngine.SCALE_FACTOR_POINT)));
 		for (int currentTier = 1; currentTier < 5; currentTier++) {
 			int startPoint = quarter * (currentTier - 1);
 			int range = Math.min(quarter, ccSizes.size() - startPoint);
-			this.tierScaleFactor.put(
-					currentTier,
-					this.theTopo.get(ccSizes.get((int) Math.floor(startPoint + (double) range
-							* EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
+			this.tierScaleFactor.put(currentTier, this.theTopo.get(ccSizes.get((int) Math.floor(startPoint
+					+ (double) range * EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
 		}
 	}
-	
-	public void manageDictatedDRSim(String drFile, ParallelTrafficStat trafficManager){
+
+	public void manageDictatedDRSim(String drFile, ParallelTrafficStat trafficManager) {
 		List<Set<Integer>> roundConfigs = new LinkedList<Set<Integer>>();
-		
+
 		/*
 		 * Parse the config file to load up each rounds DR deployment
 		 */
-		try{
+		try {
 			BufferedReader drBuffer = new BufferedReader(new FileReader(drFile));
 			Set<Integer> currentRoundValues = new HashSet<Integer>();
-			
-			while(drBuffer.ready()){
+
+			while (drBuffer.ready()) {
 				String pollStr = drBuffer.readLine().trim();
 				/*
-				 * End of round will be signified by a line containing only whitespace
+				 * End of round will be signified by a line containing only
+				 * whitespace
 				 */
-				if(pollStr.length() == 0){
+				if (pollStr.length() == 0) {
 					roundConfigs.add(currentRoundValues);
 					currentRoundValues = new HashSet<Integer>();
 					continue;
 				}
-				
+
 				currentRoundValues.add(Integer.parseInt(pollStr));
 			}
-			
+
 			drBuffer.close();
-		} catch(IOException e){
+		} catch (IOException e) {
 			System.err.println("Error while parsing DR file.");
 			e.printStackTrace();
 			return;
 		}
-		
+
 		/*
 		 * Do some bookkeeping for completion estimation
 		 */
@@ -226,11 +226,11 @@ public class EconomicEngine {
 		int sampleCounter = 0;
 		int current = 1;
 		long startTime = System.currentTimeMillis();
-		
+
 		/*
 		 * Actually do the sim now
 		 */
-		for(Set<Integer> drSet: roundConfigs){
+		for (Set<Integer> drSet : roundConfigs) {
 
 			/*
 			 * Write the size terminators to logging files
@@ -252,7 +252,7 @@ public class EconomicEngine {
 				roundHeader = "" + drSet.size() + "," + counter;
 				this.driveEconomicTurn(roundHeader, drSet, counter);
 			}
-			
+
 			/*
 			 * Do some progress tracking and logging
 			 */
@@ -276,20 +276,20 @@ public class EconomicEngine {
 		 * Step 1, build the sizes of these ASes, sort them
 		 */
 		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for(DecoyAS tAS: this.activeTopology.values()){
+		for (DecoyAS tAS : this.activeTopology.values()) {
 			valueMap.put(tAS.getASN(), 0.0);
 		}
-		for(DecoyAS tAS: this.activeTopology.values()){
-			if(tAS.isWardenAS()){
-				for(int tDestASN: this.theTopo.keySet()){
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			if (tAS.isWardenAS()) {
+				for (int tDestASN : this.theTopo.keySet()) {
 					BGPPath tPath = tAS.getPath(tDestASN, false);
-					if(tPath == null){
+					if (tPath == null) {
 						continue;
 					}
 					List<Integer> thePath = tPath.getPath();
 					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-					for(int tHop: thePath){
-						if(valueMap.containsKey(tHop)){
+					for (int tHop : thePath) {
+						if (valueMap.containsKey(tHop)) {
 							if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
 								valueMap.put(tHop, valueMap.get(tHop) + 1);
 							} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
@@ -302,15 +302,14 @@ public class EconomicEngine {
 				}
 			}
 		}
-		
+
 		/*
 		 * Strip out the wardens, and if we're skipping ring one, those as well
 		 */
-		for(DecoyAS tAS: this.activeTopology.values()){
-			if(tAS.isWardenAS()){
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			if (tAS.isWardenAS()) {
 				valueMap.remove(tAS.getASN());
-			}
-			else if(excludeRingOne && tAS.connectedToWarden()){
+			} else if (excludeRingOne && tAS.connectedToWarden()) {
 				valueMap.remove(tAS.getASN());
 			}
 		}
@@ -320,7 +319,7 @@ public class EconomicEngine {
 			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
 		}
 		Collections.sort(rankList);
-		
+
 		/*
 		 * Write it to a file just in case we want it for reference
 		 */
@@ -404,8 +403,8 @@ public class EconomicEngine {
 				validDecoyASes.add(tAS.getASN());
 			}
 		}
-		
-		int numberOfTrials = (int)(Math.floor((end - start) / step) + 1);
+
+		int numberOfTrials = (int) (Math.floor((end - start) / step) + 1);
 		long sliceStartTime;
 		int sliceCounter = 1;
 
@@ -449,7 +448,7 @@ public class EconomicEngine {
 				 */
 				Set<Integer> drSet = new HashSet<Integer>();
 				Collections.shuffle(validDecoyASes);
-				for(int counter = 0; counter < drCount; counter++){
+				for (int counter = 0; counter < drCount; counter++) {
 					drSet.add(validDecoyASes.get(counter));
 				}
 
@@ -464,7 +463,7 @@ public class EconomicEngine {
 					this.driveEconomicTurn(roundHeader, drSet, counter);
 				}
 			}
-			
+
 			long sliceEndTime = System.currentTimeMillis();
 			long timeDelta = (sliceEndTime - sliceStartTime) / 3600000;
 			long estRemaining = timeDelta * (numberOfTrials - sliceCounter);
@@ -492,8 +491,10 @@ public class EconomicEngine {
 			System.exit(-1);
 		}
 
-		this.resetForNewRound();
-		this.runMoneyTransfer();
+		if (!EconomicEngine.AVOID_ECON_DUMP_PATHS) {
+			this.resetForNewRound();
+			this.runMoneyTransfer();
+		}
 
 		/*
 		 * Do money reporting
@@ -529,6 +530,29 @@ public class EconomicEngine {
 		 */
 		BGPMaster.REPORT_TIME = false;
 		BGPMaster.driveBGPProcessing(this.activeTopology);
+
+		if (EconomicEngine.AVOID_ECON_DUMP_PATHS && round == 1) {
+			try {
+				BufferedWriter bgpDump = new BufferedWriter(new FileWriter("/scratch/arethusa2/iPlane/simPaths/"
+						+ drSet.size() + "-paths.txt"));
+				for (DecoyAS tASN : this.activeTopology.values()) {
+					if (!tASN.isWardenAS()) {
+						continue;
+					}
+
+					for (int tDest : this.activeTopology.keySet()) {
+						BGPPath tPath = tASN.getPath(tDest, false);
+						if (tPath != null) {
+							bgpDump.write(tPath.getLoggingString() + "\n");
+						}
+					}
+				}
+				bgpDump.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+		}
 	}
 
 	public void endSim() {
@@ -643,6 +667,5 @@ public class EconomicEngine {
 			this.theTopo.get(asn).makeAdustments(null);
 		}
 	}
-
 
 }
