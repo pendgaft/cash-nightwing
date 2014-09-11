@@ -137,7 +137,7 @@ public class Nightwing {
 					if(tPath == null){
 						continue;
 					}
-					preRADPathBuffer.write(tPath.getLoggingString() + "\n");
+					preRADPathBuffer.write(tAS.getASN() + " " + tPath.getLoggingString() + "\n");
 				}
 			}
 			preRADPathBuffer.close();

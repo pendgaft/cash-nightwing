@@ -545,7 +545,7 @@ public class EconomicEngine {
 					for (int tDest : this.activeTopology.keySet()) {
 						BGPPath tPath = tASN.getPath(tDest, false);
 						if (tPath != null) {
-							bgpDump.write(tPath.getLoggingString() + "\n");
+							bgpDump.write(tASN.getASN() + " " + tPath.getLoggingString() + "\n");
 						}
 					}
 				}
