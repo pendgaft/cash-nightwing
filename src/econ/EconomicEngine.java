@@ -212,12 +212,17 @@ public class EconomicEngine {
 				currentRoundValues.add(Integer.parseInt(pollStr));
 			}
 
+			if(currentRoundValues.size() > 0){
+				roundConfigs.add(currentRoundValues);
+			}
+			
 			drBuffer.close();
 		} catch (IOException e) {
 			System.err.println("Error while parsing DR file.");
 			e.printStackTrace();
 			return;
 		}
+	
 
 		/*
 		 * Do some bookkeeping for completion estimation
