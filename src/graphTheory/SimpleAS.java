@@ -10,11 +10,9 @@ public class SimpleAS {
 	private HashSet<Integer> providers;
 
 	private int myASN;
-	private boolean inSubGraph;
 
 	public SimpleAS(int asn) {
 		this.myASN = asn;
-		this.inSubGraph = false;
 
 		this.customers = new HashSet<Integer>();
 		this.peers = new HashSet<Integer>();
@@ -51,17 +49,18 @@ public class SimpleAS {
 	public int getASN() {
 		return this.myASN;
 	}
-
-	public boolean isInSubgraph() {
-		return this.inSubGraph;
+	
+	public int hashCode(){
+		return this.myASN;
 	}
-
-	public void resetSubgraph() {
-		this.inSubGraph = false;
-	}
-
-	public void addToSubgraph() {
-		this.inSubGraph = true;
+	
+	public boolean equals(Object rhs){
+		if (!(rhs instanceof SimpleAS)){
+			return false;
+		}
+		
+		SimpleAS rhsVert = (SimpleAS)rhs;
+		return this.myASN == rhsVert.myASN;
 	}
 
 	public static HashMap<Integer, SimpleAS> parseFromFile(String fileName) throws IOException {
@@ -102,5 +101,46 @@ public class SimpleAS {
 		
 		fileBuffer.close();
 		return returnMap;
+	}
+	
+	public static CompositeGraph convertToCompositeGraph(HashMap<Integer, SimpleAS> asObjects){
+		/*
+		 * Generate verticies
+		 */
+		CompositeGraph returnGraph = new CompositeGraph();
+		for(SimpleAS tAS: asObjects.values()){
+			String base = "" + tAS.myASN;
+			returnGraph.addNewNode(base + "-peer", base);
+			returnGraph.addNewNode(base + "-provider", base);
+			returnGraph.addNewNode(base + "-customer", base);
+		}
+		
+		/*
+		 * Generate directed edges
+		 */
+		for(SimpleAS tAS: asObjects.values()){
+			String base = "" + tAS.myASN;
+			/*
+			 * Customers learn about all of our routes
+			 */
+			for(Integer tCustomer: tAS.customers){
+				CompositeNode<Integer> custVert = returnGraph.getNodeByName(tCustomer + "-customer");
+				returnGraph.getNodeByName(base + "-peer").connectToNeighbor(custVert);
+				returnGraph.getNodeByName(base + "-customer").connectToNeighbor(custVert);
+				returnGraph.getNodeByName(base + "-provider").connectToNeighbor(custVert);
+			}
+			
+			/*
+			 * Routes we learn about as a provider we send to our peers and our providers
+			 */
+			for(Integer tPeer: tAS.peers){
+				returnGraph.getNodeByName(base + "-provider").connectToNeighbor(returnGraph.getNodeByName(tPeer + "-peer"));
+			}
+			for(Integer tProvider: tAS.providers){
+				returnGraph.getNodeByName(base + "-provider").connectToNeighbor(returnGraph.getNodeByName(tProvider + "-provider"));
+			}
+		}
+		
+		return returnGraph;
 	}
 }
