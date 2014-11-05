@@ -57,21 +57,9 @@ public class TransitProvider extends EconomicAgent {
 			}
 		}
 		this.flipDecoyState = false;
-		
-		/*
-		 * The only case in which non-warden ASes need to scan their BGP tables
-		 * is if we're doing reverse poisoning
-		 */
-		if (Constants.REVERSE_POISON) {
-			this.parent.rescanBGPTable();
-		}
 	}
 
-	public void makeAdustments(Set<Integer> decoyRouterSet) {
-		if(Constants.REVERSE_POISON){
-			this.parent.turnOnActiveAvoidance(this.buildDecoySet(), Constants.DEFAULT_POISON_MODE);
-		}
-		
+	public void makeAdustments(Set<Integer> decoyRouterSet) {		
 		if (this.lockIn > 0) {
 			this.lockIn--;
 			if (this.lockIn == 0 && this.parent.isDecoy()) {

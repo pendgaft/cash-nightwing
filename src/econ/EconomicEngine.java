@@ -42,7 +42,6 @@ public class EconomicEngine {
 	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	private static final boolean APPLY_FANCY_ECON = false;
-	public static final boolean AVOID_ECON_DUMP_PATHS = false;
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
@@ -212,17 +211,16 @@ public class EconomicEngine {
 				currentRoundValues.add(Integer.parseInt(pollStr));
 			}
 
-			if(currentRoundValues.size() > 0){
+			if (currentRoundValues.size() > 0) {
 				roundConfigs.add(currentRoundValues);
 			}
-			
+
 			drBuffer.close();
 		} catch (IOException e) {
 			System.err.println("Error while parsing DR file.");
 			e.printStackTrace();
 			return;
 		}
-	
 
 		/*
 		 * Do some bookkeeping for completion estimation
@@ -287,7 +285,7 @@ public class EconomicEngine {
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			if (tAS.isWardenAS()) {
 				for (int tDestASN : this.theTopo.keySet()) {
-					BGPPath tPath = tAS.getPath(tDestASN, false);
+					BGPPath tPath = tAS.getPath(tDestASN);
 					if (tPath == null) {
 						continue;
 					}
@@ -496,19 +494,15 @@ public class EconomicEngine {
 			System.exit(-1);
 		}
 
-		if (!EconomicEngine.AVOID_ECON_DUMP_PATHS) {
-			this.resetForNewRound();
-			this.runMoneyTransfer();
-		}
+		this.resetForNewRound();
+		this.runMoneyTransfer();
 
 		/*
 		 * Do money reporting
 		 */
-		if (!EconomicEngine.AVOID_ECON_DUMP_PATHS) {
-			for (int tASN : this.theTopo.keySet()) {
-				this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN),
-						this.transitCashForThisRound.get(tASN));
-			}
+		for (int tASN : this.theTopo.keySet()) {
+			this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN),
+					this.transitCashForThisRound.get(tASN));
 		}
 
 		/*
@@ -537,29 +531,6 @@ public class EconomicEngine {
 		 */
 		BGPMaster.REPORT_TIME = false;
 		BGPMaster.driveBGPProcessing(this.activeTopology);
-
-		if (EconomicEngine.AVOID_ECON_DUMP_PATHS && round == 1) {
-			try {
-				BufferedWriter bgpDump = new BufferedWriter(new FileWriter("/scratch/arethusa2/iPlane/simPaths/"
-						+ drSet.size() + "-paths.txt"));
-				for (DecoyAS tASN : this.activeTopology.values()) {
-					if (!tASN.isWardenAS()) {
-						continue;
-					}
-
-					for (int tDest : this.activeTopology.keySet()) {
-						BGPPath tPath = tASN.getPath(tDest, false);
-						if (tPath != null) {
-							bgpDump.write(tASN.getASN() + " " + tPath.getLoggingString() + "\n");
-						}
-					}
-				}
-				bgpDump.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-		}
 	}
 
 	public void endSim() {

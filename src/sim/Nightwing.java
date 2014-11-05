@@ -121,28 +121,6 @@ public class Nightwing {
 			System.out.println("Topology saved to serial file.");
 		}
 
-		/*
-		 * Handle dumping paths from the warden, needed to for confirming Amir's
-		 * latency measurements
-		 */
-		if (Constants.DUMP_READABLE_PATHS) {
-			BufferedWriter preRADPathBuffer = new BufferedWriter(new FileWriter(
-					"/scratch/arethusa2/iPlane/simPrePaths.txt"));
-			for (DecoyAS tAS : liveTopo.values()) {
-				if (!tAS.isWardenAS()) {
-					continue;
-				}
-				for(int tASN: liveTopo.keySet()){
-					BGPPath tPath = tAS.getPath(tASN, false);
-					if(tPath == null){
-						continue;
-					}
-					preRADPathBuffer.write(tAS.getASN() + " " + tPath.getLoggingString() + "\n");
-				}
-			}
-			preRADPathBuffer.close();
-		}
-
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
 			for (AS tAS : liveTopo.values()) {

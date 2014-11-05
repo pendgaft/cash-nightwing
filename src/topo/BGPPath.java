@@ -106,7 +106,7 @@ public class BGPPath implements Serializable{
 		 * hack for paths to ourself
 		 */
 		if (this.path.size() == 0) {
-			return this.destASN;
+			return this.getDestinationASN();
 		}
 
 		return this.path.getFirst();
@@ -119,6 +119,10 @@ public class BGPPath implements Serializable{
 	 */
 	public int getDest() {
 		return this.destASN;
+	}
+	
+	public int getDestinationASN(){
+		return Math.abs(this.destASN);
 	}
 
 	/**

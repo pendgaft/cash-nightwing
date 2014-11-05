@@ -86,8 +86,8 @@ public class PathAsym {
 	}
 
 	private boolean isAsym(DecoyAS outAS, DecoyAS destAS) {
-		BGPPath outPath = outAS.getPath(destAS.getASN(), false);
-		BGPPath inPath = destAS.getPath(outAS.getASN(), false);
+		BGPPath outPath = outAS.getPath(destAS.getASN());
+		BGPPath inPath = destAS.getPath(outAS.getASN());
 		
 		if(outPath == null || inPath == null){
 			return false;

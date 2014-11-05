@@ -448,7 +448,7 @@ public class ParallelTrafficStat {
 			 * Fetch the actual path object, deal with the odd case in which it
 			 * does not exist
 			 */
-			BGPPath usedPath = srcActiveAS.getPath(destAS.getASN(), Constants.REFUSE_DIRTY_TRAFFIC);
+			BGPPath usedPath = srcActiveAS.getPath(destAS.getASN());
 			if (usedPath == null)
 				continue;
 
@@ -536,7 +536,7 @@ public class ParallelTrafficStat {
 			int tdestActiveASN = tdestActiveAS.getASN();
 			pathList.clear();
 			for (AS tProviderAS : providers) {
-				BGPPath tpath = tProviderAS.getPath(tdestActiveASN, Constants.REFUSE_DIRTY_TRAFFIC);
+				BGPPath tpath = tProviderAS.getPath(tdestActiveASN);
 				if (tpath == null)
 					continue;
 				BGPPath cpath = tpath.deepCopy();
@@ -720,7 +720,7 @@ public class ParallelTrafficStat {
 			if (tDestActiveAS.isSuperAS())
 				continue;
 
-			BGPPath tpath = srcSuperAS.getPath(tDestActiveAS.getASN(), false);
+			BGPPath tpath = srcSuperAS.getPath(tDestActiveAS.getASN());
 			if (tpath == null)
 				continue;
 

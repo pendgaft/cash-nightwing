@@ -215,7 +215,7 @@ public class BGPMaster {
 
 				examinedPaths++;
 				//System.out.println("examined path");
-				if (tAS.getPath(tDest.getASN(), false) != null) {
+				if (tAS.getPath(tDest.getASN()) != null) {
 					workingPaths++;
 					//System.out.println("working path");
 				}

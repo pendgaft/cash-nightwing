@@ -36,6 +36,7 @@ public abstract class AS implements TransitAgent {
 	private boolean wardenAS;
 	private boolean activeAvoidance;
 	private Set<Integer> avoidSet;
+	private Set<AS> holepunchPeers;
 	private Set<Integer> wardenSet;
 	private AvoidMode currentAvoidMode;
 
@@ -76,6 +77,7 @@ public abstract class AS implements TransitAgent {
 		this.wardenAS = false;
 		this.activeAvoidance = false;
 		this.currentAvoidMode = AvoidMode.None;
+		this.holepunchPeers = new HashSet<AS>();
 		this.purged = false;
 		this.customers = new HashSet<AS>();
 		this.peers = new HashSet<AS>();
@@ -386,6 +388,21 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public void rescanBGPTable() {
+
+		/*
+		 * If we're reverse poisoning, re-run export on hole punched routes, or
+		 * if it is the first time, actually give us a hole punched route
+		 * (prevents the serial file from requiring all ASes to have a hole
+		 * punched route)
+		 */
+		if (this.isWardenAS() && Constants.REVERSE_POISON) {
+			if (!this.locRib.containsKey(this.asn * -1)) {
+				this.advPath(new BGPPath(this.getASN() * -1));
+			} else {
+				this.dirtyDest.add(this.getASN() * -1);
+			}
+		}
+
 		for (int tDest : this.locRib.keySet()) {
 			this.recalcBestPath(tDest);
 		}
@@ -544,10 +561,8 @@ public abstract class AS implements TransitAgent {
 			 * routes that are NOT clean, this is corrected in path selection if
 			 * this leaves us w/ no viable routes
 			 */
-			if (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref
-					|| ((this.currentAvoidMode == AS.AvoidMode.StrictReversePoison || this.currentAvoidMode == AS.AvoidMode.PermissiveReversePoison) && this.wardenSet
-							.contains(tPath.getDest()))) {
-				if (avoidDecoys && tPath.containsAnyOf(this.avoidSet)) {
+			if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreLpref) {
+				if (tPath.containsAnyOf(this.avoidSet)) {
 					continue;
 				}
 			}
@@ -631,18 +646,39 @@ public abstract class AS implements TransitAgent {
 		if (pathOfMerit != null) {
 			BGPPath pathToAdv = pathOfMerit.deepCopy();
 			pathToAdv.prependASToPath(this.asn);
-			for (AS tCust : this.customers) {
-				tCust.advPath(pathToAdv);
-				newAdvTo.add(tCust);
-			}
-			if (pathOfMerit.getDest() == this.asn || (this.getRel(pathOfMerit.getNextHop()) == 1)) {
-				for (AS tPeer : this.peers) {
+
+			/*
+			 * Special case to cover hole punching
+			 */
+			if (pathToAdv.getDest() == this.asn * -1) {
+				for (AS tPeer : this.holepunchPeers) {
 					tPeer.advPath(pathToAdv);
 					newAdvTo.add(tPeer);
 				}
-				for (AS tProv : this.providers) {
-					tProv.advPath(pathToAdv);
-					newAdvTo.add(tProv);
+			} else {
+				/*
+				 * Advertise to all of our customers
+				 */
+				for (AS tCust : this.customers) {
+					tCust.advPath(pathToAdv);
+					newAdvTo.add(tCust);
+				}
+
+				/*
+				 * Check if it's our locale route (NOTE THIS DOES NOT APPLY TO
+				 * HOLE PUNCHED ROUTES, so the getDest as opposed to the
+				 * getDestinationAS _IS_ correct) or if we learned of it from a
+				 * customer
+				 */
+				if (pathOfMerit.getDest() == this.asn || (this.getRel(pathOfMerit.getNextHop()) == 1)) {
+					for (AS tPeer : this.peers) {
+						tPeer.advPath(pathToAdv);
+						newAdvTo.add(tPeer);
+					}
+					for (AS tProv : this.providers) {
+						tProv.advPath(pathToAdv);
+						newAdvTo.add(tProv);
+					}
 				}
 			}
 		}
@@ -706,18 +742,19 @@ public abstract class AS implements TransitAgent {
 	 *            - the ASN of the destination network
 	 * @return - the current best path, or null if we have none
 	 */
-	public BGPPath getPath(int dest, boolean forbidDirtyPath) {
-		if (forbidDirtyPath && this.isWardenAS() && this.activeAvoidance) {
-			BGPPath thePath = this.locRib.get(dest);
-			if (thePath != null) {
-				List<Integer> hops = thePath.getPath();
-				for (int tHop : hops) {
-					if(this.avoidSet.contains(tHop)){
-						return null;
-					}
-				}
-			}
+	public BGPPath getPath(int dest) {
+
+		/*
+		 * Hunt for the hole punched path first, if it exists return it
+		 */
+		BGPPath holePunchPath = this.locRib.get(dest * -1);
+		if (holePunchPath != null) {
+			return holePunchPath;
 		}
+
+		/*
+		 * Otherwise return the mapping for the aggregate destination
+		 */
 		return this.locRib.get(dest);
 	}
 
@@ -735,12 +772,32 @@ public abstract class AS implements TransitAgent {
 	 */
 	public BGPPath getPathToPurged(List<Integer> hookASNs) {
 		List<BGPPath> listPossPaths = new LinkedList<BGPPath>();
+		List<BGPPath> listPossHolePunchedPaths = new LinkedList<BGPPath>();
 		for (Integer tHook : hookASNs) {
-			BGPPath tempPath = this.getPath(tHook, false);
+			BGPPath tempPath = this.getPath(tHook);
 			if (tempPath != null) {
-				listPossPaths.add(tempPath);
+				/*
+				 * Sort pased on hole punched vs not hole punched
+				 */
+				if (tempPath.getDest() == tHook * -1) {
+					listPossHolePunchedPaths.add(tempPath);
+				} else {
+					listPossPaths.add(tempPath);
+				}
 			}
 		}
+
+		/*
+		 * If we have hole punched routes we'll use those over an aggregate path
+		 */
+		BGPPath returnPath = null;
+		if (listPossHolePunchedPaths.size() > 0) {
+			returnPath = this.pathSelection(listPossHolePunchedPaths);
+			if (returnPath != null) {
+				return returnPath;
+			}
+		}
+
 		return this.pathSelection(listPossPaths);
 	}
 
@@ -846,6 +903,11 @@ public abstract class AS implements TransitAgent {
 		this.activeAvoidance = true;
 		this.avoidSet = avoidList;
 		this.currentAvoidMode = newAvoidMode;
+	}
+
+	public void updateHolepunchSet(Set<AS> peersToHolePunchTo) {
+		this.holepunchPeers.clear();
+		this.holepunchPeers.addAll(peersToHolePunchTo);
 	}
 
 	/**
@@ -1043,8 +1105,8 @@ public abstract class AS implements TransitAgent {
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keySet()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
-			this.transitTrafficOverLink.put(tASN,
-					this.transitTrafficOverLink.get(tASN) - this.volatileTransitTraffic.get(tASN));
+			this.transitTrafficOverLink.put(tASN, this.transitTrafficOverLink.get(tASN)
+					- this.volatileTransitTraffic.get(tASN));
 			this.lastHopDeliveryOverLink.put(tASN, this.lastHopDeliveryOverLink.get(tASN)
 					- this.volatileLastHopDeliveryTraffic.get(tASN));
 			this.volatileTraffic.put(tASN, 0.0);
