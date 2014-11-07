@@ -167,6 +167,9 @@ public class ParallelTrafficStat {
 	public void doCountryExperiment(HashMap<Integer, String> ccMap) {
 		this.ccMap = ccMap;
 		this.otherCCMap = new HashMap<Integer, Double>();
+		for(int tASN: this.activeMap.keySet()){
+			this.otherCCMap.put(tASN, 0.0);
+		}
 		this.runStat();
 
 		try {
