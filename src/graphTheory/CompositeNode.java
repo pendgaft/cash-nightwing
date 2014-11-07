@@ -7,14 +7,21 @@ public class CompositeNode<E> {
 	private String name;
 	private String compositeName;
 	private E data;
+	private long weight;
 	
 	private Set<CompositeNode<E>> neighbors;
 	
 	
-	public CompositeNode(String myName, String myParentName){
+	public CompositeNode(String myName, String myParentName, long nodeWeight){
 		this.name = myName;
 		this.compositeName = myParentName;
+		this.neighbors = new HashSet<CompositeNode<E>>();
 		this.data = null;
+		this.weight = nodeWeight;
+	}
+	
+	public long getNodeWeight(){
+		return this.weight;
 	}
 	
 	public void connectToNeighbor(CompositeNode<E> newNeighbor){
@@ -46,7 +53,7 @@ public class CompositeNode<E> {
 	}
 	
 	public boolean equals(Object rhs){
-		if(!(rhs instanceof CompositeNode)){
+		if(!(rhs instanceof CompositeNode<?>)){
 			return false;
 		}
 		
