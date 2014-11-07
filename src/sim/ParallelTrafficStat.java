@@ -42,6 +42,9 @@ public class ParallelTrafficStat {
 	private boolean firstRound;
 	private SerializationMaster serialControl;
 
+	private HashMap<Integer, String> ccMap = null;
+	private HashMap<Integer, Double> otherCCMap = null;
+
 	private static final boolean DEBUG = false;
 	private static final boolean REPORT_TIMING = false;
 
@@ -161,6 +164,38 @@ public class ParallelTrafficStat {
 		}
 	}
 
+	public void doCountryExperiment(HashMap<Integer, String> ccMap) {
+		this.ccMap = ccMap;
+		this.otherCCMap = new HashMap<Integer, Double>();
+		this.runStat();
+
+		try {
+			BufferedWriter outBuffer = new BufferedWriter(new FileWriter(
+					"/scratch/waterhouse/schuch/workspace/cash-nightwing/countryTransitResult.txt"));
+			for (DecoyAS tAS : this.activeMap.values()) {
+				double trafficSum = 0.0;
+				for (int tAdj : tAS.getNeighbors()) {
+					trafficSum += tAS.getTransitTrafficOverLink(tAdj);
+				}
+				outBuffer.write("" + trafficSum + "," + this.otherCCMap.get(tAS.getASN()) + "\n");
+			}
+			outBuffer.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+
+	private void offerCCTraffic(boolean isTransit, int lhs, int rhs, double amount) {
+		if (!isTransit) {
+			return;
+		}
+
+		if (!this.ccMap.get(lhs).equals(this.ccMap.get(rhs))) {
+			this.otherCCMap.put(lhs, this.otherCCMap.get(lhs) + amount);
+		}
+	}
+
 	public void runStat() {
 		/*
 		 * Clear out the values from last round
@@ -176,7 +211,7 @@ public class ParallelTrafficStat {
 		 * If it is the first round and we already have a serial file please
 		 * simply load that state, otherwise actually do the traffic flow
 		 */
-		if (this.firstRound && this.serialControl.hasValidTrafficSerialFile()) {
+		if (this.firstRound && this.serialControl.hasValidTrafficSerialFile() && this.ccMap == null) {
 			System.out.println("Valid serial file exists for traffic flows, skipping first round of traffic flow.");
 			this.serialControl.loadTrafficSerialFile(this.fullTopology);
 			System.out.println("Load of serial file complete.");
@@ -343,6 +378,7 @@ public class ParallelTrafficStat {
 			DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
 			currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic, isVolatile, true,
 					nextAS.getASN() == destAS.getASN());
+			this.offerCCTraffic(true, currentAS.getASN(), destAS.getASN(), amountOfTraffic);
 		}
 
 		return amountOfTraffic;

@@ -3,6 +3,10 @@ package sim;
 import java.util.*;
 import java.io.*;
 
+import org.xml.sax.SAXException;
+
+import parsing.AStoCountry;
+
 import topo.AS;
 import topo.SerializationMaster;
 
@@ -150,7 +154,14 @@ public class Nightwing {
 
 		if (mode == Nightwing.TRAFFICSTAT1_MODE) {
 			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, args[2], serialControl);
-			statInParallel.runStat();
+			AStoCountry asCountryMapper = null;
+			try {
+				asCountryMapper = new AStoCountry(liveTopo, "/scratch/waterhouse/schuch/workspace/cash-nightwing/rawCountryData.xml");
+			} catch (SAXException e) {
+				e.printStackTrace();
+			}	
+			statInParallel.doCountryExperiment(asCountryMapper.getMap());
+			//statInParallel.runStat();
 		} else if (mode == Nightwing.ECON_PHASE_1) {
 			/*
 			 * Build the traffic stat object, and then actually flow the traffic
