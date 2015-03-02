@@ -197,7 +197,10 @@ public class ASTopoParser {
 			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, " ");
 			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
 			int score = Integer.parseInt(tokenizerTokens.nextToken());
-			asMap.get(tAS).setIPCount(score);
+			//FIXME again, this shouldn't happen I don't think...
+			if (asMap.containsKey(tAS)) {
+				asMap.get(tAS).setIPCount(score);
+			}
 		}
 		fBuff.close();
 	}
