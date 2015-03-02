@@ -28,6 +28,7 @@ public class EconomicEngine {
 
 	private BufferedWriter wardenOut;
 	private BufferedWriter transitOut;
+	private BufferedWriter pathOut;
 
 	private double maxIPCount;
 
@@ -51,7 +52,8 @@ public class EconomicEngine {
 
 		try {
 			this.wardenOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "warden.log"));
-			this.transitOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "/transit.log"));
+			this.transitOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "transit.log"));
+			this.pathOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "path.log"));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -59,14 +61,14 @@ public class EconomicEngine {
 
 		for (DecoyAS tAS : prunedMap.values()) {
 			this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
-					TransitProvider.DECOY_STRAT.NEVER));
+					TransitProvider.DECOY_STRAT.NEVER, this.pathOut));
 		}
 		for (DecoyAS tAS : activeMap.values()) {
 			if (tAS.isWardenAS()) {
-				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap));
+				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap, this.pathOut));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
-						TransitProvider.DECOY_STRAT.DICTATED));
+						TransitProvider.DECOY_STRAT.DICTATED, this.pathOut));
 			}
 		}
 
@@ -489,6 +491,7 @@ public class EconomicEngine {
 			}
 			this.wardenOut.write(terminator + roundLeader + "\n");
 			this.transitOut.write(terminator + roundLeader + "\n");
+			this.pathOut.write(terminator + roundLeader + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -537,6 +540,7 @@ public class EconomicEngine {
 		try {
 			this.wardenOut.close();
 			this.transitOut.close();
+			this.pathOut.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);

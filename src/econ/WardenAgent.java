@@ -11,12 +11,11 @@ import decoy.DecoyAS;
 
 public class WardenAgent extends EconomicAgent {
 
-	
 	private HashMap<Integer, DecoyAS> prunedTopo;
 
 	public WardenAgent(DecoyAS parentObject, BufferedWriter log, HashMap<Integer, DecoyAS> activeTopo,
-			HashMap<Integer, DecoyAS> prunedTopo) {
-		super(parentObject, log, activeTopo);
+			HashMap<Integer, DecoyAS> prunedTopo, BufferedWriter pathLog) {
+		super(parentObject, log, activeTopo, pathLog);
 		if (!parentObject.isWardenAS()) {
 			throw new IllegalArgumentException("Passed a non warden DecoyAS object to WardenAgent constructor.");
 		}
@@ -48,6 +47,17 @@ public class WardenAgent extends EconomicAgent {
 				nullCount++;
 				continue;
 			}
+
+			/*
+			 * Log the actual path used by the resistor to each destination
+			 */
+			try {
+				super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
 			if (!tPath.containsAnyOf(decoySet)) {
 				cleanIPCount += ipCount;
@@ -66,6 +76,17 @@ public class WardenAgent extends EconomicAgent {
 			if (tPath == null) {
 				continue;
 			}
+
+			/*
+			 * Log the path the warden uses to get to each destination
+			 */
+			try {
+				super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
 			int ipCount = this.prunedTopo.get(tDest).getIPCount();
 			if (!tPath.containsAnyOf(decoySet)) {
 				cleanIPCount += ipCount;

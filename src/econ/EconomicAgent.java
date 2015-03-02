@@ -19,12 +19,14 @@ public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
 	protected BufferedWriter logStream;
+	protected BufferedWriter pathStream;
 	protected HashMap<Integer, DecoyAS> activeTopo;
 	
-	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> topo){
+	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> topo, BufferedWriter pathLog){
 		this.parent = parentAS;
 		this.logStream = log;
 		this.activeTopo = topo;
+		this.pathStream = pathLog;
 	}
 	
 	/**
