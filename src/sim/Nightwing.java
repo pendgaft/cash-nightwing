@@ -124,6 +124,9 @@ public class Nightwing {
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
+		
+		System.out.println("Live topo size: " + liveTopo.size());
+		System.out.println("Pruned topo size: " + prunedTopo.size());
 
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
