@@ -381,7 +381,8 @@ public class ParallelTrafficStat {
 			DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
 			currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic, isVolatile, true,
 					nextAS.getASN() == destAS.getASN());
-			this.offerCCTraffic(true, currentAS.getASN(), destAS.getASN(), amountOfTraffic);
+			//FIXME was causing null pointer exception, followup if just hacked in experiment?
+			//this.offerCCTraffic(true, currentAS.getASN(), destAS.getASN(), amountOfTraffic);
 		}
 
 		return amountOfTraffic;
