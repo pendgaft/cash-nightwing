@@ -138,15 +138,18 @@ public class ASTopoParser {
 			if (pollString.length() > 0) {
 				int asn = Integer.parseInt(pollString);
 				wardenSet.add(asn);
-				retMap.get(asn).toggleWardenAS();
+				//FIXME this null check shouldn't be needed, remove me!
+				if (retMap.get(asn) != null) {
+					retMap.get(asn).toggleWardenAS();
+				}
 			}
 		}
 		fBuff.close();
-		
+
 		/*
 		 * Give all nodes a copy of the warden set
 		 */
-		for(DecoyAS tAS: retMap.values()){
+		for (DecoyAS tAS : retMap.values()) {
 			tAS.setWardenSet(wardenSet);
 		}
 
