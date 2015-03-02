@@ -194,7 +194,7 @@ public class ASTopoParser {
 			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
 				continue;
 			}
-			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, ",");
+			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, " ");
 			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
 			int score = Integer.parseInt(tokenizerTokens.nextToken());
 			asMap.get(tAS).setIPCount(score);
