@@ -5,7 +5,7 @@ import topo.AS;
 
 public class Constants {
 
-	public static final String AS_REL_FILE = "cash-nightwing/realTopo/whole-internet-20150101-rel.txt";
+	public static final String AS_REL_FILE = "cash-nightwing/realTopo/20150201.as-rel.txt";
 	public static final String IP_COUNT_FILE = "cash-nightwing/realTopo/whole-internet-20150101-ip.txt";
 	public static final String SUPER_AS_FILE = "cash-nightwing/superAS.txt";
 	
