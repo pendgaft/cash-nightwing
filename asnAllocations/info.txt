@@ -1,0 +1,9 @@
+Files Downloaded from:
+
+ftp.arin.net/pub/stats/arin/delegated-arin-extended-latest
+ftp.ripe.net/ripe/stats/delegated-ripencc-latest
+ftp.afrinic.net/pub/stats/afrinic/delegated-afrinic-latest
+ftp.apnic.net/pub/stats/apnic/delegated-apnic-latest
+ftp.lacnic.net/pub/stats/lacnic/delegated-lacnic-latest
+
+On 6 March 2015
