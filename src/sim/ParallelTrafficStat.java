@@ -60,7 +60,7 @@ public class ParallelTrafficStat {
 	 * @param trafficSplitFile
 	 */
 	public ParallelTrafficStat(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> purgedMap,
-			String trafficSplitFile, SerializationMaster serialControl) {
+			SerializationMaster serialControl) {
 
 		this.totalP2PTraffic = 0;
 		this.activeMap = activeMap;
@@ -88,7 +88,7 @@ public class ParallelTrafficStat {
 		this.statTotalP2PTraffic();
 
 		try {
-			this.loadTrafficRatios(trafficSplitFile);
+			this.loadTrafficRatios();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -134,8 +134,8 @@ public class ParallelTrafficStat {
 		}
 	}
 
-	private void loadTrafficRatios(String trafficSplitFile) throws IOException {
-		BufferedReader fBuff = new BufferedReader(new FileReader(trafficSplitFile));
+	private void loadTrafficRatios() throws IOException {
+		BufferedReader fBuff = new BufferedReader(new FileReader(Constants.TRAFFIC_SPLIT_FILE));
 		while (fBuff.ready()) {
 
 			String pollString = fBuff.readLine().trim();
@@ -167,7 +167,7 @@ public class ParallelTrafficStat {
 	public void doCountryExperiment(HashMap<Integer, String> ccMap) {
 		this.ccMap = ccMap;
 		this.otherCCMap = new HashMap<Integer, Double>();
-		for(int tASN: this.activeMap.keySet()){
+		for (int tASN : this.activeMap.keySet()) {
 			this.otherCCMap.put(tASN, 0.0);
 		}
 		this.runStat();
@@ -369,8 +369,8 @@ public class ParallelTrafficStat {
 		 * Manually add traffic the source and the next hop on the path, as the
 		 * source will not appear on the path
 		 */
-		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false, thePath
-				.getNextHop() == destAS.getASN());
+		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false,
+				thePath.getNextHop() == destAS.getASN());
 
 		List<Integer> pathList = thePath.getPath();
 		/*
