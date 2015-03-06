@@ -133,18 +133,27 @@ public class ASTopoParser {
 		 */
 		fBuff = new BufferedReader(new FileReader(wardenFile));
 		Set<Integer> wardenSet = new HashSet<Integer>();
+		int lostWardens = 0;
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
 			if (pollString.length() > 0) {
 				int asn = Integer.parseInt(pollString);
 				wardenSet.add(asn);
-				//FIXME this null check shouldn't be needed, remove me!
+
+				/*
+				 * Sanity check that the warden AS actually exists in the topo
+				 * and flag it, the warden AS not existing is kinda bad
+				 */
 				if (retMap.get(asn) != null) {
 					retMap.get(asn).toggleWardenAS();
+				} else {
+					lostWardens++;
 				}
 			}
 		}
 		fBuff.close();
+
+		System.out.println(lostWardens + " listed warden ASes failed to exist in the topology.");
 
 		/*
 		 * Give all nodes a copy of the warden set
@@ -189,6 +198,8 @@ public class ASTopoParser {
 	 */
 	public static void parseIPScoreFile(HashMap<Integer, DecoyAS> asMap, String ipCountFile) throws IOException {
 		BufferedReader fBuff = new BufferedReader(new FileReader(ipCountFile));
+		int unMatchedAS = 0;
+		long lostIPs = 0;
 		while (fBuff.ready()) {
 			String pollString = fBuff.readLine().trim();
 			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
@@ -197,12 +208,22 @@ public class ASTopoParser {
 			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, " ");
 			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
 			int score = Integer.parseInt(tokenizerTokens.nextToken());
-			//FIXME again, this shouldn't happen I don't think...
+
+			/*
+			 * Sanity check that the AS actually is in the topo and ad the IPs,
+			 * in theory this should never happen
+			 */
 			if (asMap.containsKey(tAS)) {
 				asMap.get(tAS).setIPCount(score);
+			} else {
+				unMatchedAS++;
+				lostIPs += score;
 			}
 		}
 		fBuff.close();
+
+		System.out.println(unMatchedAS + " times AS records were not found in IP seeding.");
+		System.out.println(lostIPs + " IP addresses lost as a result.");
 	}
 
 	public static void validateRelexive(HashMap<Integer, AS> asMap) {
