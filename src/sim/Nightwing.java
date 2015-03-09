@@ -20,13 +20,13 @@ public class Nightwing {
 
 	private static final int TRAFFICSTAT1_MODE = 6;
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
-	private static final int ECON_PHASE_1 = 7;
+	private static final int RANDOM_VARYSIZE_MODE = 7;
 	private static final String ECON_P1_STRING = "randomSize";
-	private static final int ECON_MODE_2 = 8;
+	private static final int RANDOM_VARYCC_MODE = 8;
 	private static final String ECON_M2_STRING = "randomCC";
-	private static final int ECON_MODE_3 = 9;
+	private static final int ORDERED_MODE = 9;
 	private static final String ECON_M3_STRING = "ordered";
-	private static final int ECON_MODE_4 = 10;
+	private static final int DICTATED_MODE = 10;
 	private static final String ECON_M4_STRING = "dictated";
 
 	public static void main(String[] args) throws IOException {
@@ -53,28 +53,28 @@ public class Nightwing {
 				return;
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_P1_STRING)) {
-			mode = Nightwing.ECON_PHASE_1;
+			mode = Nightwing.RANDOM_VARYSIZE_MODE;
 			if (args.length != 6) {
 				System.out
 						.println("Random deployment w/ varying deployer count\n usage: ./Nightwing <mode> <warden file> <starting decoy count> <ending decoy count> <step size> <min CC size>");
 				return;
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M2_STRING)) {
-			mode = Nightwing.ECON_MODE_2;
+			mode = Nightwing.RANDOM_VARYCC_MODE;
 			if (args.length != 6) {
 				System.out
 						.println("Random deployment w/ varying min customer cone\n usage: ./Nightwing <mode> <warden file> <decoy size> <starting cone size> <ending cone size> <step size>");
 				return;
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M3_STRING)) {
-			mode = Nightwing.ECON_MODE_3;
+			mode = Nightwing.ORDERED_MODE;
 			if (args.length != 6) {
 				System.out
 						.println("Ordered deployment\n usage: ./Nightwing <mode> <warden file> <starting size> <ending size> <step size> <avoid ring 1 (true/false)>");
 				return;
 			}
 		} else if (args[0].equalsIgnoreCase(Nightwing.ECON_M4_STRING)) {
-			mode = Nightwing.ECON_MODE_4;
+			mode = Nightwing.DICTATED_MODE;
 			if (args.length != 3) {
 				System.out
 						.println("Dictated list of deployers\n usage: ./Nightwing <mode> <warden file> <dr deploy file>");
@@ -151,7 +151,7 @@ public class Nightwing {
 			}
 			statInParallel.doCountryExperiment(asCountryMapper.getMap());
 			//statInParallel.runStat();
-		} else if (mode == Nightwing.ECON_PHASE_1) {
+		} else if (mode == Nightwing.RANDOM_VARYSIZE_MODE) {
 			/*
 			 * Build the traffic stat object, and then actually flow the traffic
 			 * through the network
@@ -161,27 +161,27 @@ public class Nightwing {
 			/*
 			 * Do the actual rounds of simulation
 			 */
-			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
-					Integer.parseInt(args[5]), Constants.SAMPLE_COUNT, Integer.parseInt(args[6]), trafficStat, false);
+			econEngine.manageFixedNumberSim(Integer.parseInt(args[3]), Integer.parseInt(args[3]),
+					Integer.parseInt(args[4]), Constants.SAMPLE_COUNT, Integer.parseInt(args[5]), trafficStat, false);
 			econEngine.endSim();
-		} else if (mode == Nightwing.ECON_MODE_2) {
+		} else if (mode == Nightwing.RANDOM_VARYCC_MODE) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 
-			econEngine.manageCustConeExploration(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
-					Integer.parseInt(args[6]), Constants.SAMPLE_COUNT, Integer.parseInt(args[3]), trafficStat);
+			econEngine.manageCustConeExploration(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
+					Integer.parseInt(args[5]), Constants.SAMPLE_COUNT, Integer.parseInt(args[2]), trafficStat);
 			econEngine.endSim();
-		} else if (mode == Nightwing.ECON_MODE_3) {
+		} else if (mode == Nightwing.ORDERED_MODE) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
 
-			econEngine.manageSortedWardenSim(Integer.parseInt(args[3]), Integer.parseInt(args[4]),
-					Integer.parseInt(args[5]), Boolean.parseBoolean(args[6]), trafficStat);
+			econEngine.manageSortedWardenSim(Integer.parseInt(args[2]), Integer.parseInt(args[3]),
+					Integer.parseInt(args[4]), Boolean.parseBoolean(args[5]), trafficStat);
 			econEngine.endSim();
-		} else if (mode == Nightwing.ECON_MODE_4) {
+		} else if (mode == Nightwing.DICTATED_MODE) {
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo);
-			econEngine.manageDictatedDRSim(args[3], trafficStat);
+			econEngine.manageDictatedDRSim(args[2], trafficStat);
 			econEngine.endSim();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
