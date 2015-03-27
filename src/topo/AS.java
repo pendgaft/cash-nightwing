@@ -26,6 +26,10 @@ public abstract class AS implements TransitAgent {
 		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak, StrictReversePoison, PermissiveReversePoison;
 	}
 
+	public enum ReversePoisonMode {
+		None, Lying, Honest;
+	}
+
 	private int asn;
 	private boolean purged;
 	private Set<AS> customers;
@@ -523,6 +527,7 @@ public abstract class AS implements TransitAgent {
 		/*
 		 * In strict avoidance we're refusing ANY route through a DR
 		 */
+		//FIXME is this code dead?
 		if (this.currentAvoidMode == AS.AvoidMode.StrictReversePoison) {
 			return avoidPath;
 		}
@@ -645,12 +650,21 @@ public abstract class AS implements TransitAgent {
 		 */
 		if (pathOfMerit != null) {
 			BGPPath pathToAdv = pathOfMerit.deepCopy();
+
+			/*
+			 * Lying reverse poison, prepend deployer ASes
+			 */
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying && pathToAdv.getDest() == this.asn * -1) {
+				for (Integer tAS : this.avoidSet) {
+					pathToAdv.prependASToPath(tAS);
+				}
+			}
 			pathToAdv.prependASToPath(this.asn);
 
 			/*
 			 * Special case to cover hole punching
 			 */
-			if (pathToAdv.getDest() == this.asn * -1) {
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Honest && pathToAdv.getDest() == this.asn * -1) {
 				for (AS tPeer : this.holepunchPeers) {
 					tPeer.advPath(pathToAdv);
 					newAdvTo.add(tPeer);
@@ -670,7 +684,9 @@ public abstract class AS implements TransitAgent {
 				 * getDestinationAS _IS_ correct) or if we learned of it from a
 				 * customer
 				 */
-				if (pathOfMerit.getDest() == this.asn || (this.getRel(pathOfMerit.getNextHop()) == 1)) {
+				if (pathOfMerit.getDest() == this.asn
+						|| (pathOfMerit.getDest() == this.asn * -1 && Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying)
+						|| (this.getRel(pathOfMerit.getNextHop()) == 1)) {
 					for (AS tPeer : this.peers) {
 						tPeer.advPath(pathToAdv);
 						newAdvTo.add(tPeer);

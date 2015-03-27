@@ -369,18 +369,22 @@ public class ParallelTrafficStat {
 		 * Manually add traffic the source and the next hop on the path, as the
 		 * source will not appear on the path
 		 */
-		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false,
-				thePath.getNextHop() == destAS.getASN());
+		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false, thePath
+				.getNextHop() == destAS.getASN());
 
 		List<Integer> pathList = thePath.getPath();
 		/*
 		 * Add traffic for each of the remaining hops in the path
 		 */
+		boolean isHolePunch = thePath.getDest() < 0;
 		for (int tASN = 0; tASN < pathList.size() - 1; ++tASN) {
 			DecoyAS currentAS = this.fullTopology.get(pathList.get(tASN));
 			DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
 			currentAS.updateTrafficOverOneNeighbor(nextAS.getASN(), amountOfTraffic, isVolatile, true,
 					nextAS.getASN() == destAS.getASN());
+			if (isHolePunch && nextAS.getASN() == thePath.getDestinationASN()) {
+				break;
+			}
 			//FIXME was causing null pointer exception, followup if just hacked in experiment?
 			//this.offerCCTraffic(true, currentAS.getASN(), destAS.getASN(), amountOfTraffic);
 		}
