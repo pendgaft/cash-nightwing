@@ -19,8 +19,26 @@ public class MiscParsing {
 
 	}
 
-	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds) throws IOException {
-		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile("as-rel.txt", "china-as.txt", "superAS.txt");
+	private static void parseTransitRatios(String inFile, String outFile) throws IOException {
+		List<Double> results = new ArrayList<Double>();
+		BufferedReader fBuff = new BufferedReader(new FileReader(inFile));
+		String readLine = null;
+		while ((readLine = fBuff.readLine()) != null) {
+			String[] fragments = readLine.split(",");
+			double totalTransit = Double.parseDouble(fragments[0]);
+			double countryTransit = Double.parseDouble(fragments[1]);
+
+			if (totalTransit > 0.0 && countryTransit >= 0.0) {
+				results.add(countryTransit / totalTransit);
+			}
+		}
+		fBuff.close();
+
+		CDF.printCDF(results, outFile);
+	}
+
+	private static void buildFixedASSimList(int minCCSize, int numberOfASes, int numberOfRounds, String wardenFile) throws IOException {
+		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile, Constants.SUPER_AS_FILE);
 		for (DecoyAS tAS : asMap.values()) {
 			EconomicEngine.buildIndividualCustomerCone(tAS);
 		}
@@ -50,11 +68,11 @@ public class MiscParsing {
 		outBuff.close();
 	}
 
-	private static HashMap<Integer, Integer> buildCCSize() {
+	private static HashMap<Integer, Integer> buildCCSize(String wardenFile) {
 		HashMap<Integer, Integer> retMap = new HashMap<Integer, Integer>();
 
 		try {
-			HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile("as-rel.txt", "china-as.txt", "superAS.txt");
+			HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile, Constants.SUPER_AS_FILE);
 			for (int tAS : asMap.keySet()) {
 				EconomicEngine.buildIndividualCustomerCone(asMap.get(tAS));
 			}
@@ -69,8 +87,8 @@ public class MiscParsing {
 		return retMap;
 	}
 
-	public static void addCCSizeToEcon(String in, String out) throws IOException {
-		HashMap<Integer, Integer> ccSizes = MiscParsing.buildCCSize();
+	private static void addCCSizeToEcon(String in, String out, String wardenFile) throws IOException {
+		HashMap<Integer, Integer> ccSizes = MiscParsing.buildCCSize(wardenFile);
 
 		BufferedReader inFile = new BufferedReader(new FileReader(in));
 		BufferedWriter outFile = new BufferedWriter(new FileWriter(out));
@@ -88,6 +106,66 @@ public class MiscParsing {
 		}
 		inFile.close();
 		outFile.close();
+	}
+
+	private static void buildDeployerList(String logPath, String outPath) throws IOException {
+
+		List<Set<Integer>> roundSets = new LinkedList<Set<Integer>>();
+		HashSet<Integer> deploySet = new HashSet<Integer>();
+		BufferedReader inBuffer = new BufferedReader(new FileReader(logPath));
+		String line = null;
+
+		while ((line = inBuffer.readLine()) != null) {
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(line);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(line);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				int roundFlag = Integer.parseInt(controlMatcher.group(2));
+
+				/*
+				 * Store the deltas for this round and clear everything out for
+				 * the next round
+				 */
+				if (roundFlag == 0) {
+					if (deploySet.size() > 0) {
+						roundSets.add(deploySet);
+						deploySet = new HashSet<Integer>();
+					}
+				}
+
+				continue;
+			}
+
+			Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(line);
+			if (dataMatch.find()) {
+				if (Boolean.parseBoolean(dataMatch.group(4))) {
+					deploySet.add(Integer.parseInt(dataMatch.group(1)));
+				}
+			}
+		}
+		inBuffer.close();
+		if (deploySet.size() > 0) {
+			roundSets.add(deploySet);
+			deploySet = new HashSet<Integer>();
+		}
+
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outPath));
+		for (Set<Integer> tSet : roundSets) {
+			for (int tASN : tSet) {
+				outBuff.write("" + tASN + "\n");
+			}
+			outBuff.write("\n");
+		}
+		outBuff.close();
 	}
 
 	private static HashMap<Integer, HashMap<Integer, Double>> computeProfitDeltas(String inFile, boolean isDR,
@@ -136,8 +214,8 @@ public class MiscParsing {
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4)) == isDR) {
 						if (roundFlag == 1) {
-							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(column)));
+							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
+									.group(column)));
 						} else {
 							double delta = -1.0
 									* ((Double.parseDouble(dataMatch.group(column)) - firstRoundValue.get(Integer
@@ -323,8 +401,8 @@ public class MiscParsing {
 		 * Write each N choose N - 1 combo to the out file
 		 */
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		for (int counter = 0; counter < size; counter++) {
-			for (int posCounter = 0; posCounter < size; posCounter++) {
+		for (int counter = 0; counter < masterASList.size(); counter++) {
+			for (int posCounter = 0; posCounter < masterASList.size(); posCounter++) {
 				if (posCounter == counter) {
 					continue;
 				}
@@ -396,17 +474,15 @@ public class MiscParsing {
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4))) {
 						if (roundFlag == 1) {
-							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(3)));
+							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
+									.group(3)));
 						} else {
 							double delta = Double.parseDouble(dataMatch.group(3))
 									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
 							if (delta != 0.0) {
 
-								deltas.put(
-										Integer.parseInt(dataMatch.group(1)),
-										100.0 * delta
-												/ Math.abs(firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))));
+								deltas.put(Integer.parseInt(dataMatch.group(1)), 100.0 * delta
+										/ Math.abs(firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))));
 
 							}
 						}
@@ -529,9 +605,9 @@ public class MiscParsing {
 				if (dataMatch.find()) {
 					int asnThisLine = Integer.parseInt(dataMatch.group(1));
 					if (defectorList.get(slot) == asnThisLine) {
-						deltas.put(asnThisLine,
-								(Double.parseDouble(dataMatch.group(3)) - trafficNotDefecting.get(asnThisLine))
-										/ normalizationValues.get(asnThisLine) * 100.0);
+						deltas.put(asnThisLine, (Double.parseDouble(dataMatch.group(3)) - trafficNotDefecting
+								.get(asnThisLine))
+								/ normalizationValues.get(asnThisLine) * 100.0);
 						System.out.println("" + asnThisLine + " " + dataMatch.group(3) + " "
 								+ trafficNotDefecting.get(asnThisLine) + " " + normalizationValues.get(asnThisLine));
 						double origLoss = (normalizationValues.get(asnThisLine) - trafficNotDefecting.get(asnThisLine))
@@ -563,6 +639,7 @@ public class MiscParsing {
 		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
 		int roundFlag = 0;
 		int sampleSize = 0;
+		BufferedWriter asBuff = new BufferedWriter(new FileWriter("/scratch/minerva2/public/nightwingData/asn.txt"));
 		while (inBuff.ready()) {
 			String pollStr = inBuff.readLine().trim();
 
@@ -599,10 +676,11 @@ public class MiscParsing {
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
 						if (roundFlag == 1) {
-							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(3)));
+							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
+									.group(3)));
 						} else {
 							int asn = Integer.parseInt(dataMatch.group(1));
+							asBuff.write("" + asn + "\n");
 							double delta = Double.parseDouble(dataMatch.group(3)) - firstRoundValues.get(asn);
 							// TODO need to actually get the as object pulled in
 							// here at some point
@@ -614,6 +692,7 @@ public class MiscParsing {
 			}
 		}
 		inBuff.close();
+		asBuff.close();
 		/*
 		 * Dont' forget to do the last round
 		 */
@@ -654,12 +733,12 @@ public class MiscParsing {
 	public static void parseDefectionRealMoney(String baseFile, String logFile, String defectorConfig, String outFile)
 			throws IOException {
 
-		List<Integer> defectionList = new ArrayList<Integer>();
+		HashMap<Integer, Boolean> defectionList = new HashMap<Integer, Boolean>();
 		BufferedReader confBuff = new BufferedReader(new FileReader(defectorConfig));
 		while (confBuff.ready()) {
 			String pollStr = confBuff.readLine().trim();
 			if (pollStr.length() > 0) {
-				defectionList.add(Integer.parseInt(pollStr));
+				defectionList.put(Integer.parseInt(pollStr), false);
 			}
 		}
 		confBuff.close();
@@ -691,7 +770,8 @@ public class MiscParsing {
 				 * We're ready to actually extract deltas
 				 */
 				if (roundFlag == 0) {
-					if (sampleSize == defectionList.size()) {
+					//FIXME crude work around since there is an off by one error lurking in the shadows of simulations (not here)
+					if (sampleSize == defectionList.size() || sampleSize == defectionList.size() + 1) {
 						break;
 					} else {
 						lowWaterMark.clear();
@@ -706,18 +786,18 @@ public class MiscParsing {
 				if (dataMatch.find()) {
 					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
 						if (roundFlag == 2) {
-							lowWaterMark.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(3)));
+							lowWaterMark.put(Integer.parseInt(dataMatch.group(1)), Double.parseDouble(dataMatch
+									.group(3)));
 						}
 					}
 				}
 			}
 		}
 		inBuff.close();
+		System.out.println("lwm: " + lowWaterMark.size());
 
 		inBuff = new BufferedReader(new FileReader(logFile));
-		sampleSize = 0;
-		int targetAS = 0;
+		HashSet<Integer> onSet = new HashSet<Integer>();
 		while (inBuff.ready()) {
 			String pollStr = inBuff.readLine().trim();
 
@@ -734,33 +814,43 @@ public class MiscParsing {
 
 			if (controlFlag) {
 				roundFlag = Integer.parseInt(controlMatcher.group(2));
-
-				/*
-				 * We're ready to actually extract deltas
-				 */
 				if (roundFlag == 0) {
-					targetAS = defectionList.get(sampleSize);
+					System.out.println("OS " + onSet.size());
+					onSet.clear();
 				}
-				sampleSize++;
 				continue;
 			}
 
-			if (roundFlag != 0) {
+			if (roundFlag == 2) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					int asn = Integer.parseInt(dataMatch.group(1));
-					if (asn == targetAS) {
-						if (roundFlag == 2) {
-							roundValues.put(
-									asn,
-									MiscParsing.convertTrafficToDollars(
-											lowWaterMark.get(asn) - Double.parseDouble(dataMatch.group(3)), null));
+					if (defectionList.containsKey(asn)) {
+						if (!Boolean.parseBoolean(dataMatch.group(4))) {
+							if (defectionList.get(asn)) {
+								System.out.println("already defected once: " + asn);
+							}
+							if (lowWaterMark.containsKey(asn)) {
+								roundValues.put(asn, MiscParsing.convertTrafficToDollars(lowWaterMark.get(asn)
+										- Double.parseDouble(dataMatch.group(3)), null));
+								defectionList.put(asn, true);
+							}
+						} else {
+							onSet.add(asn);
 						}
 					}
 				}
 			}
 		}
 		inBuff.close();
+
+		int trueCount = 0;
+		for (int tASN : defectionList.keySet()) {
+			if (defectionList.get(tASN)) {
+				trueCount++;
+			}
+		}
+		System.out.println("T/F " + trueCount + "/" + (defectionList.size() - trueCount));
 
 		List<Double> resultsList = new ArrayList<Double>(roundValues.size());
 		resultsList.addAll(roundValues.values());
