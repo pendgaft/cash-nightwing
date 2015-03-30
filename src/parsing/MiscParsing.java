@@ -345,6 +345,36 @@ public class MiscParsing {
 				+ (ccIP / 256));
 	}
 
+    public static void generateDefectorConfig(String baseDeployFile, String outFile) throws IOException{
+
+	List<Integer> masterASList = new ArrayList<Integer>();
+
+	BufferedReader fBuff = new BufferedReader(new FileReader(baseDeployFile));
+	String line = null;
+	while((line = fBuff.readLine()) != null){
+	    line = line.trim();
+	    if(line.length() == 0){
+		continue;
+	    }
+
+	    masterASList.add(Integer.parseInt(line));
+	}
+	fBuff.close();
+
+
+	BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+	for(int skipCounter = 0; skipCounter < masterASList.size(); skipCounter++){
+	    for(int writeCounter = 0; writeCounter < masterASList.size(); writeCounter++){
+		if(writeCounter == skipCounter){
+		    continue;
+		}
+		outBuff.write("" + masterASList.get(writeCounter) + "\n");
+	    }
+	    outBuff.write("\n");
+	}
+	outBuff.close();
+    }
+
 	/*
 	 * Used for parsing a detector set
 	 */
