@@ -65,7 +65,8 @@ public class EconomicEngine {
 		}
 		for (DecoyAS tAS : activeMap.values()) {
 			if (tAS.isWardenAS()) {
-				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap, this.pathOut));
+				this.theTopo
+						.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap, this.pathOut));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 						TransitProvider.DECOY_STRAT.DICTATED, this.pathOut));
@@ -274,6 +275,96 @@ public class EconomicEngine {
 		}
 	}
 
+	public void manageGlobalWardenSim(int startCount, int endCount, int step, ParallelTrafficStat trafficManager) {
+		/*
+		 * Step 1, build the sizes of these ASes, sort them
+		 */
+		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			valueMap.put(tAS.getASN(), 0.0);
+		}
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			for (int tDestASN : this.theTopo.keySet()) {
+				if (tDestASN == tAS.getASN()) {
+					continue;
+				}
+				BGPPath tPath = tAS.getPath(tDestASN);
+				if (tPath == null) {
+					continue;
+				}
+				List<Integer> thePath = tPath.getPath();
+				double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
+				for (int tHop : thePath) {
+					if (valueMap.containsKey(tHop)) {
+						if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
+							valueMap.put(tHop, valueMap.get(tHop) + 1);
+						} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
+							valueMap.put(tHop, valueMap.get(tHop) + ipSize);
+						} else {
+							throw new RuntimeException("Bad AS ordering mode!");
+						}
+					}
+				}
+			}
+		}
+
+		/*
+		 * Strip out the wardens, and if we're skipping ring one, those as well
+		 */
+		for (DecoyAS tAS : this.activeTopology.values()) {
+			if (tAS.isWardenAS()) {
+				valueMap.remove(tAS.getASN());
+			} 
+		}
+		
+		/*
+		 * Actually build the list we'll use
+		 */
+		List<ASRanker> rankList = new ArrayList<ASRanker>(valueMap.size());
+		for (int tASN : valueMap.keySet()) {
+			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
+		}
+		Collections.sort(rankList);
+		
+		/*
+		 * Actually do the sim now
+		 */
+		for (int drCount = startCount; drCount <= endCount; drCount += step) {
+			System.out.println("Starting processing for Decoy Count of: " + drCount);
+
+			/*
+			 * Write the size terminators to logging files
+			 */
+			try {
+				this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+				this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
+
+			/*
+			 * Build decoy set for this round
+			 */
+			Set<Integer> drSet = new HashSet<Integer>();
+			int listPos = rankList.size() - 1;
+			while (drSet.size() != drCount) {
+				drSet.add(rankList.get(listPos).getASN());
+				listPos--;
+			}
+
+			/*
+			 * Actually do the sim rounds
+			 */
+			for (int counter = 0; counter < 3; counter++) {
+				trafficManager.runStat();
+				String roundHeader = null;
+				roundHeader = "" + drCount + "," + counter;
+				this.driveEconomicTurn(roundHeader, drSet, counter);
+			}
+		}
+	}
+
 	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne,
 			ParallelTrafficStat trafficManager) {
 
@@ -400,7 +491,6 @@ public class EconomicEngine {
 	 */
 	public void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize,
 			ParallelTrafficStat trafficManager, boolean logMinCCSize) {
-		Random rng = new Random();
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
 		for (DecoyAS tAS : this.activeTopology.values()) {
