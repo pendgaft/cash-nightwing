@@ -87,6 +87,7 @@ public class Nightwing {
 			if (args.length != 5) {
 				System.out
 						.println("Global deployer\n usage: ./Nightwing <mode> <warden file> <starting szie> <ending size> <step size>");
+				return;
 			}
 		} else {
 			System.out.println("bad mode: " + args[0]);
