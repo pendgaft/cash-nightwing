@@ -5,15 +5,16 @@ import java.util.*;
 import java.util.regex.*;
 
 import scijava.stats.CDF;
+import sim.Constants;
 
 public class MaxParser {
 
 	private HashMap<Integer, Double> asToIP;
 
-	private static final String IP_FILE = "/scratch/minerva/schuch/cash-nightwing/ip-count.csv";
-	private static final String FILE_BASE = "/scratch/minerva2/public/nightwingData/";
-	private static final String OUTPUT_SUFFIX = "parsingResults_Run";
-	private static final String INPUT_SUFFIX = "rawData/";
+	private static final String IP_FILE = "realTopo/whole-internet-20150101-ip.txt"; 
+	private static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
+	private static final String OUTPUT_SUFFIX = "parsedLogs/";
+	private static final String INPUT_SUFFIX = "rawLogs/";
 
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
@@ -25,23 +26,30 @@ public class MaxParser {
 	private static final int IP_REACHABILITY_COL = 2;
 
 	public static void main(String[] args) throws IOException {
-		MaxParser self = new MaxParser(MaxParser.IP_FILE);
-		for (String suffix : args) {
-			System.out.println("Working on: " + suffix);
-			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "warden-" + suffix.toLowerCase()
-					+ ".log";
-			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + "transit-" + suffix.toLowerCase()
-					+ ".log";
-
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanBefore.csv", 1, MaxParser.IP_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/wardenCleanAfter.csv", 2, MaxParser.IP_REACHABILITY_COL);
+		MaxParser self = new MaxParser(IP_FILE);
+		
+		File baseFolder = new File(FILE_BASE + INPUT_SUFFIX);
+		File children[] = baseFolder.listFiles();
+		
+		for (File child: children) {
+			if (!child.isDirectory()){
+				continue;
+			}
+			String suffix = child.getName();
 			
-			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonCoopCleanBefore.csv", 1);
-			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonCoopCleanAfter.csv", 2);
+			File outDir = new File(MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix);
+			if(!outDir.exists()){
+				outDir.mkdirs();
+			}
+			
+			System.out.println("Working on: " + suffix);
+			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/warden.log";
+			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/transit.log";
+
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv", 1, MaxParser.IP_REACHABILITY_COL);
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2, MaxParser.IP_REACHABILITY_COL);
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv", 1);
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2);
 			
 //			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 //					+ "/wardenCleanDelta.csv");
@@ -66,7 +74,7 @@ public class MaxParser {
 			if (pollString.length() == 0 || pollString.charAt(0) == '#') {
 				continue;
 			}
-			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, ",");
+			StringTokenizer tokenizerTokens = new StringTokenizer(pollString, " ");
 			int tAS = Integer.parseInt(tokenizerTokens.nextToken());
 			double score = Double.parseDouble(tokenizerTokens.nextToken());
 			this.asToIP.put(tAS, score);
