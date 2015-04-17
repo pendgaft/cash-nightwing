@@ -29,7 +29,9 @@ public class BGPMaster {
 		 */
 		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
 		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
-
+		
+		System.out.println("Live topo size: " + usefulASMap.size());
+		System.out.println("Pruned topo size: " + prunedASMap.size());
 		
 		/*
 		 * Give everyone their self network

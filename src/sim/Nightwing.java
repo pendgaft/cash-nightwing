@@ -109,6 +109,8 @@ public class Nightwing {
 			prunedTopo = topoArray[1];
 			serialControl.loadBGPSerialFile(liveTopo);
 			System.out.println("Topology loaded from serial file.");
+			System.out.println("Live topo size: " + liveTopo.size());
+			System.out.println("Pruned topo size: " + prunedTopo.size());
 		} else {
 			System.out.println("No serial file exists, building topology from scratch.");
 			HashMap<Integer, DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(wardenFile);
@@ -118,9 +120,6 @@ public class Nightwing {
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
 		}
-
-		System.out.println("Live topo size: " + liveTopo.size());
-		System.out.println("Pruned topo size: " + prunedTopo.size());
 
 		if (Constants.DEBUG) {
 			System.out.println("liveTopo:");
