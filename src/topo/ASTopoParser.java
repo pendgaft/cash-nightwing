@@ -265,7 +265,7 @@ public class ASTopoParser {
 			/*
 			 * leave the all warden ASes connected to our topo
 			 */
-			if (tAS.isWardenAS() || tAS.connectedToWarden()) {
+			if (tAS.isWardenAS()) {
 				continue;
 			}
 
@@ -278,6 +278,9 @@ public class ASTopoParser {
 			}
 
 			if (tAS.getNonPrunedCustomerCount() == 0) {
+				if (tAS.connectedToWarden() && tAS.getProviders().size() > 1){
+					continue;
+				}
 				purgeMap.put(tAS.getASN(), tAS);
 			}
 		}
