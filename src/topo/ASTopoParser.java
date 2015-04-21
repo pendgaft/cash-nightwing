@@ -278,9 +278,10 @@ public class ASTopoParser {
 			}
 
 			if (tAS.getNonPrunedCustomerCount() == 0) {
-				if (tAS.connectedToWarden() && tAS.getProviders().size() > 1){
-					continue;
-				}
+				//TODO this is commented out to try and solve the BR problem...
+//				if (tAS.connectedToWarden() && tAS.getProviders().size() > 1){
+//					continue;
+//				}
 				purgeMap.put(tAS.getASN(), tAS);
 			}
 		}
