@@ -265,8 +265,14 @@ public class ASTopoParser {
 			/*
 			 * leave the all warden ASes connected to our topo
 			 */
-			if (tAS.isWardenAS()) {
-				continue;
+			if (Constants.AGRESSIVE_PRUNE) {
+				if (tAS.isWardenAS()) {
+					continue;
+				}
+			} else {
+				if (tAS.isWardenAS() || tAS.connectedToWarden()) {
+					continue;
+				}
 			}
 
 			/*
@@ -278,10 +284,6 @@ public class ASTopoParser {
 			}
 
 			if (tAS.getNonPrunedCustomerCount() == 0) {
-				//TODO this is commented out to try and solve the BR problem...
-//				if (tAS.connectedToWarden() && tAS.getProviders().size() > 1){
-//					continue;
-//				}
 				purgeMap.put(tAS.getASN(), tAS);
 			}
 		}
