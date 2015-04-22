@@ -910,6 +910,18 @@ public abstract class AS implements TransitAgent {
 	public boolean isWardenAS() {
 		return this.wardenAS;
 	}
+	
+	public boolean isCabalCustomerTo(AS posProvider){
+		return this.isWardenAS() && posProvider.isWardenAS() && this.providers.contains(posProvider);
+	}
+	
+	public boolean isCabalProviderTo(AS posCustomer){
+		return this.isWardenAS() && posCustomer.isWardenAS() && this.customers.contains(posCustomer);
+	}
+	
+	public boolean isCabalPeerTo(AS posPeer){
+		return this.isWardenAS() && posPeer.isWardenAS() && this.peers.contains(posPeer);
+	}
 
 	public void setWardenSet(Set<Integer> wardenASes) {
 		this.wardenSet = wardenASes;
