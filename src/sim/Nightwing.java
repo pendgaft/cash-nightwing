@@ -18,6 +18,8 @@ import topo.BGPPath;
 
 public class Nightwing {
 
+	private static final int DUMP_BGP_MODE = 1;
+	private static final String DUMP_BGP_PATHS_STRING = "bgpdump";
 	private static final int TRAFFICSTAT1_MODE = 6;
 	private static final String TRAFFICSTAT1_STRING = "trafficStat1";
 	private static final int RANDOM_VARYSIZE_MODE = 7;
@@ -89,6 +91,12 @@ public class Nightwing {
 						.println("Global deployer\n usage: ./Nightwing <mode> <warden file> <starting szie> <ending size> <step size>");
 				return;
 			}
+		} else if (args[0].equalsIgnoreCase(Nightwing.DUMP_BGP_PATHS_STRING)) {
+			mode = Nightwing.DUMP_BGP_MODE;
+			if (args.length != 3) {
+				System.out.println("BGP Path dump\n usage: ./Nightwing <mode> <warden file> <out file>");
+				return;
+			}
 		} else {
 			System.out.println("bad mode: " + args[0]);
 			System.exit(-1);
@@ -119,6 +127,26 @@ public class Nightwing {
 			System.out.println("Topo built and BGP converged.");
 			serialControl.buildBGPSerialFile(liveTopo);
 			System.out.println("Topology saved to serial file.");
+		}
+		
+		if(mode == Nightwing.DUMP_BGP_MODE){
+			System.out.println("Starting BGP dump to " + args[2]);
+			BufferedWriter outBuff = new BufferedWriter(new FileWriter(args[2]));
+			for (AS tAS: liveTopo.values()){
+				for(AS destAS: liveTopo.values()){
+					if (destAS.getASN() == tAS.getASN()){
+						continue;
+					}
+					
+					BGPPath tPath = tAS.getPath(destAS.getASN());
+					if(tPath != null){
+						outBuff.write(tPath.getLoggingString() + "\n");
+					}
+				}
+			}
+			outBuff.close();
+			System.out.println("BGP Dump complete.");
+			return;
 		}
 
 		if (Constants.DEBUG) {
