@@ -23,7 +23,7 @@ import econ.TransitAgent;
 public abstract class AS implements TransitAgent {
 
 	public enum AvoidMode {
-		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak, StrictReversePoison, PermissiveReversePoison;
+		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak, StrictReversePoison, PermissiveReversePoison, Legacy;
 	}
 
 	public enum ReversePoisonMode {
@@ -552,6 +552,8 @@ public abstract class AS implements TransitAgent {
 	private BGPPath internalPathSelection(Collection<BGPPath> possList, boolean avoidDecoys) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
+		boolean currBestIsCabal = false;
+
 		/*
 		 * TODO while this might not be simple, in many cases I don't think we
 		 * need to do this work over the whole list of routes, just the best and
@@ -566,8 +568,18 @@ public abstract class AS implements TransitAgent {
 			 * routes that are NOT clean, this is corrected in path selection if
 			 * this leaves us w/ no viable routes
 			 */
-			if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreLpref) {
+			if (avoidDecoys
+					&& (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref || this.currentAvoidMode == AS.AvoidMode.Legacy)) {
 				if (tPath.containsAnyOf(this.avoidSet)) {
+					continue;
+				}
+			}
+
+			boolean tPathIsCabal = false;
+			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
+				tPathIsCabal = this.isCabalPath(tPath);
+
+				if ((!avoidDecoys) && tPathIsCabal) {
 					continue;
 				}
 			}
@@ -575,13 +587,43 @@ public abstract class AS implements TransitAgent {
 			if (currentBest == null) {
 				currentBest = tPath;
 				currentRel = this.getRel(currentBest.getNextHop());
+
+				if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
+					currBestIsCabal = tPathIsCabal;
+				}
 				continue;
+			}
+
+			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
+				if (currBestIsCabal) {
+					/*
+					 * We're using a cabal path, all clean non-cabal paths
+					 * instantly win
+					 */
+					if (!tPathIsCabal) {
+						currentBest = tPath;
+						currentRel = this.getRel(tPath.getNextHop());
+						currBestIsCabal = false;
+					}
+				} else {
+					/*
+					 * We have a non cabal path, don't even consider if this one
+					 * is cabal
+					 */
+					if (tPathIsCabal) {
+						continue;
+					}
+				}
 			}
 
 			int newRel = this.getRel(tPath.getNextHop());
 			if (newRel > currentRel) {
 				currentBest = tPath;
 				currentRel = newRel;
+
+				if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
+					currBestIsCabal = tPathIsCabal;
+				}
 				continue;
 			}
 
@@ -650,6 +692,7 @@ public abstract class AS implements TransitAgent {
 		 */
 		if (pathOfMerit != null) {
 			BGPPath pathToAdv = pathOfMerit.deepCopy();
+			boolean onlyAdvToCabal = false;
 
 			/*
 			 * Lying reverse poison, prepend deployer ASes
@@ -660,6 +703,10 @@ public abstract class AS implements TransitAgent {
 				}
 			}
 			pathToAdv.prependASToPath(this.asn);
+
+			if (this.currentAvoidMode == AS.AvoidMode.Legacy && this.activeAvoidance) {
+				onlyAdvToCabal = this.isCabalPath(pathToAdv);
+			}
 
 			/*
 			 * Special case to cover hole punching
@@ -674,6 +721,9 @@ public abstract class AS implements TransitAgent {
 				 * Advertise to all of our customers
 				 */
 				for (AS tCust : this.customers) {
+					if (onlyAdvToCabal && !tCust.isWardenAS()) {
+						continue;
+					}
 					tCust.advPath(pathToAdv);
 					newAdvTo.add(tCust);
 				}
@@ -688,12 +738,38 @@ public abstract class AS implements TransitAgent {
 						|| (pathOfMerit.getDest() == this.asn * -1 && Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying)
 						|| (this.getRel(pathOfMerit.getNextHop()) == 1)) {
 					for (AS tPeer : this.peers) {
+						if (onlyAdvToCabal && !tPeer.isWardenAS()) {
+							continue;
+						}
 						tPeer.advPath(pathToAdv);
 						newAdvTo.add(tPeer);
 					}
 					for (AS tProv : this.providers) {
+						if (onlyAdvToCabal && !tProv.isWardenAS()) {
+							continue;
+						}
 						tProv.advPath(pathToAdv);
 						newAdvTo.add(tProv);
+					}
+				}
+				/*
+				 * if we're in legacy mode, we need to advertise routes out to
+				 * our peers as well
+				 */
+				else if (this.activeAvoidance && this.currentAvoidMode == AS.AvoidMode.Legacy) {
+					if (!pathToAdv.containsAnyOf(this.avoidSet)) {
+						for (AS tPeer : this.peers) {
+							if (tPeer.isWardenAS()) {
+								tPeer.advPath(pathToAdv);
+								newAdvTo.add(tPeer);
+							}
+						}
+						for (AS tProv : this.providers) {
+							if (tProv.isWardenAS()) {
+								tProv.advPath(pathToAdv);
+								newAdvTo.add(tProv);
+							}
+						}
 					}
 				}
 			}
@@ -910,16 +986,22 @@ public abstract class AS implements TransitAgent {
 	public boolean isWardenAS() {
 		return this.wardenAS;
 	}
-	
-	public boolean isCabalCustomerTo(AS posProvider){
+
+	public boolean isCabalCustomerTo(AS posProvider) {
 		return this.isWardenAS() && posProvider.isWardenAS() && this.providers.contains(posProvider);
 	}
-	
-	public boolean isCabalProviderTo(AS posCustomer){
+
+	public boolean isCabalProviderTo(AS posCustomer) {
 		return this.isWardenAS() && posCustomer.isWardenAS() && this.customers.contains(posCustomer);
 	}
-	
-	public boolean isCabalPeerTo(AS posPeer){
+
+	private boolean isCabalPath(BGPPath testPath) {
+		//TODO implement
+
+		return false;
+	}
+
+	public boolean isCabalPeerTo(AS posPeer) {
 		return this.isWardenAS() && posPeer.isWardenAS() && this.peers.contains(posPeer);
 	}
 
@@ -928,8 +1010,13 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public void turnOnActiveAvoidance(Set<Integer> avoidList, AvoidMode newAvoidMode) {
-		this.activeAvoidance = true;
 		this.avoidSet = avoidList;
+		if (this.avoidSet.size() > 0) {
+			this.activeAvoidance = true;
+		} else {
+			this.activeAvoidance = false;
+		}
+		this.activeAvoidance = true;
 		this.currentAvoidMode = newAvoidMode;
 	}
 
