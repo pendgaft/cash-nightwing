@@ -996,7 +996,47 @@ public abstract class AS implements TransitAgent {
 	}
 
 	private boolean isCabalPath(BGPPath testPath) {
-		//TODO implement
+		/*
+		 * I can't know about cabal paths if I'm not a member of the cabal
+		 */
+		if (!this.isWardenAS()) {
+			return false;
+		}
+
+		if (testPath.getPathLength() < 2) {
+			return false;
+		}
+
+		AS currentNode = this.getNeighborByASN(testPath.getNextHop());
+		AS priorNode = currentNode.getNeighborByASN(testPath.getPath().get(1));
+		if (this.getRelationship(currentNode) != AS.CUSTOMER_CODE
+				&& currentNode.getRelationship(priorNode) != AS.PROIVDER_CODE) {
+			return true;
+		}
+
+		for (int pos = 2; pos < testPath.getPathLength(); pos++) {
+			AS priorPriorNode = priorNode.getNeighborByASN(testPath.getPath().get(pos));
+
+			/*
+			 * Cabal paths only happend between two resistors
+			 */
+			if (currentNode.isWardenAS() && priorNode.isWardenAS()) {
+				int firstRel = currentNode.getRelationship(priorNode);
+				int secondRel = priorNode.getRelationship(priorPriorNode);
+				/*
+				 * Check for a valley
+				 */
+				if ((firstRel != AS.CUSTOMER_CODE) && (secondRel != AS.PROIVDER_CODE)) {
+					return true;
+				}
+			}
+			
+			/*
+			 * Update the pointers
+			 */
+			currentNode = priorNode;
+			priorNode = priorPriorNode;
+		}
 
 		return false;
 	}
@@ -1053,6 +1093,10 @@ public abstract class AS implements TransitAgent {
 			}
 		}
 		return false;
+	}
+
+	public int getRelationship(AS otherAS) {
+		return this.getRelationship(otherAS.getASN());
 	}
 
 	/**
