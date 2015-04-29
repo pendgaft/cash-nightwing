@@ -1007,7 +1007,12 @@ public abstract class AS implements TransitAgent {
 			return false;
 		}
 
-		AS currentNode = this.getNeighborByASN(testPath.getNextHop());
+		AS currentNode = null;
+		if(testPath.getNextHop() == this.getASN()){
+			currentNode = this;
+		}else{
+			this.getNeighborByASN(testPath.getNextHop());
+		}
 		AS priorNode = currentNode.getNeighborByASN(testPath.getPath().get(1));
 		if (this.getRelationship(currentNode) != AS.CUSTOMER_CODE
 				&& currentNode.getRelationship(priorNode) != AS.PROIVDER_CODE) {
