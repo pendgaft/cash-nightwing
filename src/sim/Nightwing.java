@@ -140,7 +140,7 @@ public class Nightwing {
 					
 					BGPPath tPath = tAS.getPath(destAS.getASN());
 					if(tPath != null){
-						outBuff.write(tPath.getLoggingString() + "\n");
+					    outBuff.write(tAS.getASN() + tPath.getLoggingString() + "\n");
 					}
 				}
 			}
