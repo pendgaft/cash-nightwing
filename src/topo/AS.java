@@ -90,19 +90,19 @@ public abstract class AS implements TransitAgent {
 		this.providers = new HashSet<AS>();
 		this.purgedNeighbors = new HashSet<Integer>();
 
-		this.inRib = new THashMap<Integer, List<BGPPath>>();
-		this.adjOutRib = new THashMap<Integer, Set<AS>>();
-		this.locRib = new THashMap<Integer, BGPPath>();
+		this.inRib = new THashMap<Integer, List<BGPPath>>(7800, (float)0.8);
+		this.adjOutRib = new THashMap<Integer, Set<AS>>(10, (float)0.8);
+		this.locRib = new THashMap<Integer, BGPPath>(7800, (float)0.8);
 
 		this.incUpdateQueue = new LinkedBlockingQueue<BGPUpdate>();
 		this.dirtyDest = new HashSet<Integer>();
 
-		this.trafficOverNeighbors = new THashMap<Integer, Double>();
-		this.transitTrafficOverLink = new THashMap<Integer, Double>();
-		this.lastHopDeliveryOverLink = new THashMap<Integer, Double>();
-		this.volatileTraffic = new THashMap<Integer, Double>();
-		this.volatileTransitTraffic = new THashMap<Integer, Double>();
-		this.volatileLastHopDeliveryTraffic = new THashMap<Integer, Double>();
+		this.trafficOverNeighbors = new THashMap<Integer, Double>(10, (float)0.8);
+		this.transitTrafficOverLink = new THashMap<Integer, Double>(10, (float)0.8);
+		this.lastHopDeliveryOverLink = new THashMap<Integer, Double>(10, (float)0.8);
+		this.volatileTraffic = new THashMap<Integer, Double>(10, (float)0.8);
+		this.volatileTransitTraffic = new THashMap<Integer, Double>(10, (float)0.8);
+		this.volatileLastHopDeliveryTraffic = new THashMap<Integer, Double>(10, (float)0.8);
 		this.volatileDestinations = new HashSet<Integer>();
 
 		this.customerConeASList = new HashSet<Integer>();
