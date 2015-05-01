@@ -15,12 +15,17 @@ public class BGPMaster {
 	private Semaphore workSem;
 	private Semaphore completeSem;
 	private Queue<Set<AS>> workQueue;
+	private BGPMaster.BGPWorkType currentWorkType;
 
 	private static final int NUM_THREADS = 8;
 	private static final int WORK_BLOCK_SIZE = 40;
 	
 	public static boolean REPORT_TIME = true;
 
+	public enum BGPWorkType{
+		BGPProcess, BGPAdvertise, None;
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(String wardenFile) throws IOException {
 
@@ -112,7 +117,7 @@ public class BGPMaster {
 
 		boolean stuffToDo = true;
 		boolean skipToMRAI = false;
-		while (stuffToDo) {
+		while (stuffToDo || skipToMRAI) {
 			stuffToDo = false;
 
 			/*
@@ -138,6 +143,8 @@ public class BGPMaster {
 			for (AS tAS : activeMap.values()) {
 				if (tAS.hasWorkToDo()) {
 					stuffToDo = true;
+					self.currentWorkType = BGPMaster.BGPWorkType.BGPProcess;
+					break;
 				}
 				if (tAS.hasDirtyPrefixes()) {
 					skipToMRAI = true;
@@ -150,11 +157,7 @@ public class BGPMaster {
 			 * point
 			 */
 			if (!stuffToDo && skipToMRAI) {
-				for (AS tAS : activeMap.values()) {
-					tAS.mraiExpire();
-				}
-				skipToMRAI = false;
-				stuffToDo = true;
+				self.currentWorkType = BGPMaster.BGPWorkType.BGPAdvertise;
 			}
 
 			/*
@@ -177,6 +180,7 @@ public class BGPMaster {
 		this.workSem = new Semaphore(0);
 		this.completeSem = new Semaphore(0);
 		this.workQueue = new LinkedBlockingQueue<Set<AS>>();
+		this.currentWorkType = BGPMaster.BGPWorkType.BGPProcess;
 	}
 
 	public void addWork(Set<AS> workSet) {
@@ -188,6 +192,10 @@ public class BGPMaster {
 
 		this.workSem.acquire();
 		return this.workQueue.poll();
+	}
+	
+	public BGPMaster.BGPWorkType getWorkType() {
+		return this.currentWorkType;
 	}
 
 	public void reportWorkDone() {
