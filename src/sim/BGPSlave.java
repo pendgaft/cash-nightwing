@@ -20,22 +20,14 @@ public class BGPSlave implements Runnable {
 				 * Fetch work from master
 				 */
 				Set<AS> workSet = this.workSource.getWork();
-				BGPMaster.BGPWorkType currentType = this.workSource.getWorkType();
 
 				/*
 				 * there is work to do, please do it
 				 */
-				if (currentType == BGPMaster.BGPWorkType.BGPProcess) {
-					for (AS tAS : workSet) {
-						tAS.handleAdvertisement();
-					}
-				} else if (currentType == BGPMaster.BGPWorkType.BGPAdvertise) {
-					for (AS tAS : workSet) {
-						tAS.mraiExpire();
-					}
-
+				for (AS tAS : workSet) {
+					tAS.handleAdvertisement();
 				}
-
+				
 				this.workSource.reportWorkDone();
 			}
 		} catch (InterruptedException e) {
