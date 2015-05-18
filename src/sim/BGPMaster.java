@@ -10,11 +10,16 @@ import topo.ASTopoParser;
 import topo.BGPPath;
 
 public class BGPMaster {
+	
+	public enum WorkType{
+		Adv, Process;
+	}
 
 	private int blockCount;
 	private Semaphore workSem;
 	private Semaphore completeSem;
 	private Queue<Set<AS>> workQueue;
+	private WorkType currentWorkType;
 
 	private static final int NUM_THREADS = 8;
 	private static final int WORK_BLOCK_SIZE = 40;
@@ -112,8 +117,9 @@ public class BGPMaster {
 
 		boolean stuffToDo = true;
 		boolean skipToMRAI = false;
-		while (stuffToDo) {
+		while (stuffToDo || skipToMRAI) {
 			stuffToDo = false;
+			skipToMRAI = false;
 
 			/*
 			 * dole out work to slaves
@@ -150,11 +156,9 @@ public class BGPMaster {
 			 * point
 			 */
 			if (!stuffToDo && skipToMRAI) {
-				for (AS tAS : activeMap.values()) {
-					tAS.mraiExpire();
-				}
-				skipToMRAI = false;
-				stuffToDo = true;
+				self.currentWorkType = WorkType.Adv;
+			} else{
+				self.currentWorkType = WorkType.Process;
 			}
 
 			/*
@@ -177,6 +181,7 @@ public class BGPMaster {
 		this.workSem = new Semaphore(0);
 		this.completeSem = new Semaphore(0);
 		this.workQueue = new LinkedBlockingQueue<Set<AS>>();
+		this.currentWorkType = WorkType.Process;
 	}
 
 	public void addWork(Set<AS> workSet) {
@@ -188,6 +193,10 @@ public class BGPMaster {
 
 		this.workSem.acquire();
 		return this.workQueue.poll();
+	}
+	
+	public WorkType getCurentWorkType(){
+		return this.currentWorkType;
 	}
 
 	public void reportWorkDone() {
