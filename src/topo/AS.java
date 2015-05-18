@@ -335,6 +335,12 @@ public abstract class AS implements TransitAgent {
 	public boolean isPurged() {
 		return this.purged;
 	}
+	
+	public void handleAllAdvertisements(){
+		while(!this.incUpdateQueue.isEmpty()){
+			this.handleAdvertisement();
+		}
+	}
 
 	/**
 	 * Public interface to force the router to handle one message in it's update

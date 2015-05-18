@@ -27,7 +27,7 @@ public class BGPSlave implements Runnable {
 				 */
 				for (AS tAS : workSet) {
 					if (jobToDo == BGPMaster.WorkType.Process) {
-						tAS.handleAdvertisement();
+						tAS.handleAllAdvertisements();
 					} else if (jobToDo == BGPMaster.WorkType.Adv) {
 						tAS.mraiExpire();
 					}
