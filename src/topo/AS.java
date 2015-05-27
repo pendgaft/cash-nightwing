@@ -7,6 +7,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TIntDoubleHashMap;
 
 import sim.Constants;
 
@@ -63,13 +64,13 @@ public abstract class AS implements TransitAgent {
 	private Queue<BGPUpdate> incUpdateQueue;
 
 	/* store the traffic over each neighbor */
-	private Map<Integer, Double> trafficOverNeighbors;
-	private Map<Integer, Double> transitTrafficOverLink;
-	private Map<Integer, Double> lastHopDeliveryOverLink;
+	private TIntDoubleHashMap trafficOverNeighbors;
+	private TIntDoubleHashMap transitTrafficOverLink;
+	private TIntDoubleHashMap lastHopDeliveryOverLink;
 
-	private Map<Integer, Double> volatileTraffic;
-	private Map<Integer, Double> volatileTransitTraffic;
-	private Map<Integer, Double> volatileLastHopDeliveryTraffic;
+	private TIntDoubleHashMap volatileTraffic;
+	private TIntDoubleHashMap volatileTransitTraffic;
+	private TIntDoubleHashMap volatileLastHopDeliveryTraffic;
 	private Set<Integer> volatileDestinations;
 
 	public static final int PROIVDER_CODE = -1;
@@ -97,12 +98,12 @@ public abstract class AS implements TransitAgent {
 		this.incUpdateQueue = new LinkedBlockingQueue<BGPUpdate>();
 		this.dirtyDest = new HashSet<Integer>();
 
-		this.trafficOverNeighbors = new THashMap<Integer, Double>(10, (float)0.8);
-		this.transitTrafficOverLink = new THashMap<Integer, Double>(10, (float)0.8);
-		this.lastHopDeliveryOverLink = new THashMap<Integer, Double>(10, (float)0.8);
-		this.volatileTraffic = new THashMap<Integer, Double>(10, (float)0.8);
-		this.volatileTransitTraffic = new THashMap<Integer, Double>(10, (float)0.8);
-		this.volatileLastHopDeliveryTraffic = new THashMap<Integer, Double>(10, (float)0.8);
+		this.trafficOverNeighbors = new TIntDoubleHashMap();
+		this.transitTrafficOverLink = new TIntDoubleHashMap();
+		this.lastHopDeliveryOverLink = new TIntDoubleHashMap();
+		this.volatileTraffic = new TIntDoubleHashMap();
+		this.volatileTransitTraffic = new TIntDoubleHashMap();
+		this.volatileLastHopDeliveryTraffic = new TIntDoubleHashMap();
 		this.volatileDestinations = new HashSet<Integer>();
 
 		this.customerConeASList = new HashSet<Integer>();
@@ -160,12 +161,12 @@ public abstract class AS implements TransitAgent {
 
 	@SuppressWarnings("unchecked")
 	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
-		this.trafficOverNeighbors = (THashMap<Integer, Double>) serialIn.readObject();
-		this.transitTrafficOverLink = (THashMap<Integer, Double>) serialIn.readObject();
-		this.lastHopDeliveryOverLink = (THashMap<Integer, Double>) serialIn.readObject();
-		this.volatileTraffic = (THashMap<Integer, Double>) serialIn.readObject();
-		this.volatileTransitTraffic = (THashMap<Integer, Double>) serialIn.readObject();
-		this.volatileLastHopDeliveryTraffic = (THashMap<Integer, Double>) serialIn.readObject();
+		this.trafficOverNeighbors = (TIntDoubleHashMap) serialIn.readObject();
+		this.transitTrafficOverLink = (TIntDoubleHashMap) serialIn.readObject();
+		this.lastHopDeliveryOverLink = (TIntDoubleHashMap) serialIn.readObject();
+		this.volatileTraffic = (TIntDoubleHashMap) serialIn.readObject();
+		this.volatileTransitTraffic = (TIntDoubleHashMap) serialIn.readObject();
+		this.volatileLastHopDeliveryTraffic = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileDestinations = (Set<Integer>) serialIn.readObject();
 	}
 
@@ -1276,7 +1277,7 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public void resetTraffic() {
-		for (int tASN : this.trafficOverNeighbors.keySet()) {
+		for (int tASN : this.trafficOverNeighbors.keys()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
 			this.transitTrafficOverLink.put(tASN, this.transitTrafficOverLink.get(tASN)
 					- this.volatileTransitTraffic.get(tASN));
