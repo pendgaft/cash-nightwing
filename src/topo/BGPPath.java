@@ -1,5 +1,9 @@
 package topo;
 
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.list.TIntList;
+import gnu.trove.list.array.TIntArrayList;
+
 import java.io.Serializable;
 import java.util.*;
 
@@ -17,11 +21,11 @@ public class BGPPath implements Serializable{
 	private static final long serialVersionUID = 5527061905060650245L;
 	
 	private int destASN;
-	private LinkedList<Integer> path;
+	private TIntList path;
 
 	public BGPPath(int dest) {
 		this.destASN = dest;
-		this.path = new LinkedList<Integer>();
+		this.path = new TIntArrayList();
 	}
 
 	/**
@@ -35,20 +39,20 @@ public class BGPPath implements Serializable{
 	 *         path, false otherwise
 	 */
 	public boolean containsAnyOf(Set<Integer> testASNs) {
-		for (int tHop : this.path) {
-			if (testASNs.contains(tHop)) {
+		for(int tASN : testASNs){
+			if(this.path.contains(tASN)){
 				return true;
 			}
 		}
-
-		return false;
+		return false;	
 	}
 	/**
 	 * Reverse the order of the nodes on the path
 	 */
-	public void reversePath() {
-		Collections.reverse(path);
-	}
+//	public void reversePath() {
+//		
+//		Collections.reverse(path);
+//	}
 	/**
 	 * Returns the path length in ASes
 	 * 
@@ -65,7 +69,7 @@ public class BGPPath implements Serializable{
 	 * @return - a direct reference to the list of asns that comprise the path
 	 */
 	//TODO make this a clone, as this seems a bit dangerous
-	public List<Integer> getPath() {
+	public TIntList getPath() {
 		return this.path;
 	}
 
@@ -77,7 +81,7 @@ public class BGPPath implements Serializable{
 	 *            - the ASN to be added to the front of the path
 	 */
 	public void prependASToPath(int frontASN) {
-		this.path.addFirst(frontASN);
+		this.path.insert(0, frontASN);
 	}
 
 	/**
@@ -88,12 +92,7 @@ public class BGPPath implements Serializable{
 	 * @return - true if the ASN appears in the path already, false otherwise
 	 */
 	public boolean containsLoop(int testASN) {
-		for (int tASN : this.path) {
-			if (tASN == testASN) {
-				return true;
-			}
-		}
-		return false;
+		return this.path.contains(testASN);
 	}
 
 	/**
@@ -109,7 +108,7 @@ public class BGPPath implements Serializable{
 			return this.getDestinationASN();
 		}
 
-		return this.path.getFirst();
+		return this.path.get(0);
 	}
 
 	/**
@@ -157,31 +156,30 @@ public class BGPPath implements Serializable{
 	public BGPPath deepCopy() {
 		BGPPath newPath = new BGPPath(this.destASN);
 		for (int counter = 0; counter < this.path.size(); counter++) {
-			newPath.path.addLast(this.path.get(counter));
+			newPath.path.add(this.path.get(counter));
 		}
 		return newPath;
 	}
 
 	public String toString() {
-		String base = "dst: " + this.destASN + " path:";
-		for (int tAS : this.path) {
-			base = base + " " + tAS;
-		}
-		return base;
+		return "dst: " + this.destASN + " path:" + this.path.toString();
 	}
 	
 	public String getLoggingString(){
-		String base = "";
-		for(int tAS: this.path){
-			base = base + " " + tAS;
+		StringBuilder tBuilder = new StringBuilder();
+		TIntIterator tIter = this.path.iterator();
+		while(tIter.hasNext()){
+			int tAS = tIter.next();
+			tBuilder.append(" ");
+			tBuilder.append(tAS);
 		}
-		return base;
+		return tBuilder.toString();
 	}
 
 	/**
 	 * Hash code based on hash code of the print string
 	 */
 	public int hashCode() {
-		return this.toString().hashCode();
+		return this.path.sum() * this.destASN;
 	}
 }

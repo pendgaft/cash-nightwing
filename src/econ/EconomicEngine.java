@@ -1,10 +1,11 @@
 package econ;
 
+import gnu.trove.iterator.TIntIterator;
+
 import java.util.*;
 import java.io.*;
 
 import decoy.DecoyAS;
-
 import sim.BGPMaster;
 import sim.Constants;
 import sim.ParallelTrafficStat;
@@ -292,9 +293,10 @@ public class EconomicEngine {
 				if (tPath == null) {
 					continue;
 				}
-				List<Integer> thePath = tPath.getPath();
+				TIntIterator tIter = tPath.getPath().iterator();
 				double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-				for (int tHop : thePath) {
+				while(tIter.hasNext()){
+					int tHop = tIter.next();
 					if (valueMap.containsKey(tHop)) {
 						if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
 							valueMap.put(tHop, valueMap.get(tHop) + 1);
@@ -382,9 +384,10 @@ public class EconomicEngine {
 					if (tPath == null) {
 						continue;
 					}
-					List<Integer> thePath = tPath.getPath();
+					TIntIterator tIter = tPath.getPath().iterator();
 					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-					for (int tHop : thePath) {
+					while(tIter.hasNext()){
+						int tHop = tIter.next();
 						if (valueMap.containsKey(tHop)) {
 							if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
 								valueMap.put(tHop, valueMap.get(tHop) + 1);

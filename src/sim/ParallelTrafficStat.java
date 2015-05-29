@@ -1,6 +1,7 @@
 package sim;
 
 import gnu.trove.iterator.TIntIterator;
+import gnu.trove.list.TIntList;
 import gnu.trove.set.hash.TIntHashSet;
 
 import java.util.*;
@@ -375,10 +376,11 @@ public class ParallelTrafficStat {
 		srcAS.updateTrafficOverOneNeighbor(thePath.getNextHop(), amountOfTraffic, isVolatile, false, thePath
 				.getNextHop() == destAS.getASN());
 
-		List<Integer> pathList = thePath.getPath();
+		TIntList pathList = thePath.getPath();
 		/*
 		 * Add traffic for each of the remaining hops in the path
 		 */
+		//FIXME this is bad with linked lists..
 		for (int tASN = 0; tASN < pathList.size() - 1; ++tASN) {
 			DecoyAS currentAS = this.fullTopology.get(pathList.get(tASN));
 			DecoyAS nextAS = this.fullTopology.get(pathList.get(tASN + 1));
@@ -413,7 +415,7 @@ public class ParallelTrafficStat {
 
 		double amountOfTraffic = this.addTrafficToPath(thePath, srcAS, destAS, fromSuperAS, isVolatile);
 
-		List<Integer> pathList = thePath.getPath();
+		TIntList pathList = thePath.getPath();
 		DecoyAS secondLastAS = this.fullTopology.get(pathList.get(pathList.size() - 1));
 		secondLastAS.updateTrafficOverOneNeighbor(destAS.getASN(), amountOfTraffic, isVolatile, true, true);
 	}
@@ -865,7 +867,9 @@ public class ParallelTrafficStat {
 
 	private boolean pathIsVolatile(BGPPath path, int src, int dest) {
 
-		for (int tAS : path.getPath()) {
+		TIntIterator tIter = path.getPath().iterator();
+		while(tIter.hasNext()){
+			int tAS = tIter.next();
 			if (this.fullTopology.get(tAS).isWardenAS()) {
 				return true;
 			}
