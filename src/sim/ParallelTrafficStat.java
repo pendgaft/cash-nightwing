@@ -1,5 +1,8 @@
 package sim;
 
+import gnu.trove.iterator.TIntIterator;
+import gnu.trove.set.hash.TIntHashSet;
+
 import java.util.*;
 import java.io.*;
 
@@ -439,7 +442,10 @@ public class ParallelTrafficStat {
 	 */
 	private Set<DecoyAS> convertToDecoyAS(DecoyAS tAS, boolean activeMap) {
 		Set<DecoyAS> decoyASList = new HashSet<DecoyAS>();
-		for (int tASN : tAS.getVolatileDestinations()) {
+		TIntHashSet volDestASN = tAS.getVolatileDestinations();
+		TIntIterator volDestASNIter = volDestASN.iterator();
+		while(volDestASNIter.hasNext()){
+			int tASN = volDestASNIter.next();
 			if ((activeMap && this.activeMap.containsKey(tASN)) || (!activeMap && this.purgedMap.containsKey(tASN))) {
 				decoyASList.add(this.fullTopology.get(tASN));
 			}

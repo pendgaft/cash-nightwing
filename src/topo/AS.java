@@ -6,11 +6,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import gnu.trove.map.TIntObjectMap;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TIntDoubleHashMap;
-
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.set.hash.TIntHashSet;
 import sim.Constants;
-
 import econ.TransitAgent;
 
 /**
@@ -56,9 +57,9 @@ public abstract class AS implements TransitAgent {
 
 	private Set<Integer> customerConeASList;
 
-	private Map<Integer, List<BGPPath>> inRib; // all pathes
-	private Map<Integer, Set<AS>> adjOutRib; // only to adjancy
-	private Map<Integer, BGPPath> locRib;// best path
+	private TIntObjectMap<List<BGPPath>> inRib; // all pathes
+	private TIntObjectMap<Set<AS>> adjOutRib; // only to adjancy
+	private TIntObjectMap<BGPPath> locRib;// best path
 	private HashSet<Integer> dirtyDest;
 
 	private Queue<BGPUpdate> incUpdateQueue;
@@ -71,7 +72,7 @@ public abstract class AS implements TransitAgent {
 	private TIntDoubleHashMap volatileTraffic;
 	private TIntDoubleHashMap volatileTransitTraffic;
 	private TIntDoubleHashMap volatileLastHopDeliveryTraffic;
-	private Set<Integer> volatileDestinations;
+	private TIntHashSet volatileDestinations;
 
 	public static final int PROIVDER_CODE = -1;
 	public static final int PEER_CODE = 0;
@@ -91,9 +92,9 @@ public abstract class AS implements TransitAgent {
 		this.providers = new HashSet<AS>();
 		this.purgedNeighbors = new HashSet<Integer>();
 
-		this.inRib = new THashMap<Integer, List<BGPPath>>(7800, (float)0.8);
-		this.adjOutRib = new THashMap<Integer, Set<AS>>(10, (float)0.8);
-		this.locRib = new THashMap<Integer, BGPPath>(7800, (float)0.8);
+		this.inRib = new TIntObjectHashMap<List<BGPPath>>(7800, (float)0.8);
+		this.adjOutRib = new TIntObjectHashMap<Set<AS>>(10, (float)0.8);
+		this.locRib = new TIntObjectHashMap<BGPPath>(7800, (float)0.8);
 
 		this.incUpdateQueue = new LinkedBlockingQueue<BGPUpdate>();
 		this.dirtyDest = new HashSet<Integer>();
@@ -104,18 +105,18 @@ public abstract class AS implements TransitAgent {
 		this.volatileTraffic = new TIntDoubleHashMap();
 		this.volatileTransitTraffic = new TIntDoubleHashMap();
 		this.volatileLastHopDeliveryTraffic = new TIntDoubleHashMap();
-		this.volatileDestinations = new HashSet<Integer>();
+		this.volatileDestinations = new TIntHashSet();
 
 		this.customerConeASList = new HashSet<Integer>();
 	}
 
 	@SuppressWarnings("unchecked")
 	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
-		this.inRib = (THashMap<Integer, List<BGPPath>>) serialIn.readObject();
-		this.locRib = (THashMap<Integer, BGPPath>) serialIn.readObject();
-		this.adjOutRib = new THashMap<Integer, Set<AS>>();
+		this.inRib = (TIntObjectHashMap<List<BGPPath>>) serialIn.readObject();
+		this.locRib = (TIntObjectHashMap<BGPPath>) serialIn.readObject();
+		this.adjOutRib = new TIntObjectHashMap<Set<AS>>();
 
-		for (int tDestASN : this.locRib.keySet()) {
+		for (int tDestASN : this.locRib.keys()) {
 			Set<AS> tempSet = new HashSet<AS>();
 			for (AS tCust : this.customers) {
 				tempSet.add(tCust);
@@ -167,7 +168,7 @@ public abstract class AS implements TransitAgent {
 		this.volatileTraffic = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileTransitTraffic = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileLastHopDeliveryTraffic = (TIntDoubleHashMap) serialIn.readObject();
-		this.volatileDestinations = (Set<Integer>) serialIn.readObject();
+		this.volatileDestinations = (TIntHashSet) serialIn.readObject();
 	}
 
 	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
@@ -416,7 +417,7 @@ public abstract class AS implements TransitAgent {
 			}
 		}
 
-		for (int tDest : this.locRib.keySet()) {
+		for (int tDest : this.locRib.keys()) {
 			this.recalcBestPath(tDest);
 		}
 	}
@@ -1272,7 +1273,7 @@ public abstract class AS implements TransitAgent {
 		this.volatileDestinations.add(volatileDest);
 	}
 
-	public Set<Integer> getVolatileDestinations() {
+	public TIntHashSet getVolatileDestinations() {
 		return this.volatileDestinations;
 	}
 
