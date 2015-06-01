@@ -21,11 +21,11 @@ public class BGPPath implements Serializable{
 	private static final long serialVersionUID = 5527061905060650245L;
 	
 	private int destASN;
-	private TIntList path;
+	private TIntArrayList path;
 
 	public BGPPath(int dest) {
 		this.destASN = dest;
-		this.path = new TIntArrayList();
+		this.path = new TIntArrayList(1);
 	}
 
 	/**
@@ -155,6 +155,7 @@ public class BGPPath implements Serializable{
 	 */
 	public BGPPath deepCopy() {
 		BGPPath newPath = new BGPPath(this.destASN);
+		newPath.path.ensureCapacity(this.path.size() + 1);
 		for (int counter = 0; counter < this.path.size(); counter++) {
 			newPath.path.add(this.path.get(counter));
 		}
