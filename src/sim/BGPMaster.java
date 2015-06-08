@@ -117,8 +117,6 @@ public class BGPMaster {
 
 		boolean stuffToDo = true;
 		boolean skipToMRAI = false;
-		int round = 0;
-		long lastTime = System.currentTimeMillis();
 		while (stuffToDo || skipToMRAI) {
 			stuffToDo = false;
 			skipToMRAI = false;
@@ -156,14 +154,6 @@ public class BGPMaster {
 				}
 			}
 			
-			if (round % 20 == 0 || round % 20 == 1){
-				System.out.println("Time to get here from last step: " + (System.currentTimeMillis() - lastTime)/1000);
-				System.out.println("Nodes with work to do: " + workToDo);
-				System.out.println("Nodes wtih dirty routes: " + dirtyRoutes);
-				lastTime = System.currentTimeMillis();
-			}
-			round++;
-
 			/*
 			 * If we have no pending BGP messages, release all pending updates,
 			 * this is slightly different from a normal MRAI, but it gets the
