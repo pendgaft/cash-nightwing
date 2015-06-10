@@ -41,20 +41,19 @@ public class EconomicEngine {
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
 	private static final String SAMPLESIZE_TERMINATOR = "&&&";
-	private static final String LOGGING_DIR = "nightwingLogs/";
 
 	private static final boolean APPLY_FANCY_ECON = false;
 
-	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap) {
+	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap, String loggingDir) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
 		this.transitCashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
 
 		try {
-			this.wardenOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "warden.log"));
-			this.transitOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "transit.log"));
-			this.pathOut = new BufferedWriter(new FileWriter(EconomicEngine.LOGGING_DIR + "path.log"));
+			this.wardenOut = new BufferedWriter(new FileWriter(loggingDir + "warden.log"));
+			this.transitOut = new BufferedWriter(new FileWriter(loggingDir + "transit.log"));
+			this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -180,13 +179,15 @@ public class EconomicEngine {
 		 * Build the tier scale factor points once
 		 */
 		Collections.sort(noCustSizes);
-		this.tierScaleFactor.put(0, noCustSizes.get((int) Math.floor(noCustSizes.size()
-				* EconomicEngine.SCALE_FACTOR_POINT)));
+		this.tierScaleFactor.put(0,
+				noCustSizes.get((int) Math.floor(noCustSizes.size() * EconomicEngine.SCALE_FACTOR_POINT)));
 		for (int currentTier = 1; currentTier < 5; currentTier++) {
 			int startPoint = quarter * (currentTier - 1);
 			int range = Math.min(quarter, ccSizes.size() - startPoint);
-			this.tierScaleFactor.put(currentTier, this.theTopo.get(ccSizes.get((int) Math.floor(startPoint
-					+ (double) range * EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
+			this.tierScaleFactor.put(
+					currentTier,
+					this.theTopo.get(ccSizes.get((int) Math.floor(startPoint + (double) range
+							* EconomicEngine.SCALE_FACTOR_POINT))).parent.getIPCustomerCone());
 		}
 	}
 
@@ -295,7 +296,7 @@ public class EconomicEngine {
 				}
 				TIntIterator tIter = tPath.getPath().iterator();
 				double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-				while(tIter.hasNext()){
+				while (tIter.hasNext()) {
 					int tHop = tIter.next();
 					if (valueMap.containsKey(tHop)) {
 						if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
@@ -316,9 +317,9 @@ public class EconomicEngine {
 		for (DecoyAS tAS : this.activeTopology.values()) {
 			if (tAS.isWardenAS()) {
 				valueMap.remove(tAS.getASN());
-			} 
+			}
 		}
-		
+
 		/*
 		 * Actually build the list we'll use
 		 */
@@ -327,7 +328,7 @@ public class EconomicEngine {
 			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
 		}
 		Collections.sort(rankList);
-		
+
 		/*
 		 * Actually do the sim now
 		 */
@@ -386,7 +387,7 @@ public class EconomicEngine {
 					}
 					TIntIterator tIter = tPath.getPath().iterator();
 					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-					while(tIter.hasNext()){
+					while (tIter.hasNext()) {
 						int tHop = tIter.next();
 						if (valueMap.containsKey(tHop)) {
 							if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
@@ -422,18 +423,19 @@ public class EconomicEngine {
 		/*
 		 * Write it to a file just in case we want it for reference
 		 */
-		try {
-			BufferedWriter outBuff = new BufferedWriter(
-					new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
-
-			for (int counter = rankList.size() - 1; counter >= 0; counter--) {
-				outBuff.write(rankList.get(counter).toString() + "\n");
-			}
-			outBuff.close();
-		} catch (IOException e) {
-			System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
-			e.printStackTrace();
-		}
+		//XXX not sure what I had this in for originally....
+		//		try {
+		//			BufferedWriter outBuff = new BufferedWriter(
+		//					new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
+		//
+		//			for (int counter = rankList.size() - 1; counter >= 0; counter--) {
+		//				outBuff.write(rankList.get(counter).toString() + "\n");
+		//			}
+		//			outBuff.close();
+		//		} catch (IOException e) {
+		//			System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
+		//			e.printStackTrace();
+		//		}
 
 		/*
 		 * Actually do the sim now

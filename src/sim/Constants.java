@@ -10,6 +10,8 @@ public class Constants {
 	public static final String SUPER_AS_FILE = "cash-nightwing/superAS.txt";
 	public static final String TRAFFIC_SPLIT_FILE = "cash-nightwing/trafficSplit.csv";
 	
+	public static final String BASE_LOG_DIR = "/scratch/minerva2/schuch/nightwingData/rawLogs/";
+	
 	public static final boolean AGRESSIVE_PRUNE = false;
 	
 	
@@ -30,10 +32,11 @@ public class Constants {
 	
 	public static final int SAMPLE_COUNT = 100;
 	
-	public static final AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
-	public static final boolean REVERSE_POISON = false;
-	public static final AS.ReversePoisonMode REVERSE_MODE = AS.ReversePoisonMode.None;
+	public static AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
+	public static boolean REVERSE_POISON = false;
+	public static AS.ReversePoisonMode REVERSE_MODE = AS.ReversePoisonMode.None;
 	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.IPWeighted;
+	
 	public static final boolean REFUSE_DIRTY_TRAFFIC = false;
 }
 
