@@ -310,7 +310,7 @@ public class Nightwing {
 
 	private static String logBuilder(int mode, String warden, boolean exclude) {
 		String[] frags = warden.split("\\/");
-		String outStr = frags[frags.length - 1].split("\\.")[0];
+		String outStr = Constants.BASE_LOG_DIR + frags[frags.length - 1].split("\\.")[0];
 
 		/*
 		 * Encode deploy mode
