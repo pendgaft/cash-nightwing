@@ -16,6 +16,7 @@ import decoy.*;
 import econ.EconomicEngine;
 import topo.BGPPath;
 
+//TODO THIS NEEDS TO BE WRITTEN IN AN OO MANER....IT'S SUPER MESSY BEING STATIC C-LIKE SHIT...
 public class Nightwing {
 
 	private static final int DUMP_BGP_MODE = 1;
@@ -269,12 +270,16 @@ public class Nightwing {
 			econEngine.endSim();
 		} else if (mode == Nightwing.ORDERED_MODE) {
 			String logDir = Nightwing.logBuilder(mode, wardenFile, Boolean.parseBoolean(args[7]));
+			PerformanceLogger prefLog = new PerformanceLogger(logDir);
+			BGPMaster.prefLog = prefLog;
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
+			ParallelTrafficStat.prefLog = prefLog;
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, logDir);
-
+			EconomicEngine.prefLogger = prefLog;
 			econEngine.manageSortedWardenSim(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
 					Integer.parseInt(args[6]), Boolean.parseBoolean(args[7]), trafficStat);
 			econEngine.endSim();
+			prefLog.done();
 		} else if (mode == Nightwing.DICTATED_MODE) {
 			//TODO build log dir
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
@@ -283,11 +288,16 @@ public class Nightwing {
 			econEngine.endSim();
 		} else if (mode == Nightwing.GLOBAL_MODE) {
 			String logDir = Nightwing.logBuilder(mode, wardenFile, false);
+			PerformanceLogger prefLog = new PerformanceLogger(logDir);
+			BGPMaster.prefLog = prefLog;
 			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
+			ParallelTrafficStat.prefLog = prefLog;
 			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, logDir);
+			EconomicEngine.prefLogger = prefLog;
 			econEngine.manageGlobalWardenSim(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
 					Integer.parseInt(args[6]), trafficStat);
 			econEngine.endSim();
+			prefLog.done();
 		} else {
 			System.out.println("mode fucked up, wtf.... " + mode);
 			System.exit(-2);
@@ -299,7 +309,8 @@ public class Nightwing {
 	}
 
 	private static String logBuilder(int mode, String warden, boolean exclude) {
-		String outStr = warden;
+		String[] frags = warden.split("\\/");
+		String outStr = frags[frags.length - 1].split("\\.")[0];
 
 		/*
 		 * Encode deploy mode

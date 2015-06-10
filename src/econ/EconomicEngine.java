@@ -9,6 +9,7 @@ import decoy.DecoyAS;
 import sim.BGPMaster;
 import sim.Constants;
 import sim.ParallelTrafficStat;
+import sim.PerformanceLogger;
 import topo.AS;
 import topo.ASRanker;
 import topo.BGPPath;
@@ -43,6 +44,8 @@ public class EconomicEngine {
 	private static final String SAMPLESIZE_TERMINATOR = "&&&";
 
 	private static final boolean APPLY_FANCY_ECON = false;
+	
+	public static PerformanceLogger prefLogger = null;
 
 	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap, String loggingDir) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
@@ -606,8 +609,14 @@ public class EconomicEngine {
 		/*
 		 * Time to do a bit of logging....
 		 */
+		if(EconomicEngine.prefLogger != null){
+			EconomicEngine.prefLogger.resetTimer();
+		}
 		for (int tASN : this.theTopo.keySet()) {
 			this.theTopo.get(tASN).doRoundLogging();
+		}
+		if(EconomicEngine.prefLogger != null){
+			EconomicEngine.prefLogger.logTime("logging");
 		}
 
 		/*

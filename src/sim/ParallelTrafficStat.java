@@ -55,6 +55,8 @@ public class ParallelTrafficStat {
 	/** stores normal ASes and super ASes */
 	private List<DecoyAS> normalASList;
 	private List<DecoyAS> superASList;
+	
+	public static PerformanceLogger prefLog = null;
 
 	/**
 	 * constructor function
@@ -204,6 +206,10 @@ public class ParallelTrafficStat {
 	}
 
 	public void runStat() {
+		if(ParallelTrafficStat.prefLog != null){
+			ParallelTrafficStat.prefLog.resetTimer();
+		}
+		
 		/*
 		 * Clear out the values from last round
 		 */
@@ -244,6 +250,10 @@ public class ParallelTrafficStat {
 			}
 		}
 
+		if(ParallelTrafficStat.prefLog != null){
+			ParallelTrafficStat.prefLog.logTime("traffic flow");
+		}
+		
 		if (this.firstRound) {
 			this.firstRound = false;
 			/*
