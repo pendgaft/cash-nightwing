@@ -587,7 +587,7 @@ public abstract class AS implements TransitAgent {
 
 			boolean tPathIsCabal = false;
 			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-				tPathIsCabal = this.isCabalPath(tPath);
+				tPathIsCabal = tPath.communityAttrContains(BGPPath.CABAL_PATH);
 
 				if ((!avoidDecoys) && tPathIsCabal) {
 					continue;
@@ -715,7 +715,7 @@ public abstract class AS implements TransitAgent {
 			pathToAdv.prependASToPath(this.asn);
 
 			if (this.currentAvoidMode == AS.AvoidMode.Legacy && this.activeAvoidance) {
-				onlyAdvToCabal = this.isCabalPath(pathToAdv);
+				onlyAdvToCabal = pathToAdv.communityAttrContains(BGPPath.CABAL_PATH);
 			}
 
 			/*
@@ -767,16 +767,18 @@ public abstract class AS implements TransitAgent {
 				 * our peers as well
 				 */
 				else if (this.activeAvoidance && this.currentAvoidMode == AS.AvoidMode.Legacy) {
+					BGPPath cabalOutPath = pathToAdv.deepCopy();
+					cabalOutPath.appendToCommunityAttr(BGPPath.CABAL_PATH);
 					if (!pathToAdv.containsAnyOf(this.avoidSet)) {
 						for (AS tPeer : this.peers) {
 							if (tPeer.isWardenAS()) {
-								tPeer.advPath(pathToAdv);
+								tPeer.advPath(cabalOutPath);
 								newAdvTo.add(tPeer);
 							}
 						}
 						for (AS tProv : this.providers) {
 							if (tProv.isWardenAS()) {
-								tProv.advPath(pathToAdv);
+								tProv.advPath(cabalOutPath);
 								newAdvTo.add(tProv);
 							}
 						}
@@ -1005,57 +1007,57 @@ public abstract class AS implements TransitAgent {
 		return this.isWardenAS() && posCustomer.isWardenAS() && this.customers.contains(posCustomer);
 	}
 
-	private boolean isCabalPath(BGPPath testPath) {
-		/*
-		 * I can't know about cabal paths if I'm not a member of the cabal
-		 */
-		if (!this.isWardenAS()) {
-			return false;
-		}
-
-		if (testPath.getPathLength() < 2) {
-			return false;
-		}
-
-		AS currentNode = null;
-		if(testPath.getNextHop() == this.getASN()){
-			currentNode = this;
-		}else{
-			currentNode = this.getNeighborByASN(testPath.getNextHop());
-		}
-
-		AS priorNode = currentNode.getNeighborByASN(testPath.getPath().get(1));
-		if (this.getRelationship(currentNode) != AS.CUSTOMER_CODE
-				&& currentNode.getRelationship(priorNode) != AS.PROIVDER_CODE) {
-			return true;
-		}
-
-		for (int pos = 2; pos < testPath.getPathLength(); pos++) {
-			AS priorPriorNode = priorNode.getNeighborByASN(testPath.getPath().get(pos));
-
-			/*
-			 * Cabal paths only happend between two resistors
-			 */
-			if (currentNode.isWardenAS() && priorNode.isWardenAS()) {
-				int firstRel = currentNode.getRelationship(priorNode);
-				int secondRel = priorNode.getRelationship(priorPriorNode);
-				/*
-				 * Check for a valley
-				 */
-				if ((firstRel != AS.CUSTOMER_CODE) && (secondRel != AS.PROIVDER_CODE)) {
-					return true;
-				}
-			}
-			
-			/*
-			 * Update the pointers
-			 */
-			currentNode = priorNode;
-			priorNode = priorPriorNode;
-		}
-
-		return false;
-	}
+//	private boolean isCabalPath(BGPPath testPath) {
+//		/*
+//		 * I can't know about cabal paths if I'm not a member of the cabal
+//		 */
+//		if (!this.isWardenAS()) {
+//			return false;
+//		}
+//
+//		if (testPath.getPathLength() < 2) {
+//			return false;
+//		}
+//
+//		AS currentNode = null;
+//		if(testPath.getNextHop() == this.getASN()){
+//			currentNode = this;
+//		}else{
+//			currentNode = this.getNeighborByASN(testPath.getNextHop());
+//		}
+//
+//		AS priorNode = currentNode.getNeighborByASN(testPath.getPath().get(1));
+//		if (this.getRelationship(currentNode) != AS.CUSTOMER_CODE
+//				&& currentNode.getRelationship(priorNode) != AS.PROIVDER_CODE) {
+//			return true;
+//		}
+//
+//		for (int pos = 2; pos < testPath.getPathLength(); pos++) {
+//			AS priorPriorNode = priorNode.getNeighborByASN(testPath.getPath().get(pos));
+//
+//			/*
+//			 * Cabal paths only happend between two resistors
+//			 */
+//			if (currentNode.isWardenAS() && priorNode.isWardenAS()) {
+//				int firstRel = currentNode.getRelationship(priorNode);
+//				int secondRel = priorNode.getRelationship(priorPriorNode);
+//				/*
+//				 * Check for a valley
+//				 */
+//				if ((firstRel != AS.CUSTOMER_CODE) && (secondRel != AS.PROIVDER_CODE)) {
+//					return true;
+//				}
+//			}
+//			
+//			/*
+//			 * Update the pointers
+//			 */
+//			currentNode = priorNode;
+//			priorNode = priorPriorNode;
+//		}
+//
+//		return false;
+//	}
 
 	public boolean isCabalPeerTo(AS posPeer) {
 		return this.isWardenAS() && posPeer.isWardenAS() && this.peers.contains(posPeer);
@@ -1065,6 +1067,7 @@ public abstract class AS implements TransitAgent {
 		this.wardenSet = wardenASes;
 	}
 
+	//TODO do we really save that much turning on and off active avoidance?  Maybe just simplify since doesn't govern runtime?
 	public void turnOnActiveAvoidance(Set<Integer> avoidList, AvoidMode newAvoidMode) {
 		this.avoidSet = avoidList;
 		if (this.avoidSet.size() > 0) {
