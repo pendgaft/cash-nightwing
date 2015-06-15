@@ -25,6 +25,7 @@ public class PerformanceLogger {
 		long endTime = System.currentTimeMillis();
 		try {
 			this.outFP.write(activity + " took " + (endTime - this.time) + "\n");
+			this.outFP.flush();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-2);
