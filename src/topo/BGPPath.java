@@ -122,12 +122,12 @@ public class BGPPath implements Serializable{
 		return Math.abs(this.destASN);
 	}
 	
-	public void appendToCommunityAttr(int value){
-		this.communityAttr = this.communityAttr | value;
+	public void setCommunityAttr(int value){
+		this.communityAttr = value;
 	}
 	
 	public boolean communityAttrContains(int value){
-		return (this.communityAttr & value) != 0;
+		return this.communityAttr == value;
 	}
 
 	/**
@@ -161,7 +161,7 @@ public class BGPPath implements Serializable{
 	 */
 	public BGPPath deepCopy() {
 		BGPPath newPath = new BGPPath(this.destASN);
-		newPath.appendToCommunityAttr(this.communityAttr);
+		newPath.setCommunityAttr(this.communityAttr);
 		newPath.path.ensureCapacity(this.path.size() + 1);
 		for (int counter = 0; counter < this.path.size(); counter++) {
 			newPath.path.add(this.path.get(counter));
