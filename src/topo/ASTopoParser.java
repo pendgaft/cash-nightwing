@@ -132,13 +132,12 @@ public class ASTopoParser {
 		 * read the warden AS file, toggle all warden ASes
 		 */
 		fBuff = new BufferedReader(new FileReader(wardenFile));
-		Set<Integer> wardenSet = new HashSet<Integer>();
+		Set<AS> wardenSet = new HashSet<AS>();
 		int lostWardens = 0;
 		while (fBuff.ready()) {
 			pollString = fBuff.readLine().trim();
 			if (pollString.length() > 0) {
 				int asn = Integer.parseInt(pollString);
-				wardenSet.add(asn);
 
 				/*
 				 * Sanity check that the warden AS actually exists in the topo
@@ -146,6 +145,7 @@ public class ASTopoParser {
 				 */
 				if (retMap.get(asn) != null) {
 					retMap.get(asn).toggleWardenAS();
+					wardenSet.add(retMap.get(asn));
 				} else {
 					lostWardens++;
 				}
