@@ -45,7 +45,7 @@ public abstract class AS implements TransitAgent {
 	private boolean activeAvoidance;
 	private Set<Integer> avoidSet;
 	private Set<AS> holepunchPeers;
-	private Set<Integer> wardenSet;
+	private Set<AS> wardenSet;
 	private AvoidMode currentAvoidMode;
 
 	private int numberOfIPs;
@@ -697,7 +697,6 @@ public abstract class AS implements TransitAgent {
 			}
 			pathToAdv.prependASToPath(this.asn);
 
-
 			/*
 			 * Special case to cover hole punching
 			 */
@@ -791,7 +790,9 @@ public abstract class AS implements TransitAgent {
 	}
 
 	/**
-	 * Fetches the currently installed best path to the destination.
+	 * Fetches the currently utilized path to the destination. Note, in some
+	 * rare cases (LEGACY RAD ATTACK) this path will differ from what actually
+	 * lives in the BGP table.
 	 * 
 	 * @param dest
 	 *            - the ASN of the destination network
@@ -799,18 +800,52 @@ public abstract class AS implements TransitAgent {
 	 */
 	public BGPPath getPath(int dest) {
 
+		BGPPath installedPath = null;
+
 		/*
 		 * Hunt for the hole punched path first, if it exists return it
 		 */
-		BGPPath holePunchPath = this.locRib.get(dest * -1);
-		if (holePunchPath != null) {
-			return holePunchPath;
+		installedPath = this.locRib.get(dest * -1);
+		if (installedPath == null) {
+			installedPath = this.locRib.get(dest);
 		}
 
-		/*
-		 * Otherwise return the mapping for the aggregate destination
-		 */
-		return this.locRib.get(dest);
+		if (this.currentAvoidMode == AS.AvoidMode.Legacy && this.isWardenAS()) {
+			if (!installedPath.containsAnyOf(this.avoidSet)) {
+				return installedPath;
+			} else {
+				BGPPath bestCabalPath = null;
+				for (AS tWarden : this.wardenSet) {
+					if (tWarden.getASN() != this.asn) {
+						/*
+						 * IMPORTANT NOTE, this has to be a call to the local
+						 * rib NOT getPath, otherwise an infinite recursion can
+						 * result...
+						 */
+						BGPPath theirPath = tWarden.locRib.get(dest);
+						BGPPath toThem = this.locRib.get(dest);
+
+						if ((!theirPath.containsAnyOf(this.avoidSet))
+								&& (!toThem.containsAnyOf(this.avoidSet))) {
+							if (bestCabalPath == null
+									|| bestCabalPath.getPathLength() > theirPath
+											.getPathLength()
+											+ toThem.getPathLength()) {
+								bestCabalPath = toThem.stichPaths(theirPath);
+							}
+						}
+					}
+				}
+
+				if (bestCabalPath != null) {
+					return bestCabalPath;
+				} else {
+					return installedPath;
+				}
+			}
+		} else {
+			return installedPath;
+		}
 	}
 
 	/**
@@ -952,7 +987,7 @@ public abstract class AS implements TransitAgent {
 		return this.wardenAS;
 	}
 
-	public void setWardenSet(Set<Integer> wardenASes) {
+	public void setWardenSet(Set<AS> wardenASes) {
 		this.wardenSet = wardenASes;
 	}
 
