@@ -25,6 +25,7 @@ public class BGPMaster {
 	private static final int WORK_BLOCK_SIZE = 40;
 	
 	public static boolean REPORT_TIME = true;
+	public static PerformanceLogger prefLog = null;
 
 	@SuppressWarnings("unchecked")
 	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(String wardenFile) throws IOException {
@@ -71,6 +72,10 @@ public class BGPMaster {
 	}
 	
 	public static void driveBGPProcessing(HashMap<Integer, DecoyAS> activeMap){
+		if(BGPMaster.prefLog != null){
+			BGPMaster.prefLog.resetTimer();
+		}
+		
 		/*
 		 * dole out ases into blocks
 		 */
@@ -177,6 +182,10 @@ public class BGPMaster {
 		bgpStartTime = System.currentTimeMillis() - bgpStartTime;
 		if (BGPMaster.REPORT_TIME) {
 			System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
+		}
+		
+		if(BGPMaster.prefLog != null){
+			BGPMaster.prefLog.logTime("BGP run");
 		}
 	}
 

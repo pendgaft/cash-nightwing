@@ -21,10 +21,14 @@ public class BGPPath implements Serializable{
 	private static final long serialVersionUID = 5527061905060650245L;
 	
 	private int destASN;
+	private int communityAttr;
 	private TIntArrayList path;
+	
+	public static final int CABAL_PATH = 1;
 
 	public BGPPath(int dest) {
 		this.destASN = dest;
+		this.communityAttr = 0;
 		this.path = new TIntArrayList(1);
 	}
 
@@ -46,13 +50,7 @@ public class BGPPath implements Serializable{
 		}
 		return false;	
 	}
-	/**
-	 * Reverse the order of the nodes on the path
-	 */
-//	public void reversePath() {
-//		
-//		Collections.reverse(path);
-//	}
+
 	/**
 	 * Returns the path length in ASes
 	 * 
@@ -123,6 +121,14 @@ public class BGPPath implements Serializable{
 	public int getDestinationASN(){
 		return Math.abs(this.destASN);
 	}
+	
+	public void setCommunityAttr(int value){
+		this.communityAttr = value;
+	}
+	
+	public boolean communityAttrContains(int value){
+		return this.communityAttr == value;
+	}
 
 	/**
 	 * Predicate to test if two routes are the same route. This tests that the
@@ -155,6 +161,7 @@ public class BGPPath implements Serializable{
 	 */
 	public BGPPath deepCopy() {
 		BGPPath newPath = new BGPPath(this.destASN);
+		newPath.setCommunityAttr(this.communityAttr);
 		newPath.path.ensureCapacity(this.path.size() + 1);
 		for (int counter = 0; counter < this.path.size(); counter++) {
 			newPath.path.add(this.path.get(counter));
