@@ -111,7 +111,8 @@ public abstract class AS implements TransitAgent {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void loadASFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
+	public void loadASFromSerial(ObjectInputStream serialIn)
+			throws IOException, ClassNotFoundException {
 		this.inRib = (TIntObjectHashMap<List<BGPPath>>) serialIn.readObject();
 		this.locRib = (TIntObjectHashMap<BGPPath>) serialIn.readObject();
 		this.adjOutRib = new TIntObjectHashMap<Set<AS>>();
@@ -121,7 +122,8 @@ public abstract class AS implements TransitAgent {
 			for (AS tCust : this.customers) {
 				tempSet.add(tCust);
 			}
-			if (tDestASN == this.asn || (this.getRel(this.locRib.get(tDestASN).getNextHop()) == 1)) {
+			if (tDestASN == this.asn
+					|| (this.getRel(this.locRib.get(tDestASN).getNextHop()) == 1)) {
 				for (AS tPeer : this.peers) {
 					tempSet.add(tPeer);
 				}
@@ -161,17 +163,21 @@ public abstract class AS implements TransitAgent {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
+	public void loadTrafficFromSerial(ObjectInputStream serialIn)
+			throws IOException, ClassNotFoundException {
 		this.trafficOverNeighbors = (TIntDoubleHashMap) serialIn.readObject();
 		this.transitTrafficOverLink = (TIntDoubleHashMap) serialIn.readObject();
-		this.lastHopDeliveryOverLink = (TIntDoubleHashMap) serialIn.readObject();
+		this.lastHopDeliveryOverLink = (TIntDoubleHashMap) serialIn
+				.readObject();
 		this.volatileTraffic = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileTransitTraffic = (TIntDoubleHashMap) serialIn.readObject();
-		this.volatileLastHopDeliveryTraffic = (TIntDoubleHashMap) serialIn.readObject();
+		this.volatileLastHopDeliveryTraffic = (TIntDoubleHashMap) serialIn
+				.readObject();
 		this.volatileDestinations = (TIntHashSet) serialIn.readObject();
 	}
 
-	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
+	public void saveTrafficToSerial(ObjectOutputStream serialOut)
+			throws IOException {
 		serialOut.writeObject(this.trafficOverNeighbors);
 		serialOut.writeObject(this.transitTrafficOverLink);
 		serialOut.writeObject(this.lastHopDeliveryOverLink);
@@ -394,12 +400,9 @@ public abstract class AS implements TransitAgent {
 		 * Add the new route to the ribs, if it is a loop then DON'T add it to
 		 * ribs
 		 */
-		if ((!nextUpdate.isWithdrawal()) && (!nextUpdate.getPath().containsLoop(this.asn))) {
+		if ((!nextUpdate.isWithdrawal())
+				&& (!nextUpdate.getPath().containsLoop(this.asn))) {
 			destRibList.add(nextUpdate.getPath());
-
-			if ((!this.isWardenAS()) && nextUpdate.getPath().communityAttrContains(BGPPath.CABAL_PATH)) {
-				throw new RuntimeException("cabal path leaked!");
-			}
 		}
 
 		recalcBestPath(dest);
@@ -511,7 +514,8 @@ public abstract class AS implements TransitAgent {
 		 * a new best path and it's not the same as our current best path b) we
 		 * had a best path prior, but currently do not
 		 */
-		changed = (currentBest != null && (currentInstall == null || !currentBest.equals(currentInstall)))
+		changed = (currentBest != null && (currentInstall == null || !currentBest
+				.equals(currentInstall)))
 				|| (currentBest == null && currentInstall != null);
 		this.locRib.put(dest, currentBest);
 
@@ -541,7 +545,7 @@ public abstract class AS implements TransitAgent {
 		/*
 		 * In strict avoidance we're refusing ANY route through a DR
 		 */
-		//FIXME is this code dead?
+		// FIXME is this code dead?
 		if (this.currentAvoidMode == AS.AvoidMode.StrictReversePoison) {
 			return avoidPath;
 		}
@@ -563,10 +567,10 @@ public abstract class AS implements TransitAgent {
 	 *            - the possible valid routes
 	 * @return - the "best" of the valid routes by usual BGP metrics
 	 */
-	private BGPPath internalPathSelection(Collection<BGPPath> possList, boolean avoidDecoys) {
+	private BGPPath internalPathSelection(Collection<BGPPath> possList,
+			boolean avoidDecoys) {
 		BGPPath currentBest = null;
 		int currentRel = -4;
-		boolean currBestIsCabal = false;
 
 		/*
 		 * TODO while this might not be simple, in many cases I don't think we
@@ -589,55 +593,23 @@ public abstract class AS implements TransitAgent {
 				}
 			}
 
-			boolean tPathIsCabal = false;
-			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-				tPathIsCabal = tPath.communityAttrContains(BGPPath.CABAL_PATH);
-
-				if ((!avoidDecoys) && tPathIsCabal) {
-					continue;
-				}
-			}
-
+			/*
+			 * If we have no best path currently selected, the first one is best
+			 * by default
+			 */
 			if (currentBest == null) {
 				currentBest = tPath;
 				currentRel = this.getRel(currentBest.getNextHop());
-
-				if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-					currBestIsCabal = tPathIsCabal;
-				}
 				continue;
 			}
 
-			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-				if (currBestIsCabal) {
-					/*
-					 * We're using a cabal path, all clean non-cabal paths
-					 * instantly win
-					 */
-					if (!tPathIsCabal) {
-						currentBest = tPath;
-						currentRel = this.getRel(tPath.getNextHop());
-						currBestIsCabal = false;
-					}
-				} else {
-					/*
-					 * We have a non cabal path, don't even consider if this one
-					 * is cabal
-					 */
-					if (tPathIsCabal) {
-						continue;
-					}
-				}
-			}
-
+			/*
+			 * Local pref based on relationship step
+			 */
 			int newRel = this.getRel(tPath.getNextHop());
 			if (newRel > currentRel) {
 				currentBest = tPath;
 				currentRel = newRel;
-
-				if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-					currBestIsCabal = tPathIsCabal;
-				}
 				continue;
 			}
 
@@ -650,12 +622,15 @@ public abstract class AS implements TransitAgent {
 				 * local pref, but before path length, do so here
 				 */
 				if (this.currentAvoidMode == AS.AvoidMode.IgnorePathLen) {
-					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet)
+							&& !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if (avoidDecoys && !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys
+							&& !currentBest.containsAnyOf(this.avoidSet)
+							&& tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
 				}
@@ -665,14 +640,18 @@ public abstract class AS implements TransitAgent {
 					currentRel = newRel;
 					continue;
 				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
-							&& currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys
+							&& this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+							&& currentBest.containsAnyOf(this.avoidSet)
+							&& !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
-							&& !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
+					if (avoidDecoys
+							&& this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+							&& !currentBest.containsAnyOf(this.avoidSet)
+							&& tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
 
@@ -706,29 +685,24 @@ public abstract class AS implements TransitAgent {
 		 */
 		if (pathOfMerit != null) {
 			BGPPath pathToAdv = pathOfMerit.deepCopy();
-			boolean onlyAdvToCabal = false;
 
 			/*
 			 * Lying reverse poison, prepend deployer ASes
 			 */
-			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying && pathToAdv.getDest() == this.asn * -1) {
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying
+					&& pathToAdv.getDest() == this.asn * -1) {
 				for (Integer tAS : this.avoidSet) {
 					pathToAdv.prependASToPath(tAS);
 				}
 			}
 			pathToAdv.prependASToPath(this.asn);
 
-			/*
-			 * If cabal paths might exist, quickly check if this is one
-			 */
-			if (this.currentAvoidMode == AS.AvoidMode.Legacy) {
-				onlyAdvToCabal = pathToAdv.communityAttrContains(BGPPath.CABAL_PATH);
-			}
 
 			/*
 			 * Special case to cover hole punching
 			 */
-			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Honest && pathToAdv.getDest() == this.asn * -1) {
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Honest
+					&& pathToAdv.getDest() == this.asn * -1) {
 				for (AS tPeer : this.holepunchPeers) {
 					tPeer.advPath(pathToAdv);
 					newAdvTo.add(tPeer);
@@ -738,9 +712,6 @@ public abstract class AS implements TransitAgent {
 				 * Advertise to all of our customers
 				 */
 				for (AS tCust : this.customers) {
-					if (onlyAdvToCabal && (!tCust.isWardenAS())) {
-						continue;
-					}
 					tCust.advPath(pathToAdv);
 					newAdvTo.add(tCust);
 				}
@@ -755,40 +726,12 @@ public abstract class AS implements TransitAgent {
 						|| (pathOfMerit.getDest() == this.asn * -1 && Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying)
 						|| (this.getRel(pathOfMerit.getNextHop()) == 1)) {
 					for (AS tPeer : this.peers) {
-						if (onlyAdvToCabal && (!tPeer.isWardenAS())) {
-							continue;
-						}
 						tPeer.advPath(pathToAdv);
 						newAdvTo.add(tPeer);
 					}
 					for (AS tProv : this.providers) {
-						if (onlyAdvToCabal && (!tProv.isWardenAS())) {
-							continue;
-						}
 						tProv.advPath(pathToAdv);
 						newAdvTo.add(tProv);
-					}
-				}
-				/*
-				 * if we're in legacy mode, we need to advertise routes out to
-				 * our peers as well
-				 */
-				else if (this.activeAvoidance && this.currentAvoidMode == AS.AvoidMode.Legacy) {
-					if (!pathToAdv.containsAnyOf(this.avoidSet)) {
-						BGPPath cabalOutPath = pathToAdv.deepCopy();
-						cabalOutPath.setCommunityAttr(BGPPath.CABAL_PATH);
-						for (AS tPeer : this.peers) {
-							if (tPeer.isWardenAS()) {
-								tPeer.advPath(cabalOutPath);
-								newAdvTo.add(tPeer);
-							}
-						}
-						for (AS tProv : this.providers) {
-							if (tProv.isWardenAS()) {
-								tProv.advPath(cabalOutPath);
-								newAdvTo.add(tProv);
-							}
-						}
 					}
 				}
 			}
@@ -842,8 +785,9 @@ public abstract class AS implements TransitAgent {
 			return 2;
 		}
 
-		throw new RuntimeException("asked for relation on non-adj/non-self asn, depending on sim "
-				+ "this might be expected, if you're not, you should prob restart this sim...!");
+		throw new RuntimeException(
+				"asked for relation on non-adj/non-self asn, depending on sim "
+						+ "this might be expected, if you're not, you should prob restart this sim...!");
 	}
 
 	/**
@@ -944,7 +888,8 @@ public abstract class AS implements TransitAgent {
 	}
 
 	public String printDebugString() {
-		return this.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n" + this.locRib.toString() + "\nADJ OUT\n"
+		return this.toString() + "\nIN RIB\n" + this.inRib + "\nLOCAL\n"
+				+ this.locRib.toString() + "\nADJ OUT\n"
 				+ this.adjOutRib.toString();
 	}
 
@@ -978,7 +923,8 @@ public abstract class AS implements TransitAgent {
 	 * @return - the degree of this AS in the current topology
 	 */
 	public int getDegree() {
-		return this.customers.size() + this.peers.size() + this.providers.size();
+		return this.customers.size() + this.peers.size()
+				+ this.providers.size();
 	}
 
 	/**
@@ -1006,76 +952,14 @@ public abstract class AS implements TransitAgent {
 		return this.wardenAS;
 	}
 
-	public boolean isCabalCustomerTo(AS posProvider) {
-		return this.isWardenAS() && posProvider.isWardenAS() && this.providers.contains(posProvider);
-	}
-
-	public boolean isCabalProviderTo(AS posCustomer) {
-		return this.isWardenAS() && posCustomer.isWardenAS() && this.customers.contains(posCustomer);
-	}
-
-	//	private boolean isCabalPath(BGPPath testPath) {
-	//		/*
-	//		 * I can't know about cabal paths if I'm not a member of the cabal
-	//		 */
-	//		if (!this.isWardenAS()) {
-	//			return false;
-	//		}
-	//
-	//		if (testPath.getPathLength() < 2) {
-	//			return false;
-	//		}
-	//
-	//		AS currentNode = null;
-	//		if(testPath.getNextHop() == this.getASN()){
-	//			currentNode = this;
-	//		}else{
-	//			currentNode = this.getNeighborByASN(testPath.getNextHop());
-	//		}
-	//
-	//		AS priorNode = currentNode.getNeighborByASN(testPath.getPath().get(1));
-	//		if (this.getRelationship(currentNode) != AS.CUSTOMER_CODE
-	//				&& currentNode.getRelationship(priorNode) != AS.PROIVDER_CODE) {
-	//			return true;
-	//		}
-	//
-	//		for (int pos = 2; pos < testPath.getPathLength(); pos++) {
-	//			AS priorPriorNode = priorNode.getNeighborByASN(testPath.getPath().get(pos));
-	//
-	//			/*
-	//			 * Cabal paths only happend between two resistors
-	//			 */
-	//			if (currentNode.isWardenAS() && priorNode.isWardenAS()) {
-	//				int firstRel = currentNode.getRelationship(priorNode);
-	//				int secondRel = priorNode.getRelationship(priorPriorNode);
-	//				/*
-	//				 * Check for a valley
-	//				 */
-	//				if ((firstRel != AS.CUSTOMER_CODE) && (secondRel != AS.PROIVDER_CODE)) {
-	//					return true;
-	//				}
-	//			}
-	//			
-	//			/*
-	//			 * Update the pointers
-	//			 */
-	//			currentNode = priorNode;
-	//			priorNode = priorPriorNode;
-	//		}
-	//
-	//		return false;
-	//	}
-
-	public boolean isCabalPeerTo(AS posPeer) {
-		return this.isWardenAS() && posPeer.isWardenAS() && this.peers.contains(posPeer);
-	}
-
 	public void setWardenSet(Set<Integer> wardenASes) {
 		this.wardenSet = wardenASes;
 	}
 
-	//TODO do we really save that much turning on and off active avoidance?  Maybe just simplify since doesn't govern runtime?
-	public void turnOnActiveAvoidance(Set<Integer> avoidList, AvoidMode newAvoidMode) {
+	// TODO do we really save that much turning on and off active avoidance?
+	// Maybe just simplify since doesn't govern runtime?
+	public void turnOnActiveAvoidance(Set<Integer> avoidList,
+			AvoidMode newAvoidMode) {
 		this.avoidSet = avoidList;
 		if (this.avoidSet.size() > 0) {
 			this.activeAvoidance = true;
@@ -1158,8 +1042,9 @@ public abstract class AS implements TransitAgent {
 			return 2;
 		}
 
-		throw new IllegalArgumentException("asked for relation on non-adj/non-self asn, depending on sim "
-				+ "this might be expected, if you're not, you should prob restart this sim...!");
+		throw new IllegalArgumentException(
+				"asked for relation on non-adj/non-self asn, depending on sim "
+						+ "this might be expected, if you're not, you should prob restart this sim...!");
 	}
 
 	/**
@@ -1252,28 +1137,37 @@ public abstract class AS implements TransitAgent {
 	 * @param isVolatile
 	 * @param isTransit
 	 */
-	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile,
-			boolean isTransit, boolean isDelivery) {
-		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
+	public synchronized void updateTrafficOverOneNeighbor(int neighbor,
+			double amountOfTraffic, boolean isVolatile, boolean isTransit,
+			boolean isDelivery) {
+		this.trafficOverNeighbors.put(neighbor,
+				this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
 		if (isTransit) {
-			this.transitTrafficOverLink.put(neighbor, this.transitTrafficOverLink.get(neighbor) + amountOfTraffic);
+			this.transitTrafficOverLink
+					.put(neighbor, this.transitTrafficOverLink.get(neighbor)
+							+ amountOfTraffic);
 			/*
 			 * Traffic can ONLY be marked as last hop delivery if it is transit
 			 * to begin with
 			 */
 			if (isDelivery) {
-				this.lastHopDeliveryOverLink
-						.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
+				this.lastHopDeliveryOverLink.put(neighbor,
+						this.lastHopDeliveryOverLink.get(neighbor)
+								+ amountOfTraffic);
 			}
 		}
 
 		if (isVolatile) {
-			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
+			this.volatileTraffic.put(neighbor,
+					this.volatileTraffic.get(neighbor) + amountOfTraffic);
 			if (isTransit) {
-				this.volatileTransitTraffic.put(neighbor, this.volatileTransitTraffic.get(neighbor) + amountOfTraffic);
+				this.volatileTransitTraffic.put(neighbor,
+						this.volatileTransitTraffic.get(neighbor)
+								+ amountOfTraffic);
 				if (isDelivery) {
-					this.volatileLastHopDeliveryTraffic.put(neighbor, this.volatileLastHopDeliveryTraffic.get(neighbor)
-							+ amountOfTraffic);
+					this.volatileLastHopDeliveryTraffic.put(neighbor,
+							this.volatileLastHopDeliveryTraffic.get(neighbor)
+									+ amountOfTraffic);
 				}
 			}
 		}
@@ -1289,11 +1183,16 @@ public abstract class AS implements TransitAgent {
 
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keys()) {
-			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
+			this.trafficOverNeighbors.put(
+					tASN,
+					this.trafficOverNeighbors.get(tASN)
+							- this.volatileTraffic.get(tASN));
 			this.transitTrafficOverLink.put(tASN,
-					this.transitTrafficOverLink.get(tASN) - this.volatileTransitTraffic.get(tASN));
-			this.lastHopDeliveryOverLink.put(tASN, this.lastHopDeliveryOverLink.get(tASN)
-					- this.volatileLastHopDeliveryTraffic.get(tASN));
+					this.transitTrafficOverLink.get(tASN)
+							- this.volatileTransitTraffic.get(tASN));
+			this.lastHopDeliveryOverLink.put(tASN,
+					this.lastHopDeliveryOverLink.get(tASN)
+							- this.volatileLastHopDeliveryTraffic.get(tASN));
 			this.volatileTraffic.put(tASN, 0.0);
 			this.volatileTransitTraffic.put(tASN, 0.0);
 			this.volatileLastHopDeliveryTraffic.put(tASN, 0.0);
