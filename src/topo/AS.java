@@ -811,7 +811,7 @@ public abstract class AS implements TransitAgent {
 		}
 
 		if (this.currentAvoidMode == AS.AvoidMode.Legacy && this.isWardenAS()) {
-			if (!installedPath.containsAnyOf(this.avoidSet)) {
+			if (installedPath != null && (!installedPath.containsAnyOf(this.avoidSet))) {
 				return installedPath;
 			} else {
 				BGPPath bestCabalPath = null;
@@ -825,6 +825,10 @@ public abstract class AS implements TransitAgent {
 						BGPPath theirPath = tWarden.locRib.get(dest);
 						BGPPath toThem = this.locRib.get(dest);
 
+						if(theirPath == null || toThem == null){
+							continue;
+						}
+						
 						if ((!theirPath.containsAnyOf(this.avoidSet))
 								&& (!toThem.containsAnyOf(this.avoidSet))) {
 							if (bestCabalPath == null
