@@ -13,16 +13,16 @@ import java.util.*;
  * @author pendgaft
  * 
  */
-public class BGPPath implements Serializable{
+public class BGPPath implements Serializable {
 
 	/**
-	 *  Serialization ID 
+	 * Serialization ID
 	 */
 	private static final long serialVersionUID = 5527061905060650245L;
-	
+
 	private int destASN;
 	private TIntArrayList path;
-	
+
 	public static final int CABAL_PATH = 1;
 
 	public BGPPath(int dest) {
@@ -41,12 +41,12 @@ public class BGPPath implements Serializable{
 	 *         path, false otherwise
 	 */
 	public boolean containsAnyOf(Set<Integer> testASNs) {
-		for(int tASN : testASNs){
-			if(this.path.contains(tASN)){
+		for (int tASN : testASNs) {
+			if (this.path.contains(tASN)) {
 				return true;
 			}
 		}
-		return false;	
+		return false;
 	}
 
 	/**
@@ -64,9 +64,25 @@ public class BGPPath implements Serializable{
 	 * 
 	 * @return - a direct reference to the list of asns that comprise the path
 	 */
-	//TODO make this a clone, as this seems a bit dangerous
+	// XXX make this a clone, as this seems a bit dangerous
 	public TIntList getPath() {
 		return this.path;
+	}
+	
+	public BGPPath stichPaths(BGPPath secondPath){
+		BGPPath resultantPath = new BGPPath(secondPath.destASN);
+		resultantPath.path.ensureCapacity(this.path.size() + secondPath.path.size());
+		
+		TIntIterator pathIter = this.path.iterator();
+		while(pathIter.hasNext()){
+			resultantPath.path.add(pathIter.next());
+		}
+		pathIter = secondPath.path.iterator();
+		while(pathIter.hasNext()){
+			resultantPath.path.add(pathIter.next());
+		}
+		
+		return resultantPath;
 	}
 
 	/**
@@ -115,8 +131,8 @@ public class BGPPath implements Serializable{
 	public int getDest() {
 		return this.destASN;
 	}
-	
-	public int getDestinationASN(){
+
+	public int getDestinationASN() {
 		return Math.abs(this.destASN);
 	}
 
@@ -161,11 +177,11 @@ public class BGPPath implements Serializable{
 	public String toString() {
 		return "dst: " + this.destASN + " path:" + this.path.toString();
 	}
-	
-	public String getLoggingString(){
+
+	public String getLoggingString() {
 		StringBuilder tBuilder = new StringBuilder();
 		TIntIterator tIter = this.path.iterator();
-		while(tIter.hasNext()){
+		while (tIter.hasNext()) {
 			int tAS = tIter.next();
 			tBuilder.append(" ");
 			tBuilder.append(tAS);
