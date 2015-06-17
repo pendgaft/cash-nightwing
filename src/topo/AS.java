@@ -530,6 +530,8 @@ public abstract class AS implements TransitAgent {
 		if (this.isWardenAS()) {
 			if (currentBest == null) {
 				this.routeStatusMap.put(dest, AS.RS_NULL);
+			} else if (this.avoidSet == null) {
+				this.routeStatusMap.put(dest, AS.RS_CLEAN);
 			} else if (currentBest.containsAnyOf(this.avoidSet)) {
 				this.routeStatusMap.put(dest, AS.RS_DIRTY);
 			} else {
@@ -865,7 +867,7 @@ public abstract class AS implements TransitAgent {
 						this.mplsRoutes.put(dest, bestCabalPath);
 						this.routeStatusMap.put(dest, AS.RS_LEGACY);
 						return bestCabalPath;
-					} else{
+					} else {
 						this.routeStatusMap.put(dest, AS.RS_DIRTY_NO_LEGACY);
 					}
 				}
