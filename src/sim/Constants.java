@@ -32,9 +32,9 @@ public class Constants {
 	
 	public static final int SAMPLE_COUNT = 100;
 	
-	public static AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.IgnoreLpref;
+	public static AS.AvoidMode DEFAULT_AVOID_MODE = AS.AvoidMode.NONE;
 	public static boolean REVERSE_POISON = false;
-	public static AS.ReversePoisonMode REVERSE_MODE = AS.ReversePoisonMode.None;
+	public static AS.ReversePoisonMode REVERSE_MODE = AS.ReversePoisonMode.NONE;
 	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.IPWeighted;
 	
 	public static final boolean REFUSE_DIRTY_TRAFFIC = false;

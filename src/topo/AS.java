@@ -25,11 +25,11 @@ import econ.TransitAgent;
 public abstract class AS implements TransitAgent {
 
 	public enum AvoidMode {
-		None, IgnoreLpref, IgnorePathLen, IgnoreTiebreak, StrictReversePoison, PermissiveReversePoison, Legacy;
+		NONE, LOCALPREF, PATHLEN, TIEBREAK, LEGACY;
 	}
 
 	public enum ReversePoisonMode {
-		None, Lying, Honest;
+		NONE, LYING, HONEST;
 	}
 
 	private int asn;
@@ -93,7 +93,7 @@ public abstract class AS implements TransitAgent {
 		this.routeStatusMap = null;
 		this.mplsRoutes = null;
 		this.activeAvoidance = false;
-		this.currentAvoidMode = AvoidMode.None;
+		this.currentAvoidMode = AvoidMode.NONE;
 		this.holepunchPeers = new HashSet<AS>();
 		this.purged = false;
 		this.customers = new HashSet<AS>();
@@ -434,7 +434,7 @@ public abstract class AS implements TransitAgent {
 		 * If we're a warden and we're in a mode where we're playing around with
 		 * MPLS games clear out the MPLS table for this round
 		 */
-		if (this.isWardenAS() && Constants.DEFAULT_AVOID_MODE == AS.AvoidMode.Legacy) {
+		if (this.isWardenAS() && Constants.DEFAULT_AVOID_MODE == AS.AvoidMode.LEGACY) {
 			this.mplsRoutes.clear();
 		}
 	}
@@ -563,14 +563,6 @@ public abstract class AS implements TransitAgent {
 		BGPPath avoidPath = this.internalPathSelection(possList, true);
 
 		/*
-		 * In strict avoidance we're refusing ANY route through a DR
-		 */
-		// FIXME is this code dead?
-		if (this.currentAvoidMode == AS.AvoidMode.StrictReversePoison) {
-			return avoidPath;
-		}
-
-		/*
 		 * Any other avoidance mode, find a path, even if it is dirty
 		 */
 		if (avoidPath != null) {
@@ -606,7 +598,7 @@ public abstract class AS implements TransitAgent {
 			 * this leaves us w/ no viable routes
 			 */
 			if (avoidDecoys
-					&& (this.currentAvoidMode == AS.AvoidMode.IgnoreLpref || this.currentAvoidMode == AS.AvoidMode.Legacy)) {
+					&& (this.currentAvoidMode == AS.AvoidMode.LOCALPREF || this.currentAvoidMode == AS.AvoidMode.LEGACY)) {
 				if (tPath.containsAnyOf(this.avoidSet)) {
 					continue;
 				}
@@ -640,7 +632,7 @@ public abstract class AS implements TransitAgent {
 				 * If we're inserting the decision to route around decoys after
 				 * local pref, but before path length, do so here
 				 */
-				if (this.currentAvoidMode == AS.AvoidMode.IgnorePathLen) {
+				if (this.currentAvoidMode == AS.AvoidMode.PATHLEN) {
 					if (avoidDecoys && currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
@@ -656,13 +648,13 @@ public abstract class AS implements TransitAgent {
 					currentRel = newRel;
 					continue;
 				} else if (currentBest.getPathLength() == tPath.getPathLength()) {
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.TIEBREAK
 							&& currentBest.containsAnyOf(this.avoidSet) && !tPath.containsAnyOf(this.avoidSet)) {
 						currentBest = tPath;
 						currentRel = newRel;
 						continue;
 					}
-					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.IgnoreTiebreak
+					if (avoidDecoys && this.currentAvoidMode == AS.AvoidMode.TIEBREAK
 							&& !currentBest.containsAnyOf(this.avoidSet) && tPath.containsAnyOf(this.avoidSet)) {
 						continue;
 					}
@@ -701,7 +693,7 @@ public abstract class AS implements TransitAgent {
 			/*
 			 * Lying reverse poison, prepend deployer ASes
 			 */
-			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying && pathToAdv.getDest() == this.asn * -1) {
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.LYING && pathToAdv.getDest() == this.asn * -1) {
 				for (Integer tAS : this.avoidSet) {
 					pathToAdv.prependASToPath(tAS);
 				}
@@ -711,7 +703,7 @@ public abstract class AS implements TransitAgent {
 			/*
 			 * Special case to cover hole punching
 			 */
-			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.Honest && pathToAdv.getDest() == this.asn * -1) {
+			if (Constants.REVERSE_MODE == AS.ReversePoisonMode.HONEST && pathToAdv.getDest() == this.asn * -1) {
 				for (AS tPeer : this.holepunchPeers) {
 					tPeer.advPath(pathToAdv);
 					newAdvTo.add(tPeer);
@@ -732,7 +724,7 @@ public abstract class AS implements TransitAgent {
 				 * customer
 				 */
 				if (pathOfMerit.getDest() == this.asn
-						|| (pathOfMerit.getDest() == this.asn * -1 && Constants.REVERSE_MODE == AS.ReversePoisonMode.Lying)
+						|| (pathOfMerit.getDest() == this.asn * -1 && Constants.REVERSE_MODE == AS.ReversePoisonMode.LYING)
 						|| (this.getRel(pathOfMerit.getNextHop()) == 1)) {
 					for (AS tPeer : this.peers) {
 						tPeer.advPath(pathToAdv);
@@ -831,7 +823,7 @@ public abstract class AS implements TransitAgent {
 			installedPath = this.locRib.get(dest);
 		}
 
-		if (this.currentAvoidMode == AS.AvoidMode.Legacy && this.isWardenAS()) {
+		if (this.currentAvoidMode == AS.AvoidMode.LEGACY && this.isWardenAS()) {
 			if (installedPath != null && this.routeStatusMap.get(dest) == AS.RS_CLEAN) {
 				return installedPath;
 			} else {
@@ -1004,7 +996,7 @@ public abstract class AS implements TransitAgent {
 	public void toggleWardenAS() {
 		this.wardenAS = true;
 		this.routeStatusMap = new TIntIntHashMap();
-		if (Constants.DEFAULT_AVOID_MODE == AS.AvoidMode.Legacy) {
+		if (Constants.DEFAULT_AVOID_MODE == AS.AvoidMode.LEGACY) {
 			this.mplsRoutes = new TIntObjectHashMap<BGPPath>();
 		}
 	}
