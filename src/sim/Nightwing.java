@@ -3,10 +3,12 @@ package sim;
 import java.util.*;
 import java.io.*;
 
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+
 import org.xml.sax.SAXException;
 
 import parsing.AStoCountry;
-
 import topo.AS;
 import topo.SerializationMaster;
 
@@ -14,6 +16,7 @@ import topo.SerializationMaster;
  import decoy.Rings;*/
 import decoy.*;
 import econ.EconomicEngine;
+import gnu.trove.map.TIntObjectMap;
 import topo.BGPPath;
 
 //TODO THIS NEEDS TO BE WRITTEN IN AN OO MANER....IT'S SUPER MESSY BEING STATIC C-LIKE SHIT...
@@ -35,14 +38,44 @@ public class Nightwing {
 	private static final String GLOBAL_DEPLOYER_STRING = "global";
 
 	private static int MODE_LOCATION = 0;
-	private static int WARDEN_FILE_LOCATION = 1;
+	private static int RESIST_FILE_LOCATION = 1;
 	private static int RESIST_STRAT_LOCATION = 2;
 	private static int REVERSE_STRAT_LOCATION = 3;
 
+	
+	
+	
+	
+	private int myMode;
+	private String resistorFile;
+	
+	private TIntObjectMap<AS> liveTopo;
+	private TIntObjectMap<AS> prunedTopo;
+	
+	private AS.AvoidMode resistorStrat;
+	private AS.ReversePoisonMode reverseStrat;
+	
+	private String logDirString;
+	private PerformanceLogger perfLogger;
+	private SerializationMaster serialControl;
+	
+	public Nightwing() {
+		
+		
+		
+	}
+	
+	
 	public static void main(String[] args) throws IOException {
 
 		long startTime, endTime;
 		startTime = System.currentTimeMillis();
+		
+		ArgumentParser argParse = ArgumentParsers.newArgumentParser("nightwing");
+		argParse.addArgument("-m", "--mode").help("sim mode").required(true).nargs(1);
+		argParse.addArgument("-r", "--resistor").help("resistor members file").required(true).nargs(1);
+		argParse.addArgument("-s", "--strat").help("resistor strat").required(true).nargs(1);
+		argParse.addArgument("-p", "--poisoning").help("reverse poisoning strat").required(true).nargs(1);
 
 		if (args.length < 4) {
 			System.out
@@ -55,7 +88,7 @@ public class Nightwing {
 		/*
 		 * Easy part, find the warden file
 		 */
-		String wardenFile = args[Nightwing.WARDEN_FILE_LOCATION];
+		String wardenFile = args[Nightwing.RESIST_FILE_LOCATION];
 
 		/*
 		 * Parse in the resistor strat
