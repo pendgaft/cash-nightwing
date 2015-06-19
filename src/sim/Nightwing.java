@@ -24,7 +24,7 @@ public class Nightwing implements Runnable {
 	}
 
 	private Namespace myArgs;
-	
+
 	private SimMode myMode;
 	private String resistorFile;
 
@@ -47,7 +47,7 @@ public class Nightwing implements Runnable {
 		 * Store the name space, as optional args might need to be fetched later
 		 */
 		this.myArgs = ns;
-		
+
 		/*
 		 * Load in the required arguments from name space
 		 */
@@ -159,7 +159,16 @@ public class Nightwing implements Runnable {
 		File tFileHook = new File(outStr);
 		tFileHook.mkdir();
 
-		//TODO dump the NS to the log dir raw just so we have a record
+		/*
+		 * Dump the namespace to a file just in case
+		 */
+		try {
+			BufferedWriter outFP = new BufferedWriter(new FileWriter(outStr + "/ns.txt"));
+			outFP.write(ns.toString());
+			outFP.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		return outStr + "/";
 	}
