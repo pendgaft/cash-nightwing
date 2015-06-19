@@ -1,20 +1,21 @@
 package econ;
 
+import gnu.trove.map.TIntObjectMap;
+
 import java.io.*;
 import java.util.*;
 
 import sim.Constants;
 import topo.AS;
 import topo.BGPPath;
-
 import decoy.DecoyAS;
 
 public class WardenAgent extends EconomicAgent {
 
-	private HashMap<Integer, DecoyAS> prunedTopo;
+	private TIntObjectMap<DecoyAS> prunedTopo;
 
-	public WardenAgent(DecoyAS parentObject, BufferedWriter log, HashMap<Integer, DecoyAS> activeTopo,
-			HashMap<Integer, DecoyAS> prunedTopo, BufferedWriter pathLog) {
+	public WardenAgent(DecoyAS parentObject, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo,
+			TIntObjectMap<DecoyAS> prunedTopo, BufferedWriter pathLog) {
 		super(parentObject, log, activeTopo, pathLog);
 		if (!parentObject.isWardenAS()) {
 			throw new IllegalArgumentException("Passed a non warden DecoyAS object to WardenAgent constructor.");
@@ -35,16 +36,14 @@ public class WardenAgent extends EconomicAgent {
 		double cleanIPCount = 0.0;
 		double totalASCount = 0.0;
 		double cleanASCount = 0.0;
-		int nullCount = 0;
 
-		for (int tDest : this.activeTopo.keySet()) {
+		for (int tDest : this.activeTopo.keys()) {
 			if (tDest == this.parent.getASN()) {
 				continue;
 			}
 
 			BGPPath tPath = this.parent.getPath(tDest);
 			if (tPath == null) {
-				nullCount++;
 				continue;
 			}
 
@@ -67,7 +66,7 @@ public class WardenAgent extends EconomicAgent {
 			totalASCount += 1;
 		}
 
-		for (int tDest : this.prunedTopo.keySet()) {
+		for (int tDest : this.prunedTopo.keys()) {
 			List<Integer> hookASNs = new ArrayList<Integer>();
 			for (AS tParent : this.prunedTopo.get(tDest).getProviders()) {
 				hookASNs.add(tParent.getASN());
@@ -116,7 +115,7 @@ public class WardenAgent extends EconomicAgent {
 		 * Turns on decoy router avoidance code for this round with the known
 		 * set of decoy routers as the avoidance set
 		 */
-		this.parent.turnOnActiveAvoidance(this.buildDecoySet(), Constants.DEFAULT_AVOID_MODE);
+		this.parent.turnOnActiveAvoidance(this.buildDecoySet());
 	}
 
 	public void reportMoneyEarned(double moneyEarned, double transitEarned) {

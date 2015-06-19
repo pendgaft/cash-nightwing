@@ -1,9 +1,12 @@
 package econ;
 
+import gnu.trove.map.TIntObjectMap;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.io.BufferedWriter;
+
 import decoy.DecoyAS;
 
 /**
@@ -20,12 +23,12 @@ public abstract class EconomicAgent implements TransitAgent {
 	protected DecoyAS parent;
 	protected BufferedWriter logStream;
 	protected BufferedWriter pathStream;
-	protected HashMap<Integer, DecoyAS> activeTopo;
+	protected TIntObjectMap<DecoyAS> activeTopo;
 	
-	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> topo, BufferedWriter pathLog){
+	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, BufferedWriter pathLog){
 		this.parent = parentAS;
 		this.logStream = log;
-		this.activeTopo = topo;
+		this.activeTopo = activeTopo;
 		this.pathStream = pathLog;
 	}
 	
@@ -94,7 +97,7 @@ public abstract class EconomicAgent implements TransitAgent {
 	
 	protected Set<Integer> buildDecoySet() {
 		HashSet<Integer> decoySet = new HashSet<Integer>();
-		for (DecoyAS tAS : this.activeTopo.values()) {
+		for (DecoyAS tAS : this.activeTopo.valueCollection()) {
 			if (tAS.isDecoy()) {
 				decoySet.add(tAS.getASN());
 			}

@@ -1,8 +1,9 @@
 package topo;
 
+import gnu.trove.map.TIntObjectMap;
+
 import java.io.*;
 import java.util.*;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
@@ -90,10 +91,10 @@ public class SerializationMaster {
 		return this.convertHashToFileName() + SerializationMaster.SERIALFILE_TRAFFIC_EXT;
 	}
 
-	public void loadBGPSerialFile(HashMap<Integer, DecoyAS> activeTopo) {
+	public void loadBGPSerialFile(TIntObjectMap<DecoyAS> activeTopo) {
 		try {
 			ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(this.convertHashToBGPFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keySet());
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keys());
 			for (int tASN : sortedAS) {
 				activeTopo.get(tASN).loadASFromSerial(serialIn);
 			}
@@ -104,10 +105,10 @@ public class SerializationMaster {
 		}
 	}
 
-	public void buildBGPSerialFile(HashMap<Integer, DecoyAS> activeTopo) {
+	public void buildBGPSerialFile(TIntObjectMap<DecoyAS> activeTopo) {
 		try {
 			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToBGPFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keySet());
+			List<Integer> sortedAS = this.buildSortedASNList(activeTopo.keys());
 			for (int tASN : sortedAS) {
 				activeTopo.get(tASN).saveASToSerial(serialOut);
 			}
@@ -118,10 +119,10 @@ public class SerializationMaster {
 		}
 	}
 	
-	public void loadTrafficSerialFile(HashMap<Integer, DecoyAS> fullTopo){
+	public void loadTrafficSerialFile(TIntObjectMap<DecoyAS> fullTopo){
 		try {
 			ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(this.convertHashToTrafficFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keySet());
+			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keys());
 			for (int tASN : sortedAS) {
 				fullTopo.get(tASN).loadTrafficFromSerial(serialIn);
 			}
@@ -132,10 +133,10 @@ public class SerializationMaster {
 		}
 	}
 	
-	public void buildTrafficSerialFile(HashMap<Integer, DecoyAS> fullTopo){
+	public void buildTrafficSerialFile(TIntObjectMap<DecoyAS> fullTopo){
 		try{
 			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToTrafficFileName()));
-			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keySet());
+			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keys());
 			for(int tASN: sortedAS){
 				fullTopo.get(tASN).saveTrafficToSerial(serialOut);
 			}
@@ -146,9 +147,11 @@ public class SerializationMaster {
 		}
 	}
 
-	private List<Integer> buildSortedASNList(Set<Integer> activeASNs) {
-		List<Integer> sortedList = new ArrayList<Integer>();
-		sortedList.addAll(activeASNs);
+	private List<Integer> buildSortedASNList(int[] activeASNs) {
+		List<Integer> sortedList = new ArrayList<Integer>(activeASNs.length);
+		for(int tInt : activeASNs){
+			sortedList.add(tInt);
+		}
 		Collections.sort(sortedList);
 		return sortedList;
 	}

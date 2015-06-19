@@ -1,5 +1,7 @@
 package econ;
 
+import gnu.trove.map.TIntObjectMap;
+
 import java.io.*;
 import java.util.*;
 
@@ -26,7 +28,7 @@ public class TransitProvider extends EconomicAgent {
 		TransitProvider.FLIPCHANCE = chance;
 	}
 
-	public TransitProvider(DecoyAS parentAS, BufferedWriter log, HashMap<Integer, DecoyAS> activeTopo,
+	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo,
 			TransitProvider.DECOY_STRAT strat, BufferedWriter pathLog) {
 		super(parentAS, log, activeTopo, pathLog);
 		this.moneyEarned = 0.0;
@@ -45,7 +47,7 @@ public class TransitProvider extends EconomicAgent {
 			System.exit(-1);
 		}
 
-		for (DecoyAS tAS : super.activeTopo.values()) {
+		for (DecoyAS tAS : super.activeTopo.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				BGPPath tPath = super.parent.getPath(tAS.getASN());
 				if (tPath != null) {

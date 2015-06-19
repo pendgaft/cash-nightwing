@@ -1,6 +1,7 @@
 package econ;
 
 import gnu.trove.iterator.TIntIterator;
+import gnu.trove.map.TIntObjectMap;
 
 import java.util.*;
 import java.io.*;
@@ -21,7 +22,8 @@ public class EconomicEngine {
 	}
 
 	private HashMap<Integer, EconomicAgent> theTopo;
-	private HashMap<Integer, DecoyAS> activeTopology;
+	private TIntObjectMap<DecoyAS> activeTopology;
+	private ParallelTrafficStat trafficManger;
 	private HashMap<Integer, Double> cashForThisRound;
 	private HashMap<Integer, Double> transitCashForThisRound;
 
@@ -44,14 +46,16 @@ public class EconomicEngine {
 	private static final String SAMPLESIZE_TERMINATOR = "&&&";
 
 	private static final boolean APPLY_FANCY_ECON = false;
-	
-	public static PerformanceLogger prefLogger = null;
 
-	public EconomicEngine(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> prunedMap, String loggingDir) {
+	private PerformanceLogger perfLogger = null;
+
+	public EconomicEngine(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> prunedMap,
+			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
 		this.transitCashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
+		this.trafficManger = trafficManager;
 
 		try {
 			this.wardenOut = new BufferedWriter(new FileWriter(loggingDir + "warden.log"));
@@ -61,12 +65,13 @@ public class EconomicEngine {
 			e.printStackTrace();
 			System.exit(-1);
 		}
+		this.perfLogger = perfLogger;
 
-		for (DecoyAS tAS : prunedMap.values()) {
+		for (DecoyAS tAS : prunedMap.valueCollection()) {
 			this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 					TransitProvider.DECOY_STRAT.NEVER, this.pathOut));
 		}
-		for (DecoyAS tAS : activeMap.values()) {
+		for (DecoyAS tAS : activeMap.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				this.theTopo
 						.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap, this.pathOut));
@@ -81,7 +86,7 @@ public class EconomicEngine {
 			this.setupPricingTiers();
 		}
 		this.maxIPCount = 0.0;
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			this.maxIPCount = Math.max(this.maxIPCount, (double) tAS.getIPCustomerCone());
 		}
 	}
@@ -104,7 +109,7 @@ public class EconomicEngine {
 			tAgent.parent.setCustomerIPCone(ipCCSize);
 		}
 		if (Constants.DEBUG) {
-			for (DecoyAS tAS : this.activeTopology.values()) {
+			for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 				System.out.println(tAS.getASN() + ", ccSize: " + tAS.getCustomerConeSize() + ", ccList:"
 						+ tAS.getCustomerConeASList());
 			}
@@ -280,15 +285,15 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageGlobalWardenSim(int startCount, int endCount, int step, ParallelTrafficStat trafficManager) {
+	public void manageGlobalWardenSim(int startCount, int endCount, int step) {
 		/*
 		 * Step 1, build the sizes of these ASes, sort them
 		 */
 		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			valueMap.put(tAS.getASN(), 0.0);
 		}
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			for (int tDestASN : this.theTopo.keySet()) {
 				if (tDestASN == tAS.getASN()) {
 					continue;
@@ -317,7 +322,7 @@ public class EconomicEngine {
 		/*
 		 * Strip out the wardens, and if we're skipping ring one, those as well
 		 */
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				valueMap.remove(tAS.getASN());
 			}
@@ -363,7 +368,7 @@ public class EconomicEngine {
 			 * Actually do the sim rounds
 			 */
 			for (int counter = 0; counter < 3; counter++) {
-				trafficManager.runStat();
+				this.trafficManger.runStat();
 				String roundHeader = null;
 				roundHeader = "" + drCount + "," + counter;
 				this.driveEconomicTurn(roundHeader, drSet, counter);
@@ -371,17 +376,16 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne,
-			ParallelTrafficStat trafficManager) {
+	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne) {
 
 		/*
 		 * Step 1, build the sizes of these ASes, sort them
 		 */
 		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			valueMap.put(tAS.getASN(), 0.0);
 		}
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				for (int tDestASN : this.theTopo.keySet()) {
 					BGPPath tPath = tAS.getPath(tDestASN);
@@ -409,7 +413,7 @@ public class EconomicEngine {
 		/*
 		 * Strip out the wardens, and if we're skipping ring one, those as well
 		 */
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				valueMap.remove(tAS.getASN());
 			} else if (excludeRingOne && tAS.connectedToWarden()) {
@@ -471,7 +475,7 @@ public class EconomicEngine {
 			 * Actually do the sim rounds
 			 */
 			for (int counter = 0; counter < 3; counter++) {
-				trafficManager.runStat();
+				this.trafficManger.runStat();
 				String roundHeader = null;
 				roundHeader = "" + drCount + "," + counter;
 				this.driveEconomicTurn(roundHeader, drSet, counter);
@@ -501,7 +505,7 @@ public class EconomicEngine {
 			ParallelTrafficStat trafficManager, boolean logMinCCSize) {
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
-		for (DecoyAS tAS : this.activeTopology.values()) {
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			if (tAS.getCustomerConeSize() >= minCCSize && !tAS.isWardenAS() && !tAS.isSuperAS()) {
 				validDecoyASes.add(tAS.getASN());
 			}
@@ -609,15 +613,11 @@ public class EconomicEngine {
 		/*
 		 * Time to do a bit of logging....
 		 */
-		if(EconomicEngine.prefLogger != null){
-			EconomicEngine.prefLogger.resetTimer();
-		}
+		this.perfLogger.resetTimer();
 		for (int tASN : this.theTopo.keySet()) {
 			this.theTopo.get(tASN).doRoundLogging();
 		}
-		if(EconomicEngine.prefLogger != null){
-			EconomicEngine.prefLogger.logTime("logging");
-		}
+		this.perfLogger.logTime("logging");
 
 		/*
 		 * Let the agents ponder their move

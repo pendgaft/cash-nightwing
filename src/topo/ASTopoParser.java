@@ -1,5 +1,8 @@
 package topo;
 
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
+
 import java.util.*;
 import java.io.*;
 
@@ -31,10 +34,11 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading any config file
 	 */
-	public static HashMap<Integer, DecoyAS> doNetworkBuild(String wardenFile) throws IOException {
+	public static TIntObjectMap<DecoyAS> doNetworkBuild(String wardenFile, AS.AvoidMode avoidMode,
+			AS.ReversePoisonMode poisonMode) throws IOException {
 
-		HashMap<Integer, DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile,
-				Constants.SUPER_AS_FILE);
+		TIntObjectMap<DecoyAS> asMap = ASTopoParser.parseFile(Constants.AS_REL_FILE, wardenFile,
+				Constants.SUPER_AS_FILE, avoidMode, poisonMode);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap, Constants.IP_COUNT_FILE);
 
@@ -50,7 +54,7 @@ public class ASTopoParser {
 	 *            of this call
 	 * @return - a mapping between ASN and AS object of PRUNED ASes
 	 */
-	public static HashMap<Integer, DecoyAS> doNetworkPrune(HashMap<Integer, DecoyAS> workingMap) {
+	public static TIntObjectMap<DecoyAS> doNetworkPrune(TIntObjectMap<DecoyAS> workingMap) {
 		return ASTopoParser.pruneNoCustomerAS(workingMap);
 	}
 
@@ -66,10 +70,10 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading either config file
 	 */
-	public static HashMap<Integer, DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile)
-			throws IOException {
+	public static TIntObjectMap<DecoyAS> parseFile(String asRelFile, String wardenFile, String superASFile,
+			AS.AvoidMode avoidMode, AS.ReversePoisonMode poisonMode) throws IOException {
 
-		HashMap<Integer, DecoyAS> retMap = new HashMap<Integer, DecoyAS>();
+		TIntObjectMap<DecoyAS> retMap = new TIntObjectHashMap<DecoyAS>();
 
 		String pollString;
 		StringTokenizer pollToks;
@@ -144,7 +148,7 @@ public class ASTopoParser {
 				 * and flag it, the warden AS not existing is kinda bad
 				 */
 				if (retMap.get(asn) != null) {
-					retMap.get(asn).toggleWardenAS();
+					retMap.get(asn).toggleWardenAS(avoidMode, poisonMode);
 					wardenSet.add(retMap.get(asn));
 				} else {
 					lostWardens++;
@@ -158,7 +162,7 @@ public class ASTopoParser {
 		/*
 		 * Give all nodes a copy of the warden set
 		 */
-		for (DecoyAS tAS : retMap.values()) {
+		for (DecoyAS tAS : retMap.valueCollection()) {
 			tAS.setWardenSet(wardenSet);
 		}
 
@@ -196,7 +200,7 @@ public class ASTopoParser {
 	 * @throws IOException
 	 *             - if there is an issue reading from the IP count file
 	 */
-	public static void parseIPScoreFile(HashMap<Integer, DecoyAS> asMap, String ipCountFile) throws IOException {
+	public static void parseIPScoreFile(TIntObjectMap<DecoyAS> asMap, String ipCountFile) throws IOException {
 		BufferedReader fBuff = new BufferedReader(new FileReader(ipCountFile));
 		int unMatchedAS = 0;
 		long lostIPs = 0;
@@ -255,13 +259,13 @@ public class ASTopoParser {
 	 *            - the unpruned AS map, will be altered as a side effect
 	 * @return - a mapping of ASN to AS object containing the PRUNED AS objects
 	 */
-	private static HashMap<Integer, DecoyAS> pruneNoCustomerAS(HashMap<Integer, DecoyAS> asMap) {
-		HashMap<Integer, DecoyAS> purgeMap = new HashMap<Integer, DecoyAS>();
+	private static TIntObjectMap<DecoyAS> pruneNoCustomerAS(TIntObjectMap<DecoyAS> asMap) {
+		TIntObjectMap<DecoyAS> purgeMap = new TIntObjectHashMap<DecoyAS>();
 
 		/*
 		 * Find the ASes w/o customers
 		 */
-		for (DecoyAS tAS : asMap.values()) {
+		for (DecoyAS tAS : asMap.valueCollection()) {
 			/*
 			 * leave the all warden ASes connected to our topo
 			 */
@@ -292,7 +296,7 @@ public class ASTopoParser {
 		 * Remove these guys from the asn map and remove them from their peer's
 		 * data structure
 		 */
-		for (AS tAS : purgeMap.values()) {
+		for (AS tAS : purgeMap.valueCollection()) {
 			asMap.remove(tAS.getASN());
 			tAS.purgeRelations();
 		}

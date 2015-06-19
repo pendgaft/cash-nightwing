@@ -1,5 +1,7 @@
 package sim;
 
+import gnu.trove.map.TIntObjectMap;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -10,8 +12,8 @@ import topo.ASTopoParser;
 import topo.BGPPath;
 
 public class BGPMaster {
-	
-	public enum WorkType{
+
+	public enum WorkType {
 		Adv, Process;
 	}
 
@@ -23,26 +25,27 @@ public class BGPMaster {
 
 	private static final int NUM_THREADS = 8;
 	private static final int WORK_BLOCK_SIZE = 40;
-	
+
 	public static boolean REPORT_TIME = true;
 	public static PerformanceLogger prefLog = null;
 
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildBGPConnection(String wardenFile) throws IOException {
+	public static TIntObjectMap<DecoyAS>[] buildBGPConnection(String wardenFile, AS.AvoidMode avoidMode,
+			AS.ReversePoisonMode poisonMode) throws IOException {
 
 		/*
 		 * Build AS map
 		 */
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
-		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
-		
+		TIntObjectMap<DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile, avoidMode, poisonMode);
+		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+
 		System.out.println("Live topo size: " + usefulASMap.size());
 		System.out.println("Pruned topo size: " + prunedASMap.size());
-		
+
 		/*
 		 * Give everyone their self network
 		 */
-		for (AS tAS : usefulASMap.values()) {
+		for (AS tAS : usefulASMap.valueCollection()) {
 			tAS.advPath(new BGPPath(tAS.getASN()));
 		}
 
@@ -51,38 +54,39 @@ public class BGPMaster {
 		BGPMaster.verifyConnected(usefulASMap);
 
 		//self.tellDone();
-		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
+		TIntObjectMap<DecoyAS>[] retArray = new TIntObjectMap[2];
 		retArray[0] = usefulASMap;
 		retArray[1] = prunedASMap;
 		return retArray;
 	}
-	
+
 	@SuppressWarnings("unchecked")
-	public static HashMap<Integer, DecoyAS>[] buildASObjectsOnly(String wardenFile) throws IOException{
+	public static TIntObjectMap<DecoyAS>[] buildASObjectsOnly(String wardenFile) throws IOException {
 		/*
 		 * Build AS map
 		 */
-		HashMap<Integer, DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile);
-		HashMap<Integer, DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
-		
-		HashMap<Integer, DecoyAS>[] retArray = new HashMap[2];
+		TIntObjectMap<DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile, AS.AvoidMode.NONE,
+				AS.ReversePoisonMode.NONE);
+		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+
+		TIntObjectMap<DecoyAS>[] retArray = new TIntObjectMap[2];
 		retArray[0] = usefulASMap;
 		retArray[1] = prunedASMap;
 		return retArray;
 	}
-	
-	public static void driveBGPProcessing(HashMap<Integer, DecoyAS> activeMap){
-		if(BGPMaster.prefLog != null){
+
+	public static void driveBGPProcessing(TIntObjectMap<DecoyAS> activeMap) {
+		if (BGPMaster.prefLog != null) {
 			BGPMaster.prefLog.resetTimer();
 		}
-		
+
 		/*
 		 * dole out ases into blocks
 		 */
 		List<Set<AS>> asBlocks = new LinkedList<Set<AS>>();
 		int currentBlockSize = 0;
 		Set<AS> currentSet = new HashSet<AS>();
-		for (AS tAS : activeMap.values()) {
+		for (AS tAS : activeMap.valueCollection()) {
 			currentSet.add(tAS);
 			currentBlockSize++;
 
@@ -148,7 +152,7 @@ public class BGPMaster {
 			 */
 			int workToDo = 0;
 			int dirtyRoutes = 0;
-			for (AS tAS : activeMap.values()) {
+			for (AS tAS : activeMap.valueCollection()) {
 				if (tAS.hasWorkToDo()) {
 					stuffToDo = true;
 					workToDo++;
@@ -158,7 +162,7 @@ public class BGPMaster {
 					dirtyRoutes++;
 				}
 			}
-			
+
 			/*
 			 * If we have no pending BGP messages, release all pending updates,
 			 * this is slightly different from a normal MRAI, but it gets the
@@ -166,7 +170,7 @@ public class BGPMaster {
 			 */
 			if (!stuffToDo && skipToMRAI) {
 				self.currentWorkType = WorkType.Adv;
-			} else{
+			} else {
 				self.currentWorkType = WorkType.Process;
 			}
 
@@ -183,8 +187,8 @@ public class BGPMaster {
 		if (BGPMaster.REPORT_TIME) {
 			System.out.println("BGP done, this took: " + (bgpStartTime / 60000) + " minutes.");
 		}
-		
-		if(BGPMaster.prefLog != null){
+
+		if (BGPMaster.prefLog != null) {
 			BGPMaster.prefLog.logTime("BGP run");
 		}
 	}
@@ -207,8 +211,8 @@ public class BGPMaster {
 		this.workSem.acquire();
 		return this.workQueue.poll();
 	}
-	
-	public WorkType getCurentWorkType(){
+
+	public WorkType getCurentWorkType() {
 		return this.currentWorkType;
 	}
 
@@ -222,26 +226,22 @@ public class BGPMaster {
 		}
 	}
 
-	private static void verifyConnected(HashMap<Integer, DecoyAS> transitAS) {
+	private static void verifyConnected(TIntObjectMap<DecoyAS> transitAS) {
 		long startTime = System.currentTimeMillis();
 		System.out.println("Starting connection verification");
 
 		double examinedPaths = 0.0;
 		double workingPaths = 0.0;
-		//int cnt = 0;
-		for (DecoyAS tAS : transitAS.values()) {
-			for (DecoyAS tDest : transitAS.values()) {
-				//System.out.println(tAS.getASN() + " to " + tDest.getASN());
-				//cnt++;
+
+		for (DecoyAS tAS : transitAS.valueCollection()) {
+			for (DecoyAS tDest : transitAS.valueCollection()) {
 				if (tDest.getASN() == tAS.getASN()) {
 					continue;
 				}
 
 				examinedPaths++;
-				//System.out.println("examined path");
 				if (tAS.getPath(tDest.getASN()) != null) {
 					workingPaths++;
-					//System.out.println("working path");
 				}
 			}
 		}
@@ -250,11 +250,5 @@ public class BGPMaster {
 		System.out.println("Verification done in: " + startTime);
 		System.out.println("Paths exist for " + workingPaths + " of " + examinedPaths + " possible ("
 				+ (workingPaths / examinedPaths * 100.0) + "%)");
-		//System.out.println(cnt);
 	}
-
-	//	private void tellDone() {
-	//		this.workSem.notifyAll();
-	//	}
-
 }

@@ -2,6 +2,8 @@ package sim;
 
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.list.TIntList;
+import gnu.trove.map.TIntObjectMap;
+import gnu.trove.map.hash.TIntObjectHashMap;
 import gnu.trove.set.hash.TIntHashSet;
 
 import java.util.*;
@@ -31,10 +33,10 @@ public class ParallelTrafficStat {
 	private double superASRatio;
 
 	/** Stores the active (routing) portion of the topology */
-	private HashMap<Integer, DecoyAS> activeMap;
+	private TIntObjectMap<DecoyAS> activeMap;
 	/** Stores the pruned portion of the topology */
-	private HashMap<Integer, DecoyAS> purgedMap;
-	private HashMap<Integer, DecoyAS> fullTopology;
+	private TIntObjectMap<DecoyAS> purgedMap;
+	private TIntObjectMap<DecoyAS> fullTopology;
 	/**
 	 * store the ASN whose ip count is not zero, used to split ASes among the
 	 * threads
@@ -56,7 +58,7 @@ public class ParallelTrafficStat {
 	private List<DecoyAS> normalASList;
 	private List<DecoyAS> superASList;
 	
-	public static PerformanceLogger prefLog = null;
+	private PerformanceLogger perfLog = null;
 
 	/**
 	 * constructor function
@@ -65,25 +67,26 @@ public class ParallelTrafficStat {
 	 * @param purgedMap
 	 * @param trafficSplitFile
 	 */
-	public ParallelTrafficStat(HashMap<Integer, DecoyAS> activeMap, HashMap<Integer, DecoyAS> purgedMap,
-			SerializationMaster serialControl) {
+	public ParallelTrafficStat(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> purgedMap,
+			SerializationMaster serialControl, PerformanceLogger perfLogger) {
 
 		this.totalP2PTraffic = 0;
 		this.activeMap = activeMap;
 		this.purgedMap = purgedMap;
-		this.fullTopology = new HashMap<Integer, DecoyAS>();
+		this.fullTopology = new TIntObjectHashMap<DecoyAS>();
 		this.validASNList = new ArrayList<Integer>();
 		this.firstRound = true;
 		this.serialControl = serialControl;
+		this.perfLog = perfLogger;
 
-		for (int tASN : this.activeMap.keySet()) {
+		for (int tASN : this.activeMap.keys()) {
 			this.fullTopology.put(tASN, this.activeMap.get(tASN));
 			/* only need AS which has IP count */
 			if (this.activeMap.get(tASN).getIPCount() != 0) {
 				this.validASNList.add(tASN);
 			}
 		}
-		for (int tASN : this.purgedMap.keySet()) {
+		for (int tASN : this.purgedMap.keys()) {
 			this.fullTopology.put(tASN, this.purgedMap.get(tASN));
 			if (this.purgedMap.get(tASN).getIPCount() != 0) {
 				this.validASNList.add(tASN);
@@ -173,7 +176,7 @@ public class ParallelTrafficStat {
 	public void doCountryExperiment(HashMap<Integer, String> ccMap) {
 		this.ccMap = ccMap;
 		this.otherCCMap = new HashMap<Integer, Double>();
-		for (int tASN : this.activeMap.keySet()) {
+		for (int tASN : this.activeMap.keys()) {
 			this.otherCCMap.put(tASN, 0.0);
 		}
 		this.runStat();
@@ -181,7 +184,7 @@ public class ParallelTrafficStat {
 		try {
 			BufferedWriter outBuffer = new BufferedWriter(new FileWriter(
 					"/scratch/waterhouse/schuch/workspace/cash-nightwing/countryTransitResult.txt"));
-			for (DecoyAS tAS : this.activeMap.values()) {
+			for (DecoyAS tAS : this.activeMap.valueCollection()) {
 				double trafficSum = 0.0;
 				for (int tAdj : tAS.getNeighbors()) {
 					trafficSum += tAS.getTransitTrafficOverLink(tAdj);
@@ -206,14 +209,12 @@ public class ParallelTrafficStat {
 	}
 
 	public void runStat() {
-		if(ParallelTrafficStat.prefLog != null){
-			ParallelTrafficStat.prefLog.resetTimer();
-		}
+		this.perfLog.resetTimer();
 		
 		/*
 		 * Clear out the values from last round
 		 */
-		for (DecoyAS tAS : this.fullTopology.values()) {
+		for (DecoyAS tAS : this.fullTopology.valueCollection()) {
 			tAS.resetTraffic();
 		}
 
@@ -250,9 +251,8 @@ public class ParallelTrafficStat {
 			}
 		}
 
-		if(ParallelTrafficStat.prefLog != null){
-			ParallelTrafficStat.prefLog.logTime("traffic flow");
-		}
+			this.perfLog.logTime("traffic flow");
+		
 		
 		if (this.firstRound) {
 			this.firstRound = false;
@@ -477,9 +477,9 @@ public class ParallelTrafficStat {
 	private Collection<DecoyAS> selectDecoyASList(DecoyAS tAS, boolean firstRun, boolean toActiveMap) {
 		if (firstRun) {
 			if (toActiveMap)
-				return this.activeMap.values();
+				return this.activeMap.valueCollection();
 			else
-				return this.purgedMap.values();
+				return this.purgedMap.valueCollection();
 		} else {
 			return convertToDecoyAS(tAS, toActiveMap);
 		}
@@ -695,7 +695,7 @@ public class ParallelTrafficStat {
 		int ips[] = new int[this.activeMap.size() + this.purgedMap.size()];
 
 		int counter = 0;
-		for (DecoyAS tAS : this.fullTopology.values()) {
+		for (DecoyAS tAS : this.fullTopology.valueCollection()) {
 			ips[counter] = tAS.getIPCount();
 			counter++;
 		}
@@ -724,7 +724,7 @@ public class ParallelTrafficStat {
 	private void groupASesAndCalcTrafficForNormalAS(double totalTrafficFromSuperASes) {
 		int superASNum = 0;
 		double totalIPCounts = 0;
-		for (DecoyAS tAS : this.activeMap.values()) {
+		for (DecoyAS tAS : this.activeMap.valueCollection()) {
 			if (!tAS.isSuperAS()) {
 				this.normalASList.add(tAS);
 				totalIPCounts += tAS.getIPCount();
@@ -733,7 +733,7 @@ public class ParallelTrafficStat {
 				superASNum++;
 			}
 		}
-		for (DecoyAS tAS : this.purgedMap.values()) {
+		for (DecoyAS tAS : this.purgedMap.valueCollection()) {
 			if (!tAS.isSuperAS()) {
 				this.normalASList.add(tAS);
 				totalIPCounts += tAS.getIPCount();
@@ -863,7 +863,7 @@ public class ParallelTrafficStat {
 	 */
 	private void trafficFromSuperASToNormalAS() {
 
-		for (DecoyAS tAS : this.activeMap.values()) {
+		for (DecoyAS tAS : this.activeMap.valueCollection()) {
 			if (!tAS.isSuperAS())
 				continue;
 
@@ -898,7 +898,7 @@ public class ParallelTrafficStat {
 
 		System.out.println("\nShowResults: traffic flowing to neighbors");
 		System.out.println("AS, neighbor AS, total traffic");
-		for (DecoyAS tAS : this.fullTopology.values()) {
+		for (DecoyAS tAS : this.fullTopology.valueCollection()) {
 			for (int tASN : tAS.getNeighbors()) {
 				System.out.println(tAS.getASN() + ", " + tASN + ", " + tAS.getTrafficOverLinkBetween(tASN) + ","
 						+ tAS.getVolTraffic(tASN) + "," + tAS.getTransitTrafficOverLink(tASN) + ","
