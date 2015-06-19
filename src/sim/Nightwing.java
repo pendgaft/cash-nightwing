@@ -3,10 +3,10 @@ package sim;
 import java.io.*;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-
 import topo.AS;
 import topo.SerializationMaster;
 
@@ -23,6 +23,8 @@ public class Nightwing implements Runnable {
 		DUMP, RANDOMNUMBER, RANDOMSIZE, ORDERED, GLOBAL, DICTATED
 	}
 
+	private Namespace myArgs;
+	
 	private SimMode myMode;
 	private String resistorFile;
 
@@ -41,6 +43,11 @@ public class Nightwing implements Runnable {
 
 	public Nightwing(Namespace ns) throws IOException {
 
+		/*
+		 * Store the name space, as optional args might need to be fetched later
+		 */
+		this.myArgs = ns;
+		
 		/*
 		 * Load in the required arguments from name space
 		 */
@@ -115,14 +122,11 @@ public class Nightwing implements Runnable {
 			outStr += "World";
 		} else if (this.myMode == Nightwing.SimMode.ORDERED) {
 			outStr += "Ordered";
-
-			//TODO parse this in from NS
-			outStr += "Include";
-			//			if (exclude) {
-			//				outStr += "Exclude";
-			//			} else {
-			//				outStr += "Include";
-			//			}
+			if (ns.getBoolean("avoidRing1")) {
+				outStr += "Exclude";
+			} else {
+				outStr += "Include";
+			}
 		}
 
 		/*
@@ -164,9 +168,8 @@ public class Nightwing implements Runnable {
 		System.out.println("Starting actual simulation...");
 		long startTime = System.currentTimeMillis();
 		if (this.myMode == Nightwing.SimMode.ORDERED) {
-			//TODO ignore ring 1 needs to be configurable
 			this.econManager.manageSortedWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
-					Constants.DEFAULT_DEPLOY_STEP, false);
+					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("avoidRing1"));
 		} else if (this.myMode == Nightwing.SimMode.GLOBAL) {
 			this.econManager.manageGlobalWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP);
@@ -193,6 +196,8 @@ public class Nightwing implements Runnable {
 		//TODO optional way of changing default sim sizes
 
 		//TODO way to change if ring 1 excluded in ordered sim
+		argParse.addArgument("--avoidRing1").help("tells simulator to avoid ring 1 ASes if applicable").required(false)
+				.action(Arguments.storeTrue());
 
 		/*
 		 * Actually parse
