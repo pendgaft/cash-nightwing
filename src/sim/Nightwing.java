@@ -184,11 +184,11 @@ public class Nightwing implements Runnable {
 	public static void main(String[] args) throws IOException {
 
 		ArgumentParser argParse = ArgumentParsers.newArgumentParser("nightwing");
-		argParse.addArgument("-m", "--mode").help("sim mode").required(true).type(Nightwing.SimMode.class).nargs(1);
-		argParse.addArgument("-r", "--resistor").help("resistor members file").required(true).nargs(1);
-		argParse.addArgument("-s", "--strat").help("resistor strat").required(true).type(AS.AvoidMode.class).nargs(1);
+		argParse.addArgument("-m", "--mode").help("sim mode").required(true).type(Nightwing.SimMode.class);
+		argParse.addArgument("-r", "--resistor").help("resistor members file").required(true);
+		argParse.addArgument("-s", "--strat").help("resistor strat").required(true).type(AS.AvoidMode.class);
 		argParse.addArgument("-p", "--poisoning").help("reverse poisoning strat").required(true)
-				.type(AS.ReversePoisonMode.class).nargs(1);
+				.type(AS.ReversePoisonMode.class);
 
 		//TODO optional way of changing default sim sizes
 
