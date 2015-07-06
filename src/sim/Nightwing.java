@@ -127,6 +127,9 @@ public class Nightwing implements Runnable {
 			} else {
 				outStr += "Include";
 			}
+		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
+			//TODO need a better way to name the log dir...
+			outStr += "Dictated";
 		}
 
 		/*
@@ -182,6 +185,8 @@ public class Nightwing implements Runnable {
 		} else if (this.myMode == Nightwing.SimMode.GLOBAL) {
 			this.econManager.manageGlobalWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP);
+		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
+			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"));
 		} else {
 			System.out.println(this.myMode + " not implemented fully!");
 		}
@@ -204,9 +209,9 @@ public class Nightwing implements Runnable {
 
 		//TODO optional way of changing default sim sizes
 
-		//TODO way to change if ring 1 excluded in ordered sim
 		argParse.addArgument("--avoidRing1").help("tells simulator to avoid ring 1 ASes if applicable").required(false)
 				.action(Arguments.storeTrue());
+		argParse.addArgument("--deployers").help("deployer list file").required(false);
 
 		/*
 		 * Actually parse

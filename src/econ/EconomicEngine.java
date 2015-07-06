@@ -199,7 +199,7 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageDictatedDRSim(String drFile, ParallelTrafficStat trafficManager) {
+	public void manageDictatedDRSim(String drFile) {
 		List<Set<Integer>> roundConfigs = new LinkedList<Set<Integer>>();
 
 		/*
@@ -263,7 +263,7 @@ public class EconomicEngine {
 			 * Actually do the sim rounds
 			 */
 			for (int counter = 0; counter < 3; counter++) {
-				trafficManager.runStat();
+				this.trafficManger.runStat();
 				String roundHeader = null;
 				roundHeader = "" + drSet.size() + "," + counter;
 				this.driveEconomicTurn(roundHeader, drSet, counter);
