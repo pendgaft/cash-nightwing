@@ -847,7 +847,7 @@ public abstract class AS implements TransitAgent {
 							}
 
 							BGPPath theirPath = tWarden.locRib.get(dest);
-							BGPPath toThem = this.locRib.get(dest);
+							BGPPath toThem = this.locRib.get(tWarden.getASN());
 
 							if (bestCabalPath == null
 									|| bestCabalPath.getPathLength() > theirPath.getPathLength()
