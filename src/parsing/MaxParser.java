@@ -11,7 +11,7 @@ public class MaxParser {
 
 	private HashMap<Integer, Double> asToIP;
 
-	private static final String IP_FILE = "realTopo/whole-internet-20150101-ip.txt"; 
+	private static final String IP_FILE = "realTopo/whole-internet-20150101-ip.txt";
 	private static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
 	private static final String OUTPUT_SUFFIX = "parsedLogs/";
 	private static final String INPUT_SUFFIX = "rawLogs/";
@@ -22,46 +22,53 @@ public class MaxParser {
 	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),(.+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
-	
+
 	private static final int IP_REACHABILITY_COL = 2;
 
 	public static void main(String[] args) throws IOException {
 		MaxParser self = new MaxParser(IP_FILE);
-		
+
 		File baseFolder = new File(FILE_BASE + INPUT_SUFFIX);
 		File children[] = baseFolder.listFiles();
-		
-		for (File child: children) {
-			if (!child.isDirectory()){
+
+		for (File child : children) {
+			if (!child.isDirectory()) {
 				continue;
 			}
 			String suffix = child.getName();
-			
+
 			File outDir = new File(MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix);
-			if(!outDir.exists()){
+			if (!outDir.exists()) {
 				outDir.mkdirs();
 			}
-			
+
 			System.out.println("Working on: " + suffix);
 			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/warden.log";
 			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/transit.log";
 
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv", 1, MaxParser.IP_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2, MaxParser.IP_REACHABILITY_COL);
-			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv", 1);
-			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2);
-			
-//			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/wardenCleanDelta.csv");
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/drProfitDelta.csv", true, 2);
-//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-//					+ "/nonDRProfitDelta.csv", false, 2);
+			self.writeDeployerLog(transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/deployers.log");
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv",
+					1, MaxParser.IP_REACHABILITY_COL);
+			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2,
+					MaxParser.IP_REACHABILITY_COL);
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix
+					+ "/nonCoopCleanBefore.csv", 1);
+			self.handleNonCoopCleanness(wardenFile, transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix
+					+ "/nonCoopCleanAfter.csv", 2);
+
+			//			self.computeFullWardenReachabilityDeltas(wardenFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			//					+ "/wardenCleanDelta.csv");
+			//			self.fullProfitDeltas(transqqitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			//					+ "/drProfitDelta.csv", true, 2);
+			//			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			//					+ "/nonDRProfitDelta.csv", false, 2);
 			//TODO add cdf file arg after output file arg
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					      + "/drTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/drProfitCDF.csv", true, 3);
+					+ "/drTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/drProfitCDF.csv", true, 3);
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					      + "/nonDRTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRProfitCDF.csv", false, 3);
+					+ "/nonDRTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonDRProfitCDF.csv", false, 3);
 		}
 	}
 
@@ -82,8 +89,10 @@ public class MaxParser {
 		fBuff.close();
 	}
 
-    private void fullProfitDeltas(String inFile, String outFile, String cdfFile, boolean isDR, int column) throws IOException {
-	HashMap<Integer, HashMap<Double, Double>> results = this.computeProfitDeltas(inFile, isDR, column, true, cdfFile);
+	private void fullProfitDeltas(String inFile, String outFile, String cdfFile, boolean isDR, int column)
+			throws IOException {
+		HashMap<Integer, HashMap<Double, Double>> results = this.computeProfitDeltas(inFile, isDR, column, true,
+				cdfFile);
 
 		/*
 		 * Slightly ghetto hack to get the sample sizes
@@ -104,7 +113,7 @@ public class MaxParser {
 	}
 
 	private HashMap<Integer, HashMap<Double, Double>> computeProfitDeltas(String inFile, boolean isDR, int column,
-									      boolean normalized, String profitCDFFile) throws IOException {
+			boolean normalized, String profitCDFFile) throws IOException {
 		HashMap<Integer, Double> firstRoundValue = new HashMap<Integer, Double>();
 		HashMap<Integer, HashMap<Double, Double>> results = new HashMap<Integer, HashMap<Double, Double>>();
 		List<Double> sampleDeltas = new ArrayList<Double>();
@@ -141,8 +150,8 @@ public class MaxParser {
 					if (oldSize != sampleSize && oldSize != 0) {
 						HashMap<Double, Double> extractMap = new HashMap<Double, Double>();
 						List<Double> listClone = new ArrayList<Double>(sampleDeltas.size());
-						for(double tVal: sampleDeltas){
-						    listClone.add(-1.0 * tVal);
+						for (double tVal : sampleDeltas) {
+							listClone.add(-1.0 * tVal);
 						}
 						fullDeltas.add(listClone);
 						for (double tPercent : MaxParser.PERCENTILES) {
@@ -184,19 +193,48 @@ public class MaxParser {
 
 		HashMap<Double, Double> extractMap = new HashMap<Double, Double>();
 		List<Double> listClone = new ArrayList<Double>(sampleDeltas.size());
-		for(double tVal: sampleDeltas){
-		    listClone.add(-1.0 * tVal);
+		for (double tVal : sampleDeltas) {
+			listClone.add(-1.0 * tVal);
 		}
 		fullDeltas.add(listClone);
 		for (double tPercent : MaxParser.PERCENTILES) {
-		    extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
+			extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
 		}
 		results.put(oldSize, extractMap);
 		sampleDeltas.clear();
-		
+
 		CDF.printCDFs(fullDeltas, profitCDFFile);
 
 		return results;
+	}
+
+	private void writeDeployerLog(String transitFile, String outFile) throws IOException {
+		BufferedReader inBuff = new BufferedReader(new FileReader(transitFile));
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+
+		boolean inRegion = false;
+		while (inBuff.ready()) {
+			String pollLine = inBuff.readLine().trim();
+
+			Matcher roundLineMatcher = MaxParser.ROUND_PATTERN.matcher(pollLine);
+			if (roundLineMatcher.matches()) {
+				int roundFlag = Integer.parseInt(roundLineMatcher.group(2));
+				inRegion = (roundFlag == 1);
+				if (inRegion) {
+					outBuff.write("###\n");
+				}
+			} else if (inRegion) {
+				Matcher dataLineMatcher = MaxParser.TRANSIT_PATTERN.matcher(pollLine);
+				if (dataLineMatcher.matches()) {
+					if (Boolean.parseBoolean(dataLineMatcher.group(4))) {
+						outBuff.write(dataLineMatcher.group(1) + "\n");
+					}
+				}
+			}
+		}
+
+		inBuff.close();
+		outBuff.close();
 	}
 
 	private void computeFullWardenReachabilityDeltas(String inFile, String outFile) throws IOException {
@@ -306,16 +344,18 @@ public class MaxParser {
 
 		return deltaValues;
 	}
-	
-	public void handleNonCoopCleanness(String wardenFile, String transitFile, String outFile, int round) throws IOException{
+
+	public void handleNonCoopCleanness(String wardenFile, String transitFile, String outFile, int round)
+			throws IOException {
 		List<Double> coopShadowIPSize = this.buildCoopSizeList(transitFile);
-		
+
 		double allIPCount = 0.0;
-		for(double tValue: this.asToIP.values()){
+		for (double tValue : this.asToIP.values()) {
 			allIPCount += tValue;
 		}
-	
-		HashMap<Integer, List<Double>> parseMap = this.computeNonCoopReachability(wardenFile, outFile, round, coopShadowIPSize, allIPCount);
+
+		HashMap<Integer, List<Double>> parseMap = this.computeNonCoopReachability(wardenFile, outFile, round,
+				coopShadowIPSize, allIPCount);
 		/*
 		 * Invert the mapping
 		 */
@@ -369,7 +409,8 @@ public class MaxParser {
 			}
 
 			/*
-			 * This code is rather un-intelligent, but it matches up the other code
+			 * This code is rather un-intelligent, but it matches up the other
+			 * code
 			 */
 			if (controlFlag) {
 				coopShadow.add(currentCount);
@@ -395,14 +436,14 @@ public class MaxParser {
 
 		}
 		inBuff.close();
-		
+
 		/*
 		 * Edge condition number 1, we step off the end of the list, and don't
 		 * hit another control sequence, but we have the last round of data to
 		 * add, do so manually
 		 */
 		coopShadow.add(currentCount);
-		
+
 		/*
 		 * Edge condition number 2, the initial control sequence (before any
 		 * data appears) triggers the code that adds an item to the list, this
@@ -412,11 +453,11 @@ public class MaxParser {
 		coopShadow.remove(0);
 		return coopShadow;
 	}
-	
+
 	private HashMap<Integer, List<Double>> computeNonCoopReachability(String inFile, String outFile, int round,
 			List<Double> coopShadowSize, double allIPCount) throws IOException {
 		BufferedReader inBuff = new BufferedReader(new FileReader(inFile));
-		
+
 		HashMap<Integer, List<Double>> values = new HashMap<Integer, List<Double>>();
 		double currentIPCleanness = 0.0;
 		double currentIPCount = 0.0;
@@ -450,7 +491,7 @@ public class MaxParser {
 			if (controlFlag) {
 				currentCoopShadow = coopShadowSize.get(measurePos);
 				measurePos++;
-				
+
 				int newSampleSize = Integer.parseInt(sampleMatch.group(1));
 				roundValue = Integer.parseInt(sampleMatch.group(2));
 
@@ -502,13 +543,18 @@ public class MaxParser {
 					if (cleanness > 0.01 && ips != null) {
 						currentIPCount += ips;
 						/*
-						 * Ok, note to future max:  you're going to look at this line and say "WTF", it's actually right
-						 * if you were to just add back in the coop shadow you would OVER ESTIMATE how well you do
-						 * since you would be computing the percentage of ALL IPs that are inside the non-coop shadow
-						 * but that means that if the coop shadow is large, you're going to shrink this, which isn't really
-						 * that meaningful to you, what you want is what fraction of the IPs NOT in the coop shadow are in
-						 * the non-coop shadow, this way you don't look like you do better at larger deployments via a
-						 * trick of statistics
+						 * Ok, note to future max: you're going to look at this
+						 * line and say "WTF", it's actually right if you were
+						 * to just add back in the coop shadow you would OVER
+						 * ESTIMATE how well you do since you would be computing
+						 * the percentage of ALL IPs that are inside the
+						 * non-coop shadow but that means that if the coop
+						 * shadow is large, you're going to shrink this, which
+						 * isn't really that meaningful to you, what you want is
+						 * what fraction of the IPs NOT in the coop shadow are
+						 * in the non-coop shadow, this way you don't look like
+						 * you do better at larger deployments via a trick of
+						 * statistics
 						 */
 						double dirtyness = 1.0 - cleanness;
 						double adjustedCleanness = 1.0 - (dirtyness * (allIPCount - ips) - currentCoopShadow)
@@ -519,7 +565,7 @@ public class MaxParser {
 			}
 		}
 		inBuff.close();
-		
+
 		/*
 		 * Handle the last round which fails to have a trailing control flag
 		 */
@@ -615,7 +661,7 @@ public class MaxParser {
 		while (inBuff.ready()) {
 			boolean controlFlag = false;
 			int roundValue = -1;
-			
+
 			String pollStr = inBuff.readLine().trim();
 
 			/*
@@ -691,9 +737,10 @@ public class MaxParser {
 				}
 			}
 		}
-		
+
 		/*
-		 * If we're looking at the last round, then we won't see a control flag, so do it manually
+		 * If we're looking at the last round, then we won't see a control flag,
+		 * so do it manually
 		 */
 		if (round == 2) {
 			// stop logging
@@ -706,7 +753,7 @@ public class MaxParser {
 			}
 			values.get(sampleSize).add(currentIPCleanness / currentIPCount);
 		}
-		
+
 		inBuff.close();
 
 		return values;
