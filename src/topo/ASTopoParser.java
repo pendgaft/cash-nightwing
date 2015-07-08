@@ -301,8 +301,10 @@ public class ASTopoParser {
 		 * size of active topo
 		 */
 		if (asMap.size() - testNonAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+			System.out.println("Selected NON-AGRESSIVE prune.");
 			purgeMap = testNonAgressiveMap;
 		} else if (asMap.size() - testAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+			System.out.println("Selected AGRESSIVE prune.");
 			purgeMap = testAgressiveMap;
 		} else {
 			throw new RuntimeException("No topology small enough! (" + (asMap.size() - testNonAgressiveMap.size())
