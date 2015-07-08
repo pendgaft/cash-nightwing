@@ -1,7 +1,6 @@
 package sim;
 
 import econ.EconomicEngine;
-import topo.AS;
 
 public class Constants {
 
@@ -12,7 +11,8 @@ public class Constants {
 	
 	public static final String BASE_LOG_DIR = "/scratch/minerva2/schuch/nightwingData/rawLogs/";
 	
-	public static final boolean AGRESSIVE_PRUNE = false;
+	//TODO tune me please?
+	public static final int MAX_LIVE_TOPO_SIZE = 7700;
 	
 	
 //	public static final String AS_REL_FILE = "topo1Test/as-rel.txt";
@@ -26,6 +26,7 @@ public class Constants {
 	public static final boolean DEBUG = false;
 	public static final boolean ECON_TESTING = false;
 	public static final boolean DUMP_READABLE_PATHS = false;
+	public static final boolean DONT_MAKE_SERIAL = false;
 	
 	
 	public static final int NTHREADS = 10;

@@ -134,6 +134,10 @@ public class SerializationMaster {
 	}
 	
 	public void buildTrafficSerialFile(TIntObjectMap<DecoyAS> fullTopo){
+		if(Constants.DONT_MAKE_SERIAL){
+			return;
+		}
+		
 		try{
 			ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(this.convertHashToTrafficFileName()));
 			List<Integer> sortedAS = this.buildSortedASNList(fullTopo.keys());
