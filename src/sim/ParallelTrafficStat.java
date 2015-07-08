@@ -43,7 +43,8 @@ public class ParallelTrafficStat {
 	 */
 	private List<Integer> validASNList;
 
-	private List<List<Integer>> workSplit;
+	private List<List<Integer>> activeASWorkgroups;
+	private List<List<Integer>> prunedASWorkgroups;
 
 	private boolean firstRound;
 	private SerializationMaster serialControl;
@@ -106,7 +107,7 @@ public class ParallelTrafficStat {
 		/*
 		 * Divide up the ASes into working groups for threads
 		 */
-		this.workSplit = spliteASes();
+		this.splitASWorkgroups();
 	}
 
 	/**
@@ -278,25 +279,28 @@ public class ParallelTrafficStat {
 	 * 
 	 * @return
 	 */
-	private List<List<Integer>> spliteASes() {
-
-		int amount = (int) (this.validASNList.size() / Constants.NTHREADS);
-		int left = (int) (this.validASNList.size() % Constants.NTHREADS);
-		List<List<Integer>> allLists = new ArrayList<List<Integer>>();
+	private void splitASWorkgroups() {
+		
+		this.activeASWorkgroups = new ArrayList<List<Integer>>(Constants.NTHREADS);
+		this.prunedASWorkgroups = new ArrayList<List<Integer>>(Constants.NTHREADS);
+		
+		for(int counter = 0; counter < Constants.NTHREADS; counter++){
+			this.activeASWorkgroups.add(new LinkedList<Integer>());
+			this.prunedASWorkgroups.add(new LinkedList<Integer>());
+		}
 
 		/* distribute the ASes */
 		int currentPos = 0;
-		for (int i = 0; i < Constants.NTHREADS; ++i) {
-			ArrayList<Integer> tempList = new ArrayList<Integer>();
-			if (i == Constants.NTHREADS - 1) {
-				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount + left));
-			} else {
-				tempList.addAll(this.validASNList.subList(currentPos, currentPos + amount));
-				currentPos += amount;
-			}
-			allLists.add(tempList);
+		for(int tAS: this.activeMap.keys()){
+			this.activeASWorkgroups.get(currentPos).add(tAS);
+			currentPos = (currentPos + 1) % Constants.NTHREADS;
 		}
-		return allLists;
+		
+		currentPos = 0;
+		for(int tAS: this.purgedMap.keys()){
+			this.prunedASWorkgroups.get(currentPos).add(tAS);
+			currentPos = (currentPos + 1) % Constants.NTHREADS;
+		}
 	}
 
 	/**
@@ -305,11 +309,24 @@ public class ParallelTrafficStat {
 	 * 
 	 */
 	private void statTrafficOnPToPNetworkInParallel(boolean firstRun) {
+		this.statTrafficOnPToPNetworkInParallel(firstRun, true);
+		this.statTrafficOnPToPNetworkInParallel(firstRun, false);
+	}
+	
+	
+	private void statTrafficOnPToPNetworkInParallel(boolean firstRun, boolean activeMap) {
 
+		List<List<Integer>> currentWorkSplit = null;
+		if(activeMap){
+			currentWorkSplit = this.activeASWorkgroups;
+		} else{
+			currentWorkSplit = this.prunedASWorkgroups;
+		}
+		
 		/* make the threads run to calculate its own list of ASes */
 		Thread[] workers = new Thread[Constants.NTHREADS];
 		for (int i = 0; i < Constants.NTHREADS; ++i) {
-			workers[i] = new Thread(new ParallelRunningThread(this.workSplit.get(i), firstRun));
+			workers[i] = new Thread(new ParallelRunningThread(currentWorkSplit.get(i), firstRun));
 			workers[i].start();
 		}
 
