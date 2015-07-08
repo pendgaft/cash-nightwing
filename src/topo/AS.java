@@ -858,7 +858,6 @@ public abstract class AS implements TransitAgent {
 						}
 					}
 
-					//XXX I have seen strange "array index out of bounds" excpetions from trover here-ish
 					if (bestCabalPath != null) {
 						this.mplsRoutes.put(dest, bestCabalPath);
 						this.routeStatusMap.put(dest, AS.RS_LEGACY);
