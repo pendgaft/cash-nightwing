@@ -260,25 +260,15 @@ public class ASTopoParser {
 	 * @return - a mapping of ASN to AS object containing the PRUNED AS objects
 	 */
 	private static TIntObjectMap<DecoyAS> pruneNoCustomerAS(TIntObjectMap<DecoyAS> asMap) {
-		TIntObjectMap<DecoyAS> purgeMap = new TIntObjectHashMap<DecoyAS>();
+		TIntObjectMap<DecoyAS> purgeMap = null;
+
+		TIntObjectMap<DecoyAS> testAgressiveMap = new TIntObjectHashMap<DecoyAS>();
+		TIntObjectMap<DecoyAS> testNonAgressiveMap = new TIntObjectHashMap<DecoyAS>();
 
 		/*
 		 * Find the ASes w/o customers
 		 */
 		for (DecoyAS tAS : asMap.valueCollection()) {
-			/*
-			 * leave the all warden ASes connected to our topo
-			 */
-			if (Constants.AGRESSIVE_PRUNE) {
-				if (tAS.isWardenAS()) {
-					continue;
-				}
-			} else {
-				if (tAS.isWardenAS() || tAS.connectedToWarden()) {
-					continue;
-				}
-			}
-
 			/*
 			 * Leave the super ASes in the topology as well for an efficency
 			 * gain
@@ -287,9 +277,36 @@ public class ASTopoParser {
 				continue;
 			}
 
-			if (tAS.getNonPrunedCustomerCount() == 0) {
-				purgeMap.put(tAS.getASN(), tAS);
+			/*
+			 * leave the all warden ASes connected to our topo
+			 */
+			if (tAS.isWardenAS()) {
+				continue;
 			}
+
+			/*
+			 * Add to the correct (agressive prune vs non-agressive prune) maps
+			 */
+			if (tAS.getNonPrunedCustomerCount() == 0) {
+				testAgressiveMap.put(tAS.getASN(), tAS);
+
+				if (!tAS.connectedToWarden()) {
+					testNonAgressiveMap.put(tAS.getASN(), tAS);
+				}
+			}
+		}
+
+		/*
+		 * Choose which we want, agressive or non-agressive, based on resulting
+		 * size of active topo
+		 */
+		if (asMap.size() - testNonAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+			purgeMap = testNonAgressiveMap;
+		} else if (asMap.size() - testAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+			purgeMap = testAgressiveMap;
+		} else {
+			throw new RuntimeException("No topology small enough! (" + (asMap.size() - testNonAgressiveMap.size())
+					+ " agresssive prune size)");
 		}
 
 		/*
