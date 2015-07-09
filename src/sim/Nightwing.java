@@ -10,13 +10,10 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import topo.AS;
 import topo.SerializationMaster;
 
-/*import decoy.DecoyAS;
- import decoy.Rings;*/
 import decoy.*;
 import econ.EconomicEngine;
 import gnu.trove.map.TIntObjectMap;
 
-//TODO need to plug in random modes still
 public class Nightwing implements Runnable {
 
 	public enum SimMode {
@@ -62,7 +59,7 @@ public class Nightwing implements Runnable {
 		this.serialControl = new SerializationMaster(this.resistorFile);
 		this.logDirString = this.buildLoggingPath(ns);
 		this.perfLogger = new PerformanceLogger(this.logDirString);
-		//TODO make bgp master OO as well please...
+		// TODO make bgp master OO as well please...
 		BGPMaster.prefLog = this.perfLogger;
 
 		/*
@@ -128,8 +125,16 @@ public class Nightwing implements Runnable {
 				outStr += "Include";
 			}
 		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
-			//TODO need a better way to name the log dir...
+			// TODO need a better way to name the log dir...
 			outStr += "Dictated";
+		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
+			outStr += "RandomDeployCount";
+			outStr += Constants.DEFAULT_DEPLOY_START + "-" + Constants.DEFAULT_DEPLOY_STOP + "-"
+					+ Constants.DEFAULT_DEPLOY_STEP + "-" + Constants.DEFAULT_FIGURE_OF_MERIT;
+		} else if (this.myMode == Nightwing.SimMode.RANDOMSIZE) {
+			outStr += "RandomDeploySize";
+			outStr += Constants.DEFAULT_DEPLOY_START + "-" + Constants.DEFAULT_DEPLOY_STOP + "-"
+					+ Constants.DEFAULT_DEPLOY_STEP + "-" + Constants.DEFAULT_FIGURE_OF_MERIT;
 		}
 
 		/*
@@ -187,6 +192,12 @@ public class Nightwing implements Runnable {
 					Constants.DEFAULT_DEPLOY_STEP);
 		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
 			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"));
+		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
+			this.econManager.manageRandomDeploySizeSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
+					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
+		} else if (this.myMode == Nightwing.SimMode.RANDOMSIZE) {
+			this.econManager.manageCustConeExploration(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
+					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
 		} else {
 			System.out.println(this.myMode + " not implemented fully!");
 		}
@@ -207,8 +218,21 @@ public class Nightwing implements Runnable {
 		argParse.addArgument("-p", "--poisoning").help("reverse poisoning strat").required(true)
 				.type(AS.ReversePoisonMode.class);
 
-		//TODO optional way of changing default sim sizes
+		/*
+		 * Optional flags for reconfiguring simulation constants
+		 */
+		argParse.addArgument("--dcountstart").help("Deploy count start point").required(false).type(Integer.class)
+				.setDefault(Constants.DEFAULT_DEPLOY_START);
+		argParse.addArgument("--dcountend").help("Deployer count end point").required(false).type(Integer.class)
+				.setDefault(Constants.DEFAULT_DEPLOY_STOP);
+		argParse.addArgument("--dcountstep").help("Deployer count step size").required(false).type(Integer.class)
+				.setDefault(Constants.DEFAULT_DEPLOY_STEP);
+		argParse.addArgument("--randomCount").help("Random sample size").required(false).type(Integer.class)
+				.setDefault(Constants.RANDOM_SAMPLE_COUNT);
 
+		/*
+		 * Mode specific optional arguments
+		 */
 		argParse.addArgument("--avoidRing1").help("tells simulator to avoid ring 1 ASes if applicable").required(false)
 				.action(Arguments.storeTrue());
 		argParse.addArgument("--deployers").help("deployer list file").required(false);
@@ -224,104 +248,15 @@ public class Nightwing implements Runnable {
 			System.exit(-1);
 		}
 
+		/*
+		 * Respect any optional args that reconfigure constants
+		 */
+		Constants.DEFAULT_DEPLOY_START = ns.getInt("dcountstart");
+		Constants.DEFAULT_DEPLOY_STOP = ns.getInt("dcountstop");
+		Constants.DEFAULT_DEPLOY_STEP = ns.getInt("dcountstep");
+		Constants.RANDOM_SAMPLE_COUNT = ns.getInt("randomCount");
+
 		Nightwing self = new Nightwing(ns);
 		self.run();
-
-		/*
-		 * Legacy code underneath here
-		 */
-		//TODO clear out code benath me when done w/ it
-
-		//		if (mode == Nightwing.DUMP_BGP_MODE) {
-		//			System.out.println("Starting BGP dump to " + args[2]);
-		//			BufferedWriter outBuff = new BufferedWriter(new FileWriter(args[2]));
-		//			for (AS tAS : liveTopo.values()) {
-		//				for (AS destAS : liveTopo.values()) {
-		//					if (destAS.getASN() == tAS.getASN()) {
-		//						continue;
-		//					}
-		//
-		//					BGPPath tPath = tAS.getPath(destAS.getASN());
-		//					if (tPath != null) {
-		//						outBuff.write(tAS.getASN() + tPath.getLoggingString() + "\n");
-		//					}
-		//				}
-		//			}
-		//			outBuff.close();
-		//			System.out.println("BGP Dump complete.");
-		//			return;
-		//		}
-
-		/*
-		 * Run the correct mode //
-		 */
-		//		if (mode == Nightwing.TRAFFICSTAT1_MODE) {
-		//			ParallelTrafficStat statInParallel = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			AStoCountry asCountryMapper = null;
-		//			try {
-		//				asCountryMapper = new AStoCountry(liveTopo,
-		//						"/scratch/waterhouse/schuch/workspace/cash-nightwing/rawCountryData.xml");
-		//			} catch (SAXException e) {
-		//				e.printStackTrace();
-		//			}
-		//			statInParallel.doCountryExperiment(asCountryMapper.getMap());
-		//			//statInParallel.runStat();
-		//		} else if (mode == Nightwing.RANDOM_VARYSIZE_MODE) {
-		//			/*
-		//			 * Build the traffic stat object, and then actually flow the traffic
-		//			 * through the network
-		//			 */
-		//			//TODO build log dir
-		//			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, null);
-		//			/*
-		//			 * Do the actual rounds of simulation
-		//			 */
-		//			//TODO build log dir
-		//			econEngine.manageFixedNumberSim(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
-		//					Integer.parseInt(args[6]), Constants.SAMPLE_COUNT, Integer.parseInt(args[7]), trafficStat, false);
-		//			econEngine.endSim();
-		//		} else if (mode == Nightwing.RANDOM_VARYCC_MODE) {
-		//			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, null);
-		//
-		//			econEngine.manageCustConeExploration(Integer.parseInt(args[5]), Integer.parseInt(args[6]),
-		//					Integer.parseInt(args[7]), Constants.SAMPLE_COUNT, Integer.parseInt(args[4]), trafficStat);
-		//			econEngine.endSim();
-		//		} else if (mode == Nightwing.ORDERED_MODE) {
-		//			String logDir = Nightwing.logBuilder(mode, wardenFile, Boolean.parseBoolean(args[7]));
-		//			PerformanceLogger prefLog = new PerformanceLogger(logDir);
-		//			BGPMaster.prefLog = prefLog;
-		//			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			ParallelTrafficStat.prefLog = prefLog;
-		//			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, logDir);
-		//			EconomicEngine.prefLogger = prefLog;
-		//			econEngine.manageSortedWardenSim(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
-		//					Integer.parseInt(args[6]), Boolean.parseBoolean(args[7]), trafficStat);
-		//			econEngine.endSim();
-		//			prefLog.done();
-		//		} else if (mode == Nightwing.DICTATED_MODE) {
-		//			//TODO build log dir
-		//			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, null);
-		//			econEngine.manageDictatedDRSim(args[4], trafficStat);
-		//			econEngine.endSim();
-		//		} else if (mode == Nightwing.GLOBAL_MODE) {
-		//			String logDir = Nightwing.logBuilder(mode, wardenFile, false);
-		//			PerformanceLogger prefLog = new PerformanceLogger(logDir);
-		//			BGPMaster.prefLog = prefLog;
-		//			ParallelTrafficStat trafficStat = new ParallelTrafficStat(liveTopo, prunedTopo, serialControl);
-		//			ParallelTrafficStat.prefLog = prefLog;
-		//			EconomicEngine econEngine = new EconomicEngine(liveTopo, prunedTopo, logDir);
-		//			EconomicEngine.prefLogger = prefLog;
-		//			econEngine.manageGlobalWardenSim(Integer.parseInt(args[4]), Integer.parseInt(args[5]),
-		//					Integer.parseInt(args[6]), trafficStat);
-		//			econEngine.endSim();
-		//			prefLog.done();
-		//		} else {
-		//			System.out.println("mode fucked up, wtf.... " + mode);
-		//			System.exit(-2);
-		//		}
-
 	}
 }
