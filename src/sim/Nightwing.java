@@ -252,7 +252,7 @@ public class Nightwing implements Runnable {
 		 * Respect any optional args that reconfigure constants
 		 */
 		Constants.DEFAULT_DEPLOY_START = ns.getInt("dcountstart");
-		Constants.DEFAULT_DEPLOY_STOP = ns.getInt("dcountstop");
+		Constants.DEFAULT_DEPLOY_STOP = ns.getInt("dcountend");
 		Constants.DEFAULT_DEPLOY_STEP = ns.getInt("dcountstep");
 		Constants.RANDOM_SAMPLE_COUNT = ns.getInt("randomCount");
 
