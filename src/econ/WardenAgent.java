@@ -34,6 +34,8 @@ public class WardenAgent extends EconomicAgent {
 		Set<Integer> decoySet = this.buildDecoySet();
 		double totalIPCount = 0.0;
 		double cleanIPCount = 0.0;
+		double totalNonCoopIPCount = 0.0;
+		double cleanNonCoopIPCount = 0.0;
 		double totalASCount = 0.0;
 		double cleanASCount = 0.0;
 
@@ -61,9 +63,17 @@ public class WardenAgent extends EconomicAgent {
 			if (!tPath.containsAnyOf(decoySet)) {
 				cleanIPCount += ipCount;
 				cleanASCount += 1;
+				
+				if(!this.activeTopo.get(tDest).isDecoy()){
+					cleanNonCoopIPCount += ipCount;
+				}
 			}
+			
 			totalIPCount += ipCount;
 			totalASCount += 1;
+			if(!this.activeTopo.get(tDest).isDecoy()){
+				totalNonCoopIPCount += ipCount;
+			}
 		}
 
 		for (int tDest : this.prunedTopo.keys()) {
@@ -90,14 +100,16 @@ public class WardenAgent extends EconomicAgent {
 			if (!tPath.containsAnyOf(decoySet)) {
 				cleanIPCount += ipCount;
 				cleanASCount += 1;
+				cleanNonCoopIPCount += ipCount;
 			}
 			totalIPCount += ipCount;
 			totalASCount += 1;
+			totalNonCoopIPCount += ipCount;
 		}
 
 		try {
 			this.logStream.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + "," + cleanASCount
-					/ totalASCount + "\n");
+					/ totalASCount + "," + cleanNonCoopIPCount / totalNonCoopIPCount + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
