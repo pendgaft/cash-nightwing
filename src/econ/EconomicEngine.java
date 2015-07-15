@@ -73,8 +73,8 @@ public class EconomicEngine {
 		}
 		for (DecoyAS tAS : activeMap.valueCollection()) {
 			if (tAS.isWardenAS()) {
-				this.theTopo
-						.put(tAS.getASN(), new WardenAgent(tAS, this.transitOut, this.wardenOut, activeMap, prunedMap, this.pathOut));
+				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.transitOut, this.wardenOut, activeMap,
+						prunedMap, this.pathOut));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 						TransitProvider.DECOY_STRAT.DICTATED, this.pathOut));
@@ -285,57 +285,13 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageGlobalWardenSim(int startCount, int endCount, int step) {
-		/*
-		 * Step 1, build the sizes of these ASes, sort them
-		 */
-		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			valueMap.put(tAS.getASN(), 0.0);
+	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage) {
+		List<Integer> rankList = null;
+		if(coverage){
+			rankList = this.buildSortedSetCoverage(endCount, true);
+		}else{
+			rankList = this.buildSortedBase(endCount, true, null);
 		}
-		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			for (int tDestASN : this.theTopo.keySet()) {
-				if (tDestASN == tAS.getASN()) {
-					continue;
-				}
-				BGPPath tPath = tAS.getPath(tDestASN);
-				if (tPath == null) {
-					continue;
-				}
-				TIntIterator tIter = tPath.getPath().iterator();
-				double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-				while (tIter.hasNext()) {
-					int tHop = tIter.next();
-					if (valueMap.containsKey(tHop)) {
-						if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
-							valueMap.put(tHop, valueMap.get(tHop) + 1);
-						} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
-							valueMap.put(tHop, valueMap.get(tHop) + ipSize);
-						} else {
-							throw new RuntimeException("Bad AS ordering mode!");
-						}
-					}
-				}
-			}
-		}
-
-		/*
-		 * Strip out the wardens, and if we're skipping ring one, those as well
-		 */
-		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			if (tAS.isWardenAS()) {
-				valueMap.remove(tAS.getASN());
-			}
-		}
-
-		/*
-		 * Actually build the list we'll use
-		 */
-		List<ASRanker> rankList = new ArrayList<ASRanker>(valueMap.size());
-		for (int tASN : valueMap.keySet()) {
-			rankList.add(new ASRanker(tASN, valueMap.get(tASN)));
-		}
-		Collections.sort(rankList);
 
 		/*
 		 * Actually do the sim now
@@ -358,10 +314,10 @@ public class EconomicEngine {
 			 * Build decoy set for this round
 			 */
 			Set<Integer> drSet = new HashSet<Integer>();
-			int listPos = rankList.size() - 1;
+			int listPos = 0;
 			while (drSet.size() != drCount) {
-				drSet.add(rankList.get(listPos).getASN());
-				listPos--;
+				drSet.add(rankList.get(listPos));
+				listPos++;
 			}
 
 			/*
@@ -376,8 +332,20 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean excludeRingOne) {
+	private List<Integer> buildSortedSetCoverage(int size, boolean global) {
+		
+		List<Integer> retList = new ArrayList<Integer>();
+		Set<Integer> usedSet = new HashSet<Integer>();
+		for(int counter = 0; counter < size; counter++){
+			List<Integer> tmpList = this.buildSortedBase(1, global, usedSet);
+			retList.add(tmpList.get(0));
+			usedSet.add(tmpList.get(0));
+		}
+		
+		return retList;
+	}
 
+	private List<Integer> buildSortedBase(int size, boolean global, Set<Integer> dropList) {
 		/*
 		 * Step 1, build the sizes of these ASes, sort them
 		 */
@@ -386,12 +354,16 @@ public class EconomicEngine {
 			valueMap.put(tAS.getASN(), 0.0);
 		}
 		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			if (tAS.isWardenAS()) {
+			if (global || tAS.isWardenAS()) {
 				for (int tDestASN : this.theTopo.keySet()) {
 					BGPPath tPath = tAS.getPath(tDestASN);
 					if (tPath == null) {
 						continue;
 					}
+					if (dropList != null && tPath.containsAnyOf(dropList)) {
+						continue;
+					}
+
 					TIntIterator tIter = tPath.getPath().iterator();
 					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
 					while (tIter.hasNext()) {
@@ -411,13 +383,16 @@ public class EconomicEngine {
 		}
 
 		/*
-		 * Strip out the wardens, and if we're skipping ring one, those as well
+		 * Strip out the wardens, strip out people we're suppose to ignore
 		 */
 		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				valueMap.remove(tAS.getASN());
-			} else if (excludeRingOne && tAS.connectedToWarden()) {
-				valueMap.remove(tAS.getASN());
+			}
+		}
+		if (dropList != null) {
+			for (int tAS : dropList) {
+				valueMap.remove(tAS);
 			}
 		}
 
@@ -427,22 +402,22 @@ public class EconomicEngine {
 		}
 		Collections.sort(rankList);
 
-		/*
-		 * Write it to a file just in case we want it for reference
-		 */
-		// XXX not sure what I had this in for originally....
-		// try {
-		// BufferedWriter outBuff = new BufferedWriter(
-		// new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
-		//
-		// for (int counter = rankList.size() - 1; counter >= 0; counter--) {
-		// outBuff.write(rankList.get(counter).toString() + "\n");
-		// }
-		// outBuff.close();
-		// } catch (IOException e) {
-		// System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
-		// e.printStackTrace();
-		// }
+		List<Integer> retList = new ArrayList<Integer>();
+		for(int counter = retList.size() - 1; retList.size() < size; counter--){
+			retList.add(rankList.get(counter).getASN());
+		}
+		
+		return retList;
+	}
+
+	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage) {
+
+		List<Integer> rankList = null;
+		if(coverage){
+			rankList = this.buildSortedSetCoverage(endCount, false);
+		}else{
+			rankList = this.buildSortedBase(endCount, false, null);
+		}
 
 		/*
 		 * Actually do the sim now
@@ -465,10 +440,10 @@ public class EconomicEngine {
 			 * Build decoy set for this round
 			 */
 			Set<Integer> drSet = new HashSet<Integer>();
-			int listPos = rankList.size() - 1;
+			int listPos = 0;
 			while (drSet.size() != drCount) {
-				drSet.add(rankList.get(listPos).getASN());
-				listPos--;
+				drSet.add(rankList.get(listPos));
+				listPos++;
 			}
 
 			/*

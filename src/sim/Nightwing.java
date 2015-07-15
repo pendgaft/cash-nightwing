@@ -117,12 +117,17 @@ public class Nightwing implements Runnable {
 		 */
 		if (this.myMode == Nightwing.SimMode.GLOBAL) {
 			outStr += "World";
+			if (ns.getBoolean("coverageOrdering")) {
+				outStr += "Coverage";
+			} else {
+				outStr += "Weighting";
+			}
 		} else if (this.myMode == Nightwing.SimMode.ORDERED) {
 			outStr += "Ordered";
-			if (ns.getBoolean("avoidRing1")) {
-				outStr += "Exclude";
+			if (ns.getBoolean("coverageOrdering")) {
+				outStr += "Coverage";
 			} else {
-				outStr += "Include";
+				outStr += "Weighting";
 			}
 		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
 			// TODO need a better way to name the log dir...
@@ -186,10 +191,10 @@ public class Nightwing implements Runnable {
 		long startTime = System.currentTimeMillis();
 		if (this.myMode == Nightwing.SimMode.ORDERED) {
 			this.econManager.manageSortedWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
-					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("avoidRing1"));
+					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"));
 		} else if (this.myMode == Nightwing.SimMode.GLOBAL) {
 			this.econManager.manageGlobalWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
-					Constants.DEFAULT_DEPLOY_STEP);
+					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"));
 		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
 			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"));
 		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
@@ -233,7 +238,7 @@ public class Nightwing implements Runnable {
 		/*
 		 * Mode specific optional arguments
 		 */
-		argParse.addArgument("--avoidRing1").help("tells simulator to avoid ring 1 ASes if applicable").required(false)
+		argParse.addArgument("--coverageOrdering").help("tells simulator to use coverage ordering").required(false)
 				.action(Arguments.storeTrue());
 		argParse.addArgument("--deployers").help("deployer list file").required(false);
 
