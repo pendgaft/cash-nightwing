@@ -13,10 +13,12 @@ import decoy.DecoyAS;
 public class WardenAgent extends EconomicAgent {
 
 	private TIntObjectMap<DecoyAS> prunedTopo;
+	private BufferedWriter cleannessLog;
 
-	public WardenAgent(DecoyAS parentObject, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo,
+	public WardenAgent(DecoyAS parentObject, BufferedWriter revLog, BufferedWriter cleanLog, TIntObjectMap<DecoyAS> activeTopo,
 			TIntObjectMap<DecoyAS> prunedTopo, BufferedWriter pathLog) {
-		super(parentObject, log, activeTopo, pathLog);
+		super(parentObject, revLog, activeTopo, pathLog);
+		this.cleannessLog = cleanLog;
 		if (!parentObject.isWardenAS()) {
 			throw new IllegalArgumentException("Passed a non warden DecoyAS object to WardenAgent constructor.");
 		}
@@ -108,8 +110,16 @@ public class WardenAgent extends EconomicAgent {
 		}
 
 		try {
-			this.logStream.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + "," + cleanASCount
+			this.cleannessLog.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + "," + cleanASCount
 					/ totalASCount + "," + cleanNonCoopIPCount / totalNonCoopIPCount + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		
+		try {
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.transitIncome + ","
+					+ this.parent.isDecoy() + ",true\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -128,11 +138,5 @@ public class WardenAgent extends EconomicAgent {
 		 * set of decoy routers as the avoidance set
 		 */
 		this.parent.turnOnActiveAvoidance(this.buildDecoySet());
-	}
-
-	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
-		/*
-		 * Currently warden ASes don't care about money
-		 */
 	}
 }

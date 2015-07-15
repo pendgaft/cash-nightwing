@@ -74,7 +74,7 @@ public class EconomicEngine {
 		for (DecoyAS tAS : activeMap.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				this.theTopo
-						.put(tAS.getASN(), new WardenAgent(tAS, this.wardenOut, activeMap, prunedMap, this.pathOut));
+						.put(tAS.getASN(), new WardenAgent(tAS, this.transitOut, this.wardenOut, activeMap, prunedMap, this.pathOut));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 						TransitProvider.DECOY_STRAT.DICTATED, this.pathOut));

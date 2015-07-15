@@ -21,13 +21,15 @@ import decoy.DecoyAS;
 public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
-	protected BufferedWriter logStream;
+	protected BufferedWriter revenueLogStream;
 	protected BufferedWriter pathStream;
 	protected TIntObjectMap<DecoyAS> activeTopo;
+	protected double moneyEarned;
+	protected double transitIncome;
 	
 	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, BufferedWriter pathLog){
 		this.parent = parentAS;
-		this.logStream = log;
+		this.revenueLogStream = log;
 		this.activeTopo = activeTopo;
 		this.pathStream = pathLog;
 	}
@@ -39,7 +41,10 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * @param moneyEarned
 	 *            - the amount of money gained or lost this past round
 	 */
-	public abstract void reportMoneyEarned(double moneyEarned, double tranistEarned);
+	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
+		this.moneyEarned = moneyEarned;
+		this.transitIncome = transitEarned;
+	}
 
 	/**
 	 * Function that prompts the AS like object to make any changes to its

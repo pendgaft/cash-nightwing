@@ -15,8 +15,6 @@ public class TransitProvider extends EconomicAgent {
 		RAND, NEVER, DICTATED
 	}
 
-	private double moneyEarned;
-	private double transitIncome;
 	private boolean flipDecoyState;
 	private int lockIn;
 	private TransitProvider.DECOY_STRAT myStrat;
@@ -28,9 +26,9 @@ public class TransitProvider extends EconomicAgent {
 		TransitProvider.FLIPCHANCE = chance;
 	}
 
-	public TransitProvider(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo,
+	public TransitProvider(DecoyAS parentAS, BufferedWriter revLog, TIntObjectMap<DecoyAS> activeTopo,
 			TransitProvider.DECOY_STRAT strat, BufferedWriter pathLog) {
-		super(parentAS, log, activeTopo, pathLog);
+		super(parentAS, revLog, activeTopo, pathLog);
 		this.moneyEarned = 0.0;
 		this.transitIncome = 0.0;
 		this.myStrat = strat;
@@ -40,8 +38,8 @@ public class TransitProvider extends EconomicAgent {
 
 	public void doRoundLogging() {
 		try {
-			this.logStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.transitIncome + ","
-					+ this.parent.isDecoy() + "\n");
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.transitIncome + ","
+					+ this.parent.isDecoy() + ",false\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -114,10 +112,4 @@ public class TransitProvider extends EconomicAgent {
 			this.lockIn = 2;
 		}
 	}
-
-	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
-		this.moneyEarned = moneyEarned;
-		this.transitIncome = transitEarned;
-	}
-
 }
