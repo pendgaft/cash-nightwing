@@ -430,19 +430,19 @@ public class EconomicEngine {
 		/*
 		 * Write it to a file just in case we want it for reference
 		 */
-		//XXX not sure what I had this in for originally....
-		//		try {
-		//			BufferedWriter outBuff = new BufferedWriter(
-		//					new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
+		// XXX not sure what I had this in for originally....
+		// try {
+		// BufferedWriter outBuff = new BufferedWriter(
+		// new FileWriter(EconomicEngine.LOGGING_DIR + "orderedASList.csv"));
 		//
-		//			for (int counter = rankList.size() - 1; counter >= 0; counter--) {
-		//				outBuff.write(rankList.get(counter).toString() + "\n");
-		//			}
-		//			outBuff.close();
-		//		} catch (IOException e) {
-		//			System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
-		//			e.printStackTrace();
-		//		}
+		// for (int counter = rankList.size() - 1; counter >= 0; counter--) {
+		// outBuff.write(rankList.get(counter).toString() + "\n");
+		// }
+		// outBuff.close();
+		// } catch (IOException e) {
+		// System.err.println("exception in trying to write the ordered AS list to file, this might be bad...");
+		// e.printStackTrace();
+		// }
 
 		/*
 		 * Actually do the sim now
@@ -483,10 +483,13 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize,
-			ParallelTrafficStat trafficManager) {
+	public void manageRandomDeploySizeSim(int start, int end, int step, int trialCount, int minCCSize) {
+		this.manageFixedNumberSim(start, end, step, trialCount, minCCSize, false);
+	}
+
+	public void manageCustConeExploration(int start, int end, int step, int trialCount, int deploySize) {
 		for (int currentConeSize = start; currentConeSize <= end; currentConeSize += step) {
-			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, trafficManager, true);
+			this.manageFixedNumberSim(deploySize, deploySize, 1, trialCount, currentConeSize, true);
 		}
 	}
 
@@ -501,8 +504,7 @@ public class EconomicEngine {
 	 *            : only use the ASes whose ccNum is greater and equal to
 	 *            randomType
 	 */
-	public void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize,
-			ParallelTrafficStat trafficManager, boolean logMinCCSize) {
+	private void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize, boolean logMinCCSize) {
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
 		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
@@ -560,7 +562,7 @@ public class EconomicEngine {
 				}
 
 				for (int counter = 0; counter < 3; counter++) {
-					trafficManager.runStat();
+					this.trafficManger.runStat();
 					String roundHeader = null;
 					if (logMinCCSize) {
 						roundHeader = "" + minCCSize + "," + counter;

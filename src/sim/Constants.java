@@ -12,7 +12,7 @@ public class Constants {
 	public static final String BASE_LOG_DIR = "/scratch/minerva2/schuch/nightwingData/rawLogs/";
 	
 	//TODO tune me please?
-	public static final int MAX_LIVE_TOPO_SIZE = 7700;
+	public static final int MAX_LIVE_TOPO_SIZE = 7800;
 	
 	
 //	public static final String AS_REL_FILE = "topo1Test/as-rel.txt";
@@ -31,7 +31,7 @@ public class Constants {
 	
 	public static final int NTHREADS = 10;
 	
-	public static final int SAMPLE_COUNT = 100;
+	public static int RANDOM_SAMPLE_COUNT = 100;
 	
 	public static boolean REVERSE_POISON = false;
 	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.IPWeighted;
@@ -42,5 +42,6 @@ public class Constants {
 	public static int DEFAULT_DEPLOY_STOP = 100;
 	public static int DEFAULT_DEPLOY_STEP = 10;
 	
+	public static int DEFAULT_FIGURE_OF_MERIT = 50;
 }
 
