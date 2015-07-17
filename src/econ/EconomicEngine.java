@@ -345,7 +345,7 @@ public class EconomicEngine {
 		return retList;
 	}
 
-	private List<Integer> buildSortedBase(int size, boolean global, Set<Integer> dropList) {
+	private List<Integer> buildSortedBase(int goalSize, boolean global, Set<Integer> dropList) {
 		/*
 		 * Step 1, build the sizes of these ASes, sort them
 		 */
@@ -403,8 +403,8 @@ public class EconomicEngine {
 		Collections.sort(rankList);
 
 		List<Integer> retList = new ArrayList<Integer>();
-		for(int counter = retList.size() - 1; retList.size() < size; counter--){
-			retList.add(rankList.get(counter).getASN());
+		for(int counter = 0; counter < goalSize; counter++){
+			retList.add(rankList.get(rankList.size() - (counter + 1)).getASN());
 		}
 		
 		return retList;
