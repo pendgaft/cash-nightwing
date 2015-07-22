@@ -12,7 +12,7 @@ public class MaxParser {
 
 	private HashMap<Integer, Double> asToIP;
 
-	private static final String IP_FILE = "realTopo/whole-internet-20150101-ip.txt";
+	private static final String IP_FILE = "cash-nightwing/realTopo/whole-internet-20150101-ip.txt";
 	private static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
 	private static final String OUTPUT_SUFFIX = "parsedLogs/";
 	private static final String INPUT_SUFFIX = "rawLogs/";
