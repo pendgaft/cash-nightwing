@@ -125,6 +125,9 @@ public class MaxParser {
 		BufferedReader inBuff = new BufferedReader(new FileReader(wardenFile));
 		while (inBuff.ready()) {
 			String pollStr = inBuff.readLine().trim();
+			if(pollStr.equals("&&&")){
+				continue;
+			}
 			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
 			boolean controlFlag = false;
 			if (controlMatcher.find()) {
@@ -899,6 +902,9 @@ public class MaxParser {
 					}
 					if (toWarden) {
 						toResistDeltas.add(tempDelta);
+					}
+					if(!(fromWarden || toWarden)){
+						System.out.println("fuuuu " + pathKey);
 					}
 				}
 			}
