@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 
+import decoy.DecoyAS;
 import scijava.stats.CDF;
 import sim.Constants;
 
@@ -46,6 +47,7 @@ public class MaxParser {
 			System.out.println("Working on: " + suffix);
 			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/warden.log";
 			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/transit.log";
+			String pathFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/path.log";
 
 			self.writeDeployerLog(transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/deployers.log");
 			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv",
@@ -66,6 +68,10 @@ public class MaxParser {
 			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/resistorTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/resistorProfitCDF.csv", false, true, 3);
+
+			self.parseRealMoney(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
+			self.parsePathLength(wardenFile, pathFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/pathLenDeltas.csv");
 		}
 	}
 
@@ -111,6 +117,37 @@ public class MaxParser {
 			outBuff.write("\n");
 		}
 		outBuff.close();
+	}
+
+	private static HashSet<String> getWardens(String wardenFile) throws IOException {
+		HashSet<String> wardenList = new HashSet<String>();
+
+		BufferedReader inBuff = new BufferedReader(new FileReader(wardenFile));
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag && wardenList.size() > 0) {
+				break;
+			}
+
+			if (!controlFlag) {
+				String[] splits = pollStr.split(",");
+				wardenList.add(splits[0]);
+			}
+		}
+		inBuff.close();
+
+		return wardenList;
 	}
 
 	private HashMap<Integer, HashMap<Double, Double>> computeProfitDeltas(String inFile, boolean isDR,
@@ -488,10 +525,12 @@ public class MaxParser {
 				Matcher dataMatch = MaxParser.WARDEN_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
 					Double ips = this.asToIP.get(Integer.parseInt(dataMatch.group(1)));
-					double cleanness = Double.parseDouble(dataMatch.group(column));
+					if (ips != null) {
+						double cleanness = Double.parseDouble(dataMatch.group(column));
 
-					currentIPCount += ips;
-					currentIPCleanness += cleanness * ips;
+						currentIPCount += ips;
+						currentIPCleanness += cleanness * ips;
+					}
 				}
 			}
 		}
@@ -669,5 +708,226 @@ public class MaxParser {
 			outBuff.write("\n");
 		}
 		outBuff.close();
+	}
+
+	public void parseRealMoney(String logFile, String outFile) throws IOException {
+
+		HashMap<Integer, HashMap<Integer, Double>> roundResults = new HashMap<Integer, HashMap<Integer, Double>>();
+
+		HashMap<Integer, Double> roundValues = null;
+		HashMap<Integer, Double> firstRoundValues = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
+		int roundFlag = 0;
+		int sampleSize = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0 && sampleSize != 0) {
+					firstRoundValues.clear();
+					roundResults.put(sampleSize, roundValues);
+				}
+
+				roundValues = new HashMap<Integer, Double>();
+				sampleSize = newSampleSize;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+						if (roundFlag == 1) {
+							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(3)));
+						} else {
+							int asn = Integer.parseInt(dataMatch.group(1));
+							double delta = Double.parseDouble(dataMatch.group(3)) - firstRoundValues.get(asn);
+							// TODO need to actually get the as object pulled in
+							// here at some point
+							double value = MaxParser.convertTrafficToDollars(delta, null);
+							roundValues.put(asn, value);
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+		/*
+		 * Dont' forget to do the last round
+		 */
+		firstRoundValues.clear();
+		roundResults.put(sampleSize, roundValues);
+
+		List<Integer> roundSizes = new ArrayList<Integer>(roundResults.size());
+		roundSizes.addAll(roundResults.keySet());
+		Collections.sort(roundSizes);
+
+		/*
+		 * Output CDF of the costs for each round on a per AS basis
+		 */
+		List<Collection<Double>> cdfLists = new ArrayList<Collection<Double>>(roundSizes.size());
+		for (int tSize : roundSizes) {
+			cdfLists.add(roundResults.get(tSize).values());
+		}
+		CDF.printCDFs(cdfLists, outFile + "-CDF.csv");
+
+		/*
+		 * Output the total cost of each round
+		 */
+		List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
+		for (int size : roundSizes) {
+			double sum = 0;
+			for (Double tVal : roundResults.get(size).values()) {
+				sum += tVal;
+			}
+			perRoundCost.add(sum);
+		}
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost.csv"));
+		for (int counter = 0; counter < perRoundCost.size(); counter++) {
+			outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
+		}
+		outBuff.close();
+	}
+
+	private static double convertTrafficToDollars(double amount, DecoyAS as) {
+		// TODO implement
+		/*
+		 * Currently units of milUSD / sim units Source:
+		 * https://www.telegeography
+		 * .com/research-services/ip-transit-forecast-service/index.html
+		 */
+		return amount * 0.00000001111111;
+	}
+
+	public void parsePathLength(String wardenFile, String pathLogFile, String outFile) throws IOException {
+
+		boolean inParseRegion = false;
+		boolean inFirstRun = true;
+
+		HashSet<String> wardenSet = MaxParser.getWardens(wardenFile);
+
+		HashMap<String, Integer> pathHashes = new HashMap<String, Integer>();
+		HashMap<String, Integer> lengthMap = new HashMap<String, Integer>();
+
+		BufferedReader pathBuffer = new BufferedReader(new FileReader(pathLogFile));
+		BufferedWriter fromResistBuffer = new BufferedWriter(new FileWriter(outFile + "-fromResist.csv"));
+		BufferedWriter toResistBuffer = new BufferedWriter(new FileWriter(outFile + "-toResist.csv"));
+		fromResistBuffer.write("size,mean,median,count\n");
+
+		List<Integer> fromResistDeltas = new LinkedList<Integer>();
+		List<Integer> toResistDeltas = new LinkedList<Integer>();
+
+		int sampleSize = 0;
+		while (pathBuffer.ready()) {
+			String pollStr = pathBuffer.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				int roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				if ((roundFlag == 0 && pathHashes.size() == 0) || roundFlag == 2) {
+					inParseRegion = true;
+				} else {
+					if (inParseRegion && inFirstRun) {
+						inFirstRun = false;
+					} else if (inParseRegion) {
+						double fromMean = MaxParser.getMean(fromResistDeltas);
+						double toMean = MaxParser.getMean(toResistDeltas);
+						double fromMedian = MaxParser.getMedian(fromResistDeltas);
+						double toMedian = MaxParser.getMedian(toResistDeltas);
+
+						fromResistBuffer.write(sampleSize + "," + fromMean + "," + fromMedian + ","
+								+ fromResistDeltas.size() + "\n");
+						fromResistDeltas.clear();
+						toResistBuffer.write(sampleSize + "," + toMean + "," + toMedian + "," + toResistDeltas.size()
+								+ "\n");
+						toResistDeltas.clear();
+						System.out.println("done one");
+					}
+					inParseRegion = false;
+				}
+
+				sampleSize = newSampleSize;
+				continue;
+			} else if (inParseRegion && pollStr.length() > 0) {
+				String[] splits = pollStr.split(",");
+				if (splits.length != 2) {
+					continue;
+				}
+
+				String pathKey = splits[0];
+				String pathStr = splits[1].trim();
+				boolean fromWarden = wardenSet.contains(pathKey.split(":")[0]);
+				boolean toWarden = wardenSet.contains(pathKey.split(":")[1]);
+
+				if (inFirstRun) {
+					pathHashes.put(pathKey, pathStr.hashCode());
+					lengthMap.put(pathKey, pathStr.split(" ").length);
+				} else if (pathHashes.get(pathKey) != pathStr.hashCode()) {
+					int tempDelta = pathStr.split(" ").length - lengthMap.get(pathKey);
+					if (fromWarden) {
+						fromResistDeltas.add(tempDelta);
+					}
+					if (toWarden) {
+						toResistDeltas.add(tempDelta);
+					}
+				}
+			}
+
+		}
+
+		pathBuffer.close();
+		fromResistBuffer.close();
+		toResistBuffer.close();
+	}
+
+	private static double getMean(List<Integer> valList) {
+		double delta = 0.0;
+		for (int tVal : valList) {
+			delta += (double) tVal;
+		}
+
+		return delta / (double) valList.size();
+	}
+
+	private static double getMedian(List<Integer> valList) {
+		double median = 0;
+		Collections.sort(valList);
+		if (valList.size() % 2 == 0) {
+			median = ((double) valList.get(valList.size() / 2) - (double) valList.get(valList.size() / 2 - 1)) / 2.0;
+		} else {
+			median = valList.get(valList.size() / 2);
+		}
+
+		return median;
 	}
 }
