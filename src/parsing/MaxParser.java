@@ -874,7 +874,6 @@ public class MaxParser {
 						toResistBuffer.write(sampleSize + "," + toMean + "," + toMedian + "," + toResistDeltas.size()
 								+ "\n");
 						toResistDeltas.clear();
-						System.out.println("done one");
 					}
 					inParseRegion = false;
 				}
