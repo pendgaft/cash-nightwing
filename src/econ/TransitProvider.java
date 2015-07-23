@@ -30,7 +30,6 @@ public class TransitProvider extends EconomicAgent {
 			TransitProvider.DECOY_STRAT strat, BufferedWriter pathLog) {
 		super(parentAS, revLog, activeTopo, pathLog);
 		this.moneyEarned = 0.0;
-		this.transitIncome = 0.0;
 		this.myStrat = strat;
 		this.flipDecoyState = false;
 		this.lockIn = 0;
@@ -38,7 +37,7 @@ public class TransitProvider extends EconomicAgent {
 
 	public void doRoundLogging() {
 		try {
-			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.transitIncome + ","
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + ","
 					+ this.parent.isDecoy() + ",false\n");
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -50,7 +49,8 @@ public class TransitProvider extends EconomicAgent {
 				BGPPath tPath = super.parent.getPath(tAS.getASN());
 				if (tPath != null) {
 					try {
-						super.pathStream.write(super.parent.getASN() + ":" + tAS.getASN() + "," + tPath.getLoggingString() + "\n");
+						super.pathStream.write(super.parent.getASN() + ":" + tAS.getASN() + ","
+								+ tPath.getLoggingString() + "\n");
 					} catch (IOException e) {
 						e.printStackTrace();
 						System.exit(-1);

@@ -19,7 +19,7 @@ public class MaxParser {
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
 	public static final Pattern WARDEN_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+)");
-	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),(.+),(.+)");
+	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),(.+),(.+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
 
@@ -170,13 +170,13 @@ public class MaxParser {
 			if (roundFlag != 0) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
-					if (Boolean.parseBoolean(dataMatch.group(4)) == isDR
-							&& Boolean.parseBoolean(dataMatch.group(5)) == isResistor) {
+					if (Boolean.parseBoolean(dataMatch.group(3)) == isDR
+							&& Boolean.parseBoolean(dataMatch.group(4)) == isResistor) {
 						if (roundFlag == 1) {
 							firstRoundValue.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(column)));
+									Double.parseDouble(dataMatch.group(2)));
 						} else {
-							double delta = Double.parseDouble(dataMatch.group(column))
+							double delta = Double.parseDouble(dataMatch.group(2))
 									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1)));
 							if (delta != 0.0) {
 								if (normalized) {
@@ -228,7 +228,7 @@ public class MaxParser {
 			} else if (inRegion) {
 				Matcher dataLineMatcher = MaxParser.TRANSIT_PATTERN.matcher(pollLine);
 				if (dataLineMatcher.matches()) {
-					if (Boolean.parseBoolean(dataLineMatcher.group(4))) {
+					if (Boolean.parseBoolean(dataLineMatcher.group(3))) {
 						outBuff.write(dataLineMatcher.group(1) + "\n");
 					}
 				}

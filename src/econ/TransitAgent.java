@@ -54,17 +54,4 @@ public interface TransitAgent {
 	 * reset before a new round.
 	 */
 	public void resetTraffic();
-
-	/**
-	 * Fetches the amount of traffic that flows from THIS AS to the other AS
-	 * which is transit traffic (i.e. this AS is transiting the traffic, and is
-	 * neither the source nor the destination)
-	 * 
-	 * @param otherASN
-	 * @return
-	 */
-	public double getTransitTrafficOverLink(int otherASN);
-	
-	
-	public double getDeliveryTrafficOverLink(int otherASN);
 }

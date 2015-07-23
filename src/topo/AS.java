@@ -22,7 +22,7 @@ import econ.TransitAgent;
  * 
  */
 
-//FIXME honest hole punching is currently fucked
+// FIXME honest hole punching is currently fucked
 public abstract class AS implements TransitAgent {
 
 	public enum AvoidMode {
@@ -69,12 +69,8 @@ public abstract class AS implements TransitAgent {
 
 	/* store the traffic over each neighbor */
 	private TIntDoubleHashMap trafficOverNeighbors;
-	private TIntDoubleHashMap transitTrafficOverLink;
-	private TIntDoubleHashMap lastHopDeliveryOverLink;
 
 	private TIntDoubleHashMap volatileTraffic;
-	private TIntDoubleHashMap volatileTransitTraffic;
-	private TIntDoubleHashMap volatileLastHopDeliveryTraffic;
 	private TIntHashSet volatileDestinations;
 
 	public static final int PROIVDER_CODE = -1;
@@ -112,11 +108,7 @@ public abstract class AS implements TransitAgent {
 		this.dirtyDest = new HashSet<Integer>();
 
 		this.trafficOverNeighbors = new TIntDoubleHashMap();
-		this.transitTrafficOverLink = new TIntDoubleHashMap();
-		this.lastHopDeliveryOverLink = new TIntDoubleHashMap();
 		this.volatileTraffic = new TIntDoubleHashMap();
-		this.volatileTransitTraffic = new TIntDoubleHashMap();
-		this.volatileLastHopDeliveryTraffic = new TIntDoubleHashMap();
 		this.volatileDestinations = new TIntHashSet();
 
 		this.customerConeASList = new HashSet<Integer>();
@@ -175,21 +167,13 @@ public abstract class AS implements TransitAgent {
 	@SuppressWarnings("unchecked")
 	public void loadTrafficFromSerial(ObjectInputStream serialIn) throws IOException, ClassNotFoundException {
 		this.trafficOverNeighbors = (TIntDoubleHashMap) serialIn.readObject();
-		this.transitTrafficOverLink = (TIntDoubleHashMap) serialIn.readObject();
-		this.lastHopDeliveryOverLink = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileTraffic = (TIntDoubleHashMap) serialIn.readObject();
-		this.volatileTransitTraffic = (TIntDoubleHashMap) serialIn.readObject();
-		this.volatileLastHopDeliveryTraffic = (TIntDoubleHashMap) serialIn.readObject();
 		this.volatileDestinations = (TIntHashSet) serialIn.readObject();
 	}
 
 	public void saveTrafficToSerial(ObjectOutputStream serialOut) throws IOException {
 		serialOut.writeObject(this.trafficOverNeighbors);
-		serialOut.writeObject(this.transitTrafficOverLink);
-		serialOut.writeObject(this.lastHopDeliveryOverLink);
 		serialOut.writeObject(this.volatileTraffic);
-		serialOut.writeObject(this.volatileTransitTraffic);
-		serialOut.writeObject(this.volatileLastHopDeliveryTraffic);
 		serialOut.writeObject(this.volatileDestinations);
 
 	}
@@ -296,16 +280,8 @@ public abstract class AS implements TransitAgent {
 		}
 		this.trafficOverNeighbors.put(otherAS.asn, 0.0);
 		otherAS.trafficOverNeighbors.put(this.asn, 0.0);
-		this.transitTrafficOverLink.put(otherAS.asn, 0.0);
-		otherAS.transitTrafficOverLink.put(this.asn, 0.0);
-		this.lastHopDeliveryOverLink.put(otherAS.asn, 0.0);
-		otherAS.lastHopDeliveryOverLink.put(this.asn, 0.0);
 		this.volatileTraffic.put(otherAS.asn, 0.0);
 		otherAS.volatileTraffic.put(this.asn, 0.0);
-		this.volatileTransitTraffic.put(otherAS.asn, 0.0);
-		otherAS.volatileTransitTraffic.put(this.asn, 0.0);
-		this.volatileLastHopDeliveryTraffic.put(otherAS.asn, 0.0);
-		otherAS.volatileLastHopDeliveryTraffic.put(this.asn, 0.0);
 	}
 
 	private AS getNeighborByASN(int asn) {
@@ -600,8 +576,7 @@ public abstract class AS implements TransitAgent {
 			 * routes that are NOT clean, this is corrected in path selection if
 			 * this leaves us w/ no viable routes
 			 */
-			if (avoidDecoys
-					&& (this.avoidMode == AS.AvoidMode.LOCALPREF || this.avoidMode == AS.AvoidMode.LEGACY)) {
+			if (avoidDecoys && (this.avoidMode == AS.AvoidMode.LOCALPREF || this.avoidMode == AS.AvoidMode.LEGACY)) {
 				if (tPath.containsAnyOf(this.avoidSet)) {
 					continue;
 				}
@@ -1166,24 +1141,8 @@ public abstract class AS implements TransitAgent {
 		return this.trafficOverNeighbors.get(otherASN);
 	}
 
-	public double getTransitTrafficOverLink(int otherASN) {
-		return this.transitTrafficOverLink.get(otherASN);
-	}
-
-	public double getDeliveryTrafficOverLink(int otherASN) {
-		return this.lastHopDeliveryOverLink.get(otherASN);
-	}
-
 	public double getVolTraffic(int otherASN) {
 		return this.volatileTraffic.get(otherASN);
-	}
-
-	public double getVolTransitTraffic(int otherASN) {
-		return this.volatileTransitTraffic.get(otherASN);
-	}
-
-	public double getVolDeliveryTraffic(int otherASN) {
-		return this.volatileLastHopDeliveryTraffic.get(otherASN);
 	}
 
 	/**
@@ -1197,30 +1156,11 @@ public abstract class AS implements TransitAgent {
 	 * @param isVolatile
 	 * @param isTransit
 	 */
-	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile,
-			boolean isTransit, boolean isDelivery) {
+	public synchronized void updateTrafficOverOneNeighbor(int neighbor, double amountOfTraffic, boolean isVolatile) {
 		this.trafficOverNeighbors.put(neighbor, this.trafficOverNeighbors.get(neighbor) + amountOfTraffic);
-		if (isTransit) {
-			this.transitTrafficOverLink.put(neighbor, this.transitTrafficOverLink.get(neighbor) + amountOfTraffic);
-			/*
-			 * Traffic can ONLY be marked as last hop delivery if it is transit
-			 * to begin with
-			 */
-			if (isDelivery) {
-				this.lastHopDeliveryOverLink
-						.put(neighbor, this.lastHopDeliveryOverLink.get(neighbor) + amountOfTraffic);
-			}
-		}
 
 		if (isVolatile) {
 			this.volatileTraffic.put(neighbor, this.volatileTraffic.get(neighbor) + amountOfTraffic);
-			if (isTransit) {
-				this.volatileTransitTraffic.put(neighbor, this.volatileTransitTraffic.get(neighbor) + amountOfTraffic);
-				if (isDelivery) {
-					this.volatileLastHopDeliveryTraffic.put(neighbor, this.volatileLastHopDeliveryTraffic.get(neighbor)
-							+ amountOfTraffic);
-				}
-			}
 		}
 	}
 
@@ -1235,13 +1175,7 @@ public abstract class AS implements TransitAgent {
 	public void resetTraffic() {
 		for (int tASN : this.trafficOverNeighbors.keys()) {
 			this.trafficOverNeighbors.put(tASN, this.trafficOverNeighbors.get(tASN) - this.volatileTraffic.get(tASN));
-			this.transitTrafficOverLink.put(tASN,
-					this.transitTrafficOverLink.get(tASN) - this.volatileTransitTraffic.get(tASN));
-			this.lastHopDeliveryOverLink.put(tASN, this.lastHopDeliveryOverLink.get(tASN)
-					- this.volatileLastHopDeliveryTraffic.get(tASN));
 			this.volatileTraffic.put(tASN, 0.0);
-			this.volatileTransitTraffic.put(tASN, 0.0);
-			this.volatileLastHopDeliveryTraffic.put(tASN, 0.0);
 		}
 	}
 
