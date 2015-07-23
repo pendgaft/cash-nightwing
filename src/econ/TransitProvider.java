@@ -47,7 +47,7 @@ public class TransitProvider extends EconomicAgent {
 		for (DecoyAS tAS : super.activeTopo.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				BGPPath tPath = super.parent.getPath(tAS.getASN());
-				if (tPath != null) {
+				if (tPath != null && EconomicAgent.LOG_PATHS) {
 					try {
 						super.pathStream.write(super.parent.getASN() + ":" + tAS.getASN() + ","
 								+ tPath.getLoggingString() + "\n");

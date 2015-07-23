@@ -25,6 +25,12 @@ public abstract class EconomicAgent implements TransitAgent {
 	protected TIntObjectMap<DecoyAS> activeTopo;
 	protected double moneyEarned;
 	
+	protected static boolean LOG_PATHS = true;
+	
+	public static void suppressPathLogging(){
+		EconomicAgent.LOG_PATHS = false;
+	}
+	
 	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, BufferedWriter pathLog){
 		this.parent = parentAS;
 		this.revenueLogStream = log;

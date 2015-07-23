@@ -54,11 +54,13 @@ public class WardenAgent extends EconomicAgent {
 			/*
 			 * Log the actual path used by the resistor to each destination
 			 */
-			try {
-				super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
+			if (EconomicAgent.LOG_PATHS) {
+				try {
+					super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
+				} catch (IOException e) {
+					e.printStackTrace();
+					System.exit(-1);
+				}
 			}
 
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
