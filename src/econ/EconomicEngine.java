@@ -217,7 +217,8 @@ public class EconomicEngine {
 		}
 	}
 
-	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage) {
+	//TODO merege this code with targeted code, as they are basically identical
+	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, true);
@@ -252,14 +253,39 @@ public class EconomicEngine {
 				listPos++;
 			}
 
-			/*
-			 * Actually do the sim rounds
-			 */
-			for (int counter = 0; counter < 3; counter++) {
-				this.trafficManger.runStat();
-				String roundHeader = null;
-				roundHeader = "" + drCount + "," + counter;
-				this.driveEconomicTurn(roundHeader, drSet, counter);
+			if (defection) {
+				for (int tDefector : drSet) {
+					/*
+					 * Build the DR set less the defector
+					 */
+					Set<Integer> drSubset = new HashSet<Integer>();
+					for (int tDeploy : drSet) {
+						if (tDeploy == tDefector) {
+							continue;
+						}
+						drSubset.add(tDeploy);
+					}
+
+					/*
+					 * Actually sim the rounds
+					 */
+					for (int counter = 0; counter < 3; counter++) {
+						this.trafficManger.runStat();
+						String roundHeader = null;
+						roundHeader = "" + drCount + "," + counter;
+						this.driveEconomicTurn(roundHeader, drSubset, counter);
+					}
+				}				
+			} else {
+				/*
+				 * Actually do the sim rounds
+				 */
+				for (int counter = 0; counter < 3; counter++) {
+					this.trafficManger.runStat();
+					String roundHeader = null;
+					roundHeader = "" + drCount + "," + counter;
+					this.driveEconomicTurn(roundHeader, drSet, counter);
+				}
 			}
 		}
 	}
@@ -342,7 +368,7 @@ public class EconomicEngine {
 		return retList;
 	}
 
-	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage) {
+	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
 		List<Integer> rankList = null;
 		if (coverage) {
@@ -378,14 +404,39 @@ public class EconomicEngine {
 				listPos++;
 			}
 
-			/*
-			 * Actually do the sim rounds
-			 */
-			for (int counter = 0; counter < 3; counter++) {
-				this.trafficManger.runStat();
-				String roundHeader = null;
-				roundHeader = "" + drCount + "," + counter;
-				this.driveEconomicTurn(roundHeader, drSet, counter);
+			if (defection) {
+				for (int tDefector : drSet) {
+					/*
+					 * Build the DR set less the defector
+					 */
+					Set<Integer> drSubset = new HashSet<Integer>();
+					for (int tDeploy : drSet) {
+						if (tDeploy == tDefector) {
+							continue;
+						}
+						drSubset.add(tDeploy);
+					}
+
+					/*
+					 * Actually sim the rounds
+					 */
+					for (int counter = 0; counter < 3; counter++) {
+						this.trafficManger.runStat();
+						String roundHeader = null;
+						roundHeader = "" + drCount + "," + counter;
+						this.driveEconomicTurn(roundHeader, drSubset, counter);
+					}
+				}
+			} else {
+				/*
+				 * Actually do the sim rounds
+				 */
+				for (int counter = 0; counter < 3; counter++) {
+					this.trafficManger.runStat();
+					String roundHeader = null;
+					roundHeader = "" + drCount + "," + counter;
+					this.driveEconomicTurn(roundHeader, drSet, counter);
+				}
 			}
 		}
 	}
