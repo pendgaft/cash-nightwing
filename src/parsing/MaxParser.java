@@ -756,13 +756,13 @@ public class MaxParser {
 			if (roundFlag != 0) {
 				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
 				if (dataMatch.find()) {
-					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+					if (Boolean.parseBoolean(dataMatch.group(3)) == true) {
 						if (roundFlag == 1) {
 							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
-									Double.parseDouble(dataMatch.group(3)));
+									Double.parseDouble(dataMatch.group(2)));
 						} else {
 							int asn = Integer.parseInt(dataMatch.group(1));
-							double delta = Double.parseDouble(dataMatch.group(3)) - firstRoundValues.get(asn);
+							double delta = Double.parseDouble(dataMatch.group(2)) - firstRoundValues.get(asn);
 							// TODO need to actually get the as object pulled in
 							// here at some point
 							double value = MaxParser.convertTrafficToDollars(delta, null);
