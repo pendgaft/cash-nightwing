@@ -817,7 +817,7 @@ public class MaxParser {
 		 * https://www.telegeography
 		 * .com/research-services/ip-transit-forecast-service/index.html
 		 */
-		return amount * 0.00000001111111;
+		return amount * 0.000000008154451706;
 	}
 
 	public void parsePathLength(String wardenFile, String pathLogFile, String outFile) throws IOException {
