@@ -15,8 +15,8 @@ public class WardenAgent extends EconomicAgent {
 	private TIntObjectMap<DecoyAS> prunedTopo;
 	private BufferedWriter cleannessLog;
 
-	public WardenAgent(DecoyAS parentObject, BufferedWriter revLog, BufferedWriter cleanLog, TIntObjectMap<DecoyAS> activeTopo,
-			TIntObjectMap<DecoyAS> prunedTopo, BufferedWriter pathLog) {
+	public WardenAgent(DecoyAS parentObject, BufferedWriter revLog, BufferedWriter cleanLog,
+			TIntObjectMap<DecoyAS> activeTopo, TIntObjectMap<DecoyAS> prunedTopo, BufferedWriter pathLog) {
 		super(parentObject, revLog, activeTopo, pathLog);
 		this.cleannessLog = cleanLog;
 		if (!parentObject.isWardenAS()) {
@@ -54,26 +54,28 @@ public class WardenAgent extends EconomicAgent {
 			/*
 			 * Log the actual path used by the resistor to each destination
 			 */
-			try {
-				super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
+			if (EconomicAgent.LOG_PATHS) {
+				try {
+					super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
+				} catch (IOException e) {
+					e.printStackTrace();
+					System.exit(-1);
+				}
 			}
 
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
 			if (!tPath.containsAnyOf(decoySet)) {
 				cleanIPCount += ipCount;
 				cleanASCount += 1;
-				
-				if(!this.activeTopo.get(tDest).isDecoy()){
+
+				if (!this.activeTopo.get(tDest).isDecoy()) {
 					cleanNonCoopIPCount += ipCount;
 				}
 			}
-			
+
 			totalIPCount += ipCount;
 			totalASCount += 1;
-			if(!this.activeTopo.get(tDest).isDecoy()){
+			if (!this.activeTopo.get(tDest).isDecoy()) {
 				totalNonCoopIPCount += ipCount;
 			}
 		}
@@ -116,9 +118,9 @@ public class WardenAgent extends EconomicAgent {
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		try {
-			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + "," + this.transitIncome + ","
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + ","
 					+ this.parent.isDecoy() + ",true\n");
 		} catch (IOException e) {
 			e.printStackTrace();

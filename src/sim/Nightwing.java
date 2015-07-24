@@ -112,6 +112,10 @@ public class Nightwing implements Runnable {
 		String[] frags = this.resistorFile.split("\\/");
 		String outStr = Constants.BASE_LOG_DIR + frags[frags.length - 1].split("\\.")[0];
 
+		if (ns.getBoolean("defection")) {
+			outStr += "DEFECTION";
+		}
+
 		/*
 		 * Encode deploy mode
 		 */
@@ -191,10 +195,12 @@ public class Nightwing implements Runnable {
 		long startTime = System.currentTimeMillis();
 		if (this.myMode == Nightwing.SimMode.ORDERED) {
 			this.econManager.manageSortedWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
-					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"));
+					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"),
+					this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.GLOBAL) {
 			this.econManager.manageGlobalWardenSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
-					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"));
+					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"),
+					this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.DICTATED) {
 			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"));
 		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
@@ -241,6 +247,8 @@ public class Nightwing implements Runnable {
 		argParse.addArgument("--coverageOrdering").help("tells simulator to use coverage ordering").required(false)
 				.action(Arguments.storeTrue());
 		argParse.addArgument("--deployers").help("deployer list file").required(false);
+		argParse.addArgument("--defection").help("Turns on defection expoloration").required(false)
+				.action(Arguments.storeTrue());
 
 		/*
 		 * Actually parse

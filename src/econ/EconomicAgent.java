@@ -2,7 +2,6 @@ package econ;
 
 import gnu.trove.map.TIntObjectMap;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.io.BufferedWriter;
@@ -25,7 +24,12 @@ public abstract class EconomicAgent implements TransitAgent {
 	protected BufferedWriter pathStream;
 	protected TIntObjectMap<DecoyAS> activeTopo;
 	protected double moneyEarned;
-	protected double transitIncome;
+	
+	protected static boolean LOG_PATHS = true;
+	
+	public static void suppressPathLogging(){
+		EconomicAgent.LOG_PATHS = false;
+	}
 	
 	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, BufferedWriter pathLog){
 		this.parent = parentAS;
@@ -41,9 +45,8 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * @param moneyEarned
 	 *            - the amount of money gained or lost this past round
 	 */
-	public void reportMoneyEarned(double moneyEarned, double transitEarned) {
+	public void reportMoneyEarned(double moneyEarned) {
 		this.moneyEarned = moneyEarned;
-		this.transitIncome = transitEarned;
 	}
 
 	/**
@@ -82,14 +85,6 @@ public abstract class EconomicAgent implements TransitAgent {
 	
 	public double getTrafficOverLinkBetween(int otherASN){
 		return this.parent.getTrafficOverLinkBetween(otherASN);
-	}
-	
-	public double getTransitTrafficOverLink(int otherASN){
-		return this.parent.getTransitTrafficOverLink(otherASN);
-	}
-	
-	public double getDeliveryTrafficOverLink(int otherASN){
-		return this.parent.getDeliveryTrafficOverLink(otherASN);
 	}
 	
 	public boolean isPurged(){
