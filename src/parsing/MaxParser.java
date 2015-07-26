@@ -38,6 +38,13 @@ public class MaxParser {
 				continue;
 			}
 			String suffix = child.getName();
+			
+			/*
+			 * skip defection runs for parsing
+			 */
+			if(suffix.contains("DEFECTION")){
+				continue;
+			}
 
 			File outDir = new File(MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix);
 			if (!outDir.exists()) {
