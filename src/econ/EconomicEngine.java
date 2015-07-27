@@ -219,6 +219,14 @@ public class EconomicEngine {
 
 	//TODO merege this code with targeted code, as they are basically identical
 	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
+		
+		/*
+		 * Don't log paths if we're doing defection
+		 */
+		if(defection){
+			EconomicAgent.suppressPathLogging();
+		}
+		
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, true);
@@ -370,6 +378,13 @@ public class EconomicEngine {
 
 	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
+		/*
+		 * Don't need to log paths if we're doing a defection run
+		 */
+		if(defection){
+			EconomicAgent.suppressPathLogging();
+		}
+		
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, false);
