@@ -12,10 +12,10 @@ public class MaxParser {
 
 	private HashMap<Integer, Double> asToIP;
 
-	private static final String IP_FILE = "cash-nightwing/realTopo/whole-internet-20150101-ip.txt";
-	private static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
-	private static final String OUTPUT_SUFFIX = "parsedLogs/";
-	private static final String INPUT_SUFFIX = "rawLogs/";
+	public static final String IP_FILE = "cash-nightwing/realTopo/whole-internet-20150101-ip.txt";
+	public static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
+	public static final String OUTPUT_SUFFIX = "parsedLogs/";
+	public static final String INPUT_SUFFIX = "rawLogs/";
 
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
@@ -23,6 +23,8 @@ public class MaxParser {
 	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),(.+),(.+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
+	
+	private static final String DEPLOYER_LOG_ROUND_TERM = "###";
 
 	private static final int IP_REACHABILITY_COL = 2;
 	private static final int NC_REACHABILITY_COL = 4;
@@ -43,6 +45,7 @@ public class MaxParser {
 			 * skip defection runs for parsing
 			 */
 			if(suffix.contains("DEFECTION")){
+				System.out.println("skipping defection run: " + suffix);
 				continue;
 			}
 
@@ -270,7 +273,7 @@ public class MaxParser {
 				int roundFlag = Integer.parseInt(roundLineMatcher.group(2));
 				inRegion = (roundFlag == 1);
 				if (inRegion) {
-					outBuff.write("###\n");
+					outBuff.write(MaxParser.DEPLOYER_LOG_ROUND_TERM + "\n");
 				}
 			} else if (inRegion) {
 				Matcher dataLineMatcher = MaxParser.TRANSIT_PATTERN.matcher(pollLine);
@@ -284,6 +287,25 @@ public class MaxParser {
 
 		inBuff.close();
 		outBuff.close();
+	}
+	
+	public static List<Set<Integer>> parseDeployerLog(String deployerLog) throws IOException{
+		List<Set<Integer>> retList = new LinkedList<Set<Integer>>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(deployerLog));
+		while(inBuff.ready()){
+			String pollString = inBuff.readLine().trim();
+			
+			if(pollString.length() > 0){
+				if(pollString.equals(MaxParser.DEPLOYER_LOG_ROUND_TERM)){
+					retList.add(new HashSet<Integer>());
+				} else{
+					retList.get(retList.size() - 1).add(Integer.parseInt(pollString));
+				}
+			}
+		}
+		inBuff.close();
+		
+		return retList;
 	}
 
 	private void computeFullWardenReachabilityDeltas(String inFile, String outFile) throws IOException {
@@ -770,9 +792,7 @@ public class MaxParser {
 						} else {
 							int asn = Integer.parseInt(dataMatch.group(1));
 							double delta = Double.parseDouble(dataMatch.group(2)) - firstRoundValues.get(asn);
-							// TODO need to actually get the as object pulled in
-							// here at some point
-							double value = MaxParser.convertTrafficToDollars(delta, null);
+							double value = MaxParser.convertTrafficToDollars(delta);
 							roundValues.put(asn, value);
 						}
 					}
@@ -817,8 +837,7 @@ public class MaxParser {
 		outBuff.close();
 	}
 
-	private static double convertTrafficToDollars(double amount, DecoyAS as) {
-		// TODO implement
+	public static double convertTrafficToDollars(double amount) {
 		/*
 		 * Currently units of milUSD / sim units Source:
 		 * https://www.telegeography
