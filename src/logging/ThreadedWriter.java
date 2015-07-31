@@ -7,13 +7,13 @@ public class ThreadedWriter extends Writer implements Runnable {
 
 	private BufferedWriter actualOutput;
 	private LinkedBlockingQueue<String> internalQueue;
-	private boolean open;
+
+	private static final String POISON_PILL = "094892489237489237589237589234289347289";
 
 	public ThreadedWriter(String fileName) throws IOException {
 		super();
 		this.actualOutput = new BufferedWriter(new FileWriter(fileName));
 		this.internalQueue = new LinkedBlockingQueue<String>();
-		this.open = true;
 	}
 
 	@Override
@@ -21,12 +21,17 @@ public class ThreadedWriter extends Writer implements Runnable {
 		String currentStr = null;
 
 		try {
-			while (this.open) {
+			while (true) {
 				currentStr = this.internalQueue.take();
-				this.actualOutput.write(currentStr);
+				if (currentStr.equals(ThreadedWriter.POISON_PILL)) {
+					break;
+				} else {
+					this.actualOutput.write(currentStr);
+				}
 			}
 		} catch (InterruptedException e1) {
-
+			e1.printStackTrace();
+			System.exit(-2);
 		} catch (IOException e2) {
 			System.err.println("HOLY FUCK IO EXCEPTION");
 			e2.printStackTrace();
@@ -34,21 +39,26 @@ public class ThreadedWriter extends Writer implements Runnable {
 		}
 
 		try {
-			while ((currentStr = this.internalQueue.poll()) != null) {
-				this.actualOutput.write(currentStr);
-			}
 			this.actualOutput.close();
 		} catch (IOException e2) {
 			System.err.println("HOLY FUCK IO EXCEPTION");
 			e2.printStackTrace();
 			System.exit(-2);
 		}
+		
+		if(this.internalQueue.size() > 0){
+			throw new RuntimeException("Information added to threaded writer after close!");
+		}
 	}
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		this.open = false;
+		try {
+			this.internalQueue.put(ThreadedWriter.POISON_PILL);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			System.exit(-2);
+		}
 	}
 
 	@Override
@@ -63,10 +73,6 @@ public class ThreadedWriter extends Writer implements Runnable {
 	}
 
 	public void write(String outStr) throws IOException {
-		if (!this.open) {
-			throw new IOException("Tried to write to a closed queue.");
-		}
-
 		try {
 			this.internalQueue.put(outStr);
 		} catch (InterruptedException e) {
