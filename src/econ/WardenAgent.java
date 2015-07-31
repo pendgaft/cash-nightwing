@@ -5,7 +5,6 @@ import gnu.trove.map.TIntObjectMap;
 import java.io.*;
 import java.util.*;
 
-import sim.Constants;
 import topo.AS;
 import topo.BGPPath;
 import decoy.DecoyAS;
@@ -16,7 +15,7 @@ public class WardenAgent extends EconomicAgent {
 	private BufferedWriter cleannessLog;
 
 	public WardenAgent(DecoyAS parentObject, BufferedWriter revLog, BufferedWriter cleanLog,
-			TIntObjectMap<DecoyAS> activeTopo, TIntObjectMap<DecoyAS> prunedTopo, BufferedWriter pathLog) {
+			TIntObjectMap<DecoyAS> activeTopo, TIntObjectMap<DecoyAS> prunedTopo, Writer pathLog) {
 		super(parentObject, revLog, activeTopo, pathLog);
 		this.cleannessLog = cleanLog;
 		if (!parentObject.isWardenAS()) {
@@ -54,13 +53,11 @@ public class WardenAgent extends EconomicAgent {
 			/*
 			 * Log the actual path used by the resistor to each destination
 			 */
-			if (EconomicAgent.LOG_PATHS) {
-				try {
-					super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
-				} catch (IOException e) {
-					e.printStackTrace();
-					System.exit(-1);
-				}
+			try {
+				super.pathStream.write(super.parent.getASN() + ":" + tDest + "," + tPath.getLoggingString() + "\n");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.exit(-1);
 			}
 
 			int ipCount = this.activeTopo.get(tDest).getIPCount();

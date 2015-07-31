@@ -7,6 +7,7 @@ import java.util.*;
 import java.io.*;
 
 import decoy.DecoyAS;
+import logging.NullOutputWriter;
 import sim.BGPMaster;
 import sim.Constants;
 import sim.ParallelTrafficStat;
@@ -28,7 +29,7 @@ public class EconomicEngine {
 
 	private BufferedWriter wardenOut;
 	private BufferedWriter transitOut;
-	private BufferedWriter pathOut;
+	private Writer pathOut;
 
 	private double maxIPCount;
 
@@ -39,7 +40,8 @@ public class EconomicEngine {
 	private PerformanceLogger perfLogger = null;
 
 	public EconomicEngine(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> prunedMap,
-			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger) {
+			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger,
+			boolean supressPathLogging) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
@@ -48,7 +50,11 @@ public class EconomicEngine {
 		try {
 			this.wardenOut = new BufferedWriter(new FileWriter(loggingDir + "warden.log"));
 			this.transitOut = new BufferedWriter(new FileWriter(loggingDir + "transit.log"));
-			this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
+			if (supressPathLogging) {
+				this.pathOut = new NullOutputWriter();
+			} else {
+				this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -219,14 +225,7 @@ public class EconomicEngine {
 
 	//TODO merege this code with targeted code, as they are basically identical
 	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
-		
-		/*
-		 * Don't log paths if we're doing defection
-		 */
-		if(defection){
-			EconomicAgent.suppressPathLogging();
-		}
-		
+
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, true);
@@ -283,7 +282,7 @@ public class EconomicEngine {
 						roundHeader = "" + drCount + "," + counter;
 						this.driveEconomicTurn(roundHeader, drSubset, counter);
 					}
-				}				
+				}
 			} else {
 				/*
 				 * Actually do the sim rounds
@@ -378,13 +377,6 @@ public class EconomicEngine {
 
 	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
-		/*
-		 * Don't need to log paths if we're doing a defection run
-		 */
-		if(defection){
-			EconomicAgent.suppressPathLogging();
-		}
-		
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, false);

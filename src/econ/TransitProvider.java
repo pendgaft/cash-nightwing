@@ -27,7 +27,7 @@ public class TransitProvider extends EconomicAgent {
 	}
 
 	public TransitProvider(DecoyAS parentAS, BufferedWriter revLog, TIntObjectMap<DecoyAS> activeTopo,
-			TransitProvider.DECOY_STRAT strat, BufferedWriter pathLog) {
+			TransitProvider.DECOY_STRAT strat, Writer pathLog) {
 		super(parentAS, revLog, activeTopo, pathLog);
 		this.moneyEarned = 0.0;
 		this.myStrat = strat;
@@ -47,7 +47,7 @@ public class TransitProvider extends EconomicAgent {
 		for (DecoyAS tAS : super.activeTopo.valueCollection()) {
 			if (tAS.isWardenAS()) {
 				BGPPath tPath = super.parent.getPath(tAS.getASN());
-				if (tPath != null && EconomicAgent.LOG_PATHS) {
+				if (tPath != null) {
 					try {
 						super.pathStream.write(super.parent.getASN() + ":" + tAS.getASN() + ","
 								+ tPath.getLoggingString() + "\n");

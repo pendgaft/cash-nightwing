@@ -5,6 +5,7 @@ import gnu.trove.map.TIntObjectMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.io.BufferedWriter;
+import java.io.Writer;
 
 import decoy.DecoyAS;
 
@@ -21,17 +22,11 @@ public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
 	protected BufferedWriter revenueLogStream;
-	protected BufferedWriter pathStream;
+	protected Writer pathStream;
 	protected TIntObjectMap<DecoyAS> activeTopo;
 	protected double moneyEarned;
-	
-	protected static boolean LOG_PATHS = true;
-	
-	public static void suppressPathLogging(){
-		EconomicAgent.LOG_PATHS = false;
-	}
-	
-	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, BufferedWriter pathLog){
+
+	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, Writer pathLog){
 		this.parent = parentAS;
 		this.revenueLogStream = log;
 		this.activeTopo = activeTopo;
