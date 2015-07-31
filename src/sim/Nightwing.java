@@ -50,6 +50,7 @@ public class Nightwing implements Runnable {
 		
 		//TODO flag to manually override
 		this.largeMemoryEnv = Runtime.getRuntime().maxMemory() >= Nightwing.LARGE_MEM_THRESH;
+		System.out.println("Large memory env: " + this.largeMemoryEnv);
 			
 
 		/*
