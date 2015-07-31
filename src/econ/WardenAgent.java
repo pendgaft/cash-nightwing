@@ -12,9 +12,9 @@ import decoy.DecoyAS;
 public class WardenAgent extends EconomicAgent {
 
 	private TIntObjectMap<DecoyAS> prunedTopo;
-	private BufferedWriter cleannessLog;
+	private Writer cleannessLog;
 
-	public WardenAgent(DecoyAS parentObject, BufferedWriter revLog, BufferedWriter cleanLog,
+	public WardenAgent(DecoyAS parentObject, Writer revLog, Writer cleanLog,
 			TIntObjectMap<DecoyAS> activeTopo, TIntObjectMap<DecoyAS> prunedTopo, Writer pathLog) {
 		super(parentObject, revLog, activeTopo, pathLog);
 		this.cleannessLog = cleanLog;

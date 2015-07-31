@@ -21,12 +21,12 @@ import decoy.DecoyAS;
 public abstract class EconomicAgent implements TransitAgent {
 
 	protected DecoyAS parent;
-	protected BufferedWriter revenueLogStream;
+	protected Writer revenueLogStream;
 	protected Writer pathStream;
 	protected TIntObjectMap<DecoyAS> activeTopo;
 	protected double moneyEarned;
 
-	public EconomicAgent(DecoyAS parentAS, BufferedWriter log, TIntObjectMap<DecoyAS> activeTopo, Writer pathLog){
+	public EconomicAgent(DecoyAS parentAS, Writer log, TIntObjectMap<DecoyAS> activeTopo, Writer pathLog){
 		this.parent = parentAS;
 		this.revenueLogStream = log;
 		this.activeTopo = activeTopo;

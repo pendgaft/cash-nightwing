@@ -37,6 +37,9 @@ public class Nightwing implements Runnable {
 	private String logDirString;
 	private PerformanceLogger perfLogger;
 	private SerializationMaster serialControl;
+	
+	private boolean largeMemoryEnv;
+	private static long LARGE_MEM_THRESH = 1024 * 1024 * 1024 * 100;
 
 	public Nightwing(Namespace ns) throws IOException {
 
@@ -44,6 +47,10 @@ public class Nightwing implements Runnable {
 		 * Store the name space, as optional args might need to be fetched later
 		 */
 		this.myArgs = ns;
+		
+		//TODO flag to manually override
+		this.largeMemoryEnv = Runtime.getRuntime().maxMemory() >= Nightwing.LARGE_MEM_THRESH;
+			
 
 		/*
 		 * Load in the required arguments from name space
@@ -100,7 +107,7 @@ public class Nightwing implements Runnable {
 		this.trafficManager = new ParallelTrafficStat(this.liveTopo, this.prunedTopo, this.serialControl,
 				this.perfLogger);
 		this.econManager = new EconomicEngine(this.liveTopo, this.prunedTopo, this.trafficManager, this.logDirString,
-				this.perfLogger, ns.getBoolean("defection"));
+				this.perfLogger, ns.getBoolean("defection"), this.largeMemoryEnv);
 
 		/*
 		 * We're ready to simulate at this point

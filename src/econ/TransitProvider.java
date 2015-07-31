@@ -26,7 +26,7 @@ public class TransitProvider extends EconomicAgent {
 		TransitProvider.FLIPCHANCE = chance;
 	}
 
-	public TransitProvider(DecoyAS parentAS, BufferedWriter revLog, TIntObjectMap<DecoyAS> activeTopo,
+	public TransitProvider(DecoyAS parentAS, Writer revLog, TIntObjectMap<DecoyAS> activeTopo,
 			TransitProvider.DECOY_STRAT strat, Writer pathLog) {
 		super(parentAS, revLog, activeTopo, pathLog);
 		this.moneyEarned = 0.0;

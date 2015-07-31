@@ -7,7 +7,7 @@ import java.util.*;
 import java.io.*;
 
 import decoy.DecoyAS;
-import logging.NullOutputWriter;
+import logging.*;
 import sim.BGPMaster;
 import sim.Constants;
 import sim.ParallelTrafficStat;
@@ -27,11 +27,13 @@ public class EconomicEngine {
 	private ParallelTrafficStat trafficManger;
 	private HashMap<Integer, Double> cashForThisRound;
 
-	private BufferedWriter wardenOut;
-	private BufferedWriter transitOut;
+	private Writer wardenOut;
+	private Writer transitOut;
 	private Writer pathOut;
 
 	private double maxIPCount;
+
+	private boolean parallelLogging = false;
 
 	private static final String ROUND_TERMINATOR = "***";
 	private static final String SAMPLE_TERMINATOR = "###";
@@ -41,19 +43,37 @@ public class EconomicEngine {
 
 	public EconomicEngine(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> prunedMap,
 			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger,
-			boolean supressPathLogging) {
+			boolean supressPathLogging, boolean parallelLogging) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.cashForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
 		this.trafficManger = trafficManager;
+		this.parallelLogging = parallelLogging;
 
 		try {
-			this.wardenOut = new BufferedWriter(new FileWriter(loggingDir + "warden.log"));
-			this.transitOut = new BufferedWriter(new FileWriter(loggingDir + "transit.log"));
+			if (this.parallelLogging) {
+				this.wardenOut = new ThreadedWriter(loggingDir + "warden.log");
+				this.transitOut = new ThreadedWriter(loggingDir + "transit.log");
+
+				Thread wardenOutThread = new Thread((ThreadedWriter) this.wardenOut, "Warden Output Thread");
+				Thread transitOutThread = new Thread((ThreadedWriter) this.transitOut, "Transit Output Thread");
+				wardenOutThread.start();
+				transitOutThread.start();
+			} else {
+				this.wardenOut = new BufferedWriter(new FileWriter(loggingDir + "warden.log"));
+				this.transitOut = new BufferedWriter(new FileWriter(loggingDir + "transit.log"));
+			}
+
 			if (supressPathLogging) {
 				this.pathOut = new NullOutputWriter();
 			} else {
-				this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
+				if (this.parallelLogging) {
+					this.pathOut = new ThreadedWriter(loggingDir + "path.log");
+					Thread pathOutThread = new Thread((ThreadedWriter) this.pathOut, "Path Output Thread");
+					pathOutThread.start();
+				} else {
+					this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
+				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -580,9 +600,7 @@ public class EconomicEngine {
 		 * Time to do a bit of logging....
 		 */
 		this.perfLogger.resetTimer();
-		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).doRoundLogging();
-		}
+		this.handleLogging();
 		this.perfLogger.logTime("logging");
 
 		/*
@@ -604,6 +622,58 @@ public class EconomicEngine {
 		 */
 		BGPMaster.REPORT_TIME = false;
 		BGPMaster.driveBGPProcessing(this.activeTopology);
+	}
+
+	private void handleLogging() {
+		if (this.parallelLogging) {
+			this.doParallelLogging();
+		} else {
+			this.doSerialLogging();
+		}
+	}
+
+	private void doSerialLogging() {
+		for (int tASN : this.theTopo.keySet()) {
+			this.theTopo.get(tASN).doRoundLogging();
+		}
+	}
+
+	private void doParallelLogging() {
+		/*
+		 * Build slave threads and hand out ASes
+		 */
+		LoggingSlave[] slaves = new LoggingSlave[Constants.NTHREADS];
+		for(int counter = 0; counter < Constants.NTHREADS; counter++){
+			slaves[counter] = new LoggingSlave();
+		}
+		int pos = 0;
+		for(int tASN: this.theTopo.keySet()){
+			slaves[pos % Constants.NTHREADS].giveNode(this.theTopo.get(tASN));
+			pos++;
+		}
+		
+		/*
+		 * Start them
+		 */
+		Thread[] logThreads = new Thread[Constants.NTHREADS];
+		for(int counter = 0; counter < Constants.NTHREADS; counter++){
+			logThreads[counter] = new Thread(slaves[counter]);
+		}
+		for(Thread tThread: logThreads){
+			tThread.start();
+		}
+		
+		/*
+		 * Wait for them to wrap up
+		 */
+		try {
+			for (Thread tThread : logThreads) {
+				tThread.join();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			System.exit(-2);
+		}
 	}
 
 	public void endSim() {
