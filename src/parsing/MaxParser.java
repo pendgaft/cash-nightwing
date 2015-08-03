@@ -81,7 +81,7 @@ public class MaxParser {
 
 			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
 			self.parsePathLength(wardenFile, pathFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/pathLenDeltas.csv");
+					+ "/pathLenDeltas.csv", !pathFile.contains("NoRev"));
 		}
 	}
 
@@ -846,7 +846,7 @@ public class MaxParser {
 		return amount * 0.000000008154451706;
 	}
 
-	public void parsePathLength(String wardenFile, String pathLogFile, String outFile) throws IOException {
+	public void parsePathLength(String wardenFile, String pathLogFile, String outFile, boolean revWarn) throws IOException {
 
 		boolean inParseRegion = false;
 		boolean inFirstRun = true;
@@ -914,8 +914,18 @@ public class MaxParser {
 
 				String pathKey = splits[0];
 				String pathStr = splits[1].trim();
-				boolean fromWarden = wardenSet.contains(pathKey.split(":")[0]);
-				boolean toWarden = wardenSet.contains(pathKey.split(":")[1]);
+				
+				String[] srcDestPair = pathKey.split(":");
+				boolean fromWarden = wardenSet.contains(srcDestPair[0]);
+				boolean toWarden = wardenSet.contains(srcDestPair[1]);
+				
+				if(revWarn){
+					String triggerStr = " " + srcDestPair[1] + " ";
+					String modPathStr = " " + pathStr;
+					int pos = modPathStr.indexOf(triggerStr);
+					String nonLyingPathStr = modPathStr.substring(0, pos + triggerStr.length());
+					pathStr = nonLyingPathStr.trim();
+				}
 
 				if (inFirstRun) {
 					pathHashes.put(pathKey, pathStr.hashCode());
