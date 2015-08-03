@@ -68,20 +68,21 @@ public class BGPPath implements Serializable {
 	public TIntList getPath() {
 		return this.path;
 	}
-	
-	public BGPPath stichPaths(BGPPath secondPath){
+
+	//TODO stitches with lying revese?
+	public BGPPath stichPaths(BGPPath secondPath) {
 		BGPPath resultantPath = new BGPPath(secondPath.destASN);
 		resultantPath.path.ensureCapacity(this.path.size() + secondPath.path.size());
-		
+
 		TIntIterator pathIter = this.path.iterator();
-		while(pathIter.hasNext()){
+		while (pathIter.hasNext()) {
 			resultantPath.path.add(pathIter.next());
 		}
 		pathIter = secondPath.path.iterator();
-		while(pathIter.hasNext()){
+		while (pathIter.hasNext()) {
 			resultantPath.path.add(pathIter.next());
 		}
-		
+
 		return resultantPath;
 	}
 
@@ -94,6 +95,16 @@ public class BGPPath implements Serializable {
 	 */
 	public void prependASToPath(int frontASN) {
 		this.path.insert(0, frontASN);
+	}
+
+	/**
+	 * Applies the given AS to the END of the path. THIS SHOULD ONLY BE USED FOR
+	 * LYING REVERSE HOLE PUNCHES.
+	 * 
+	 * @param lyingASN
+	 */
+	public void appendASToPath(int lyingASN) {
+		this.path.add(lyingASN);
 	}
 
 	/**

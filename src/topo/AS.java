@@ -673,7 +673,7 @@ public abstract class AS implements TransitAgent {
 			 */
 			if (this.poisonMode == AS.ReversePoisonMode.LYING && pathToAdv.getDest() == this.asn * -1) {
 				for (Integer tAS : this.avoidSet) {
-					pathToAdv.prependASToPath(tAS);
+					pathToAdv.appendASToPath(tAS);
 				}
 			}
 			pathToAdv.prependASToPath(this.asn);
