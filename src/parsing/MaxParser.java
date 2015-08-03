@@ -13,7 +13,6 @@ public class MaxParser {
 	private HashMap<Integer, Double> asToIP;
 
 	public static final String IP_FILE = "cash-nightwing/realTopo/whole-internet-20150101-ip.txt";
-	public static final String FILE_BASE = "/scratch/minerva2/schuch/nightwingData/";
 	public static final String OUTPUT_SUFFIX = "parsedLogs/";
 	public static final String INPUT_SUFFIX = "rawLogs/";
 
@@ -30,9 +29,10 @@ public class MaxParser {
 	private static final int NC_REACHABILITY_COL = 4;
 
 	public static void main(String[] args) throws IOException {
+		String fileBase = args[0];
 		MaxParser self = new MaxParser(IP_FILE);
 
-		File baseFolder = new File(FILE_BASE + INPUT_SUFFIX);
+		File baseFolder = new File(fileBase + INPUT_SUFFIX);
 		File children[] = baseFolder.listFiles();
 
 		for (File child : children) {
@@ -49,38 +49,38 @@ public class MaxParser {
 				continue;
 			}
 
-			File outDir = new File(MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix);
+			File outDir = new File(fileBase + OUTPUT_SUFFIX + suffix);
 			if (!outDir.exists()) {
 				outDir.mkdirs();
 			}
 
 			System.out.println("Working on: " + suffix);
-			String wardenFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/warden.log";
-			String transitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/transit.log";
-			String pathFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + suffix + "/path.log";
+			String wardenFile = fileBase + MaxParser.INPUT_SUFFIX + suffix + "/warden.log";
+			String transitFile = fileBase + MaxParser.INPUT_SUFFIX + suffix + "/transit.log";
+			String pathFile = fileBase + MaxParser.INPUT_SUFFIX + suffix + "/path.log";
 
-			self.writeDeployerLog(transitFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/deployers.log");
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv",
+			self.writeDeployerLog(transitFile, fileBase + OUTPUT_SUFFIX + suffix + "/deployers.log");
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv",
 					1, MaxParser.IP_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2,
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2,
 					MaxParser.IP_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv",
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv",
 					1, MaxParser.NC_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, MaxParser.FILE_BASE + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv",
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv",
 					2, MaxParser.NC_REACHABILITY_COL);
 
-			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/drTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/drProfitCDF.csv", true, false, 3);
-			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonDRTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRProfitCDF.csv", false, false, 3);
-			self.fullProfitDeltas(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/resistorTransitProfitDelta.csv", MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/resistorTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/resistorProfitCDF.csv", false, true, 3);
 
-			self.parseRealMoney(transitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
-			self.parsePathLength(wardenFile, pathFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + suffix
+			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
+			self.parsePathLength(wardenFile, pathFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/pathLenDeltas.csv");
 		}
 	}
