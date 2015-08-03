@@ -37,7 +37,7 @@ public class Nightwing implements Runnable {
 	private String logDirString;
 	private PerformanceLogger perfLogger;
 	private SerializationMaster serialControl;
-	
+
 	private boolean largeMemoryEnv;
 	private static long LARGE_MEM_THRESH = 1024 * 1024 * 1024 * 100;
 
@@ -47,11 +47,13 @@ public class Nightwing implements Runnable {
 		 * Store the name space, as optional args might need to be fetched later
 		 */
 		this.myArgs = ns;
-		
-		//TODO flag to manually override
+
 		this.largeMemoryEnv = Runtime.getRuntime().maxMemory() >= Nightwing.LARGE_MEM_THRESH;
 		System.out.println("Large memory env: " + this.largeMemoryEnv);
-			
+		if(ns.getBoolean("forceLowMem")){
+			System.out.println("Overriding memory enviornment FORCING LOW");
+			this.largeMemoryEnv = false;
+		}
 
 		/*
 		 * Load in the required arguments from name space
@@ -248,6 +250,8 @@ public class Nightwing implements Runnable {
 				.setDefault(Constants.DEFAULT_DEPLOY_STEP);
 		argParse.addArgument("--randomCount").help("Random sample size").required(false).type(Integer.class)
 				.setDefault(Constants.RANDOM_SAMPLE_COUNT);
+		argParse.addArgument("--forceLowMem").help("Forces simulator into low mem enviornment").required(false)
+				.action(Arguments.storeTrue());
 
 		/*
 		 * Mode specific optional arguments
