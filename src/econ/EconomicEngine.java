@@ -355,7 +355,7 @@ public class EconomicEngine {
 
 		try {
 			for (Thread tThread : threadSlaves) {
-				tThread.wait();
+				tThread.join();
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
