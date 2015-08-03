@@ -336,41 +336,46 @@ public class EconomicEngine {
 
 	//TODO make this parallel
 	private List<Integer> buildSortedBase(int goalSize, boolean global, Set<Integer> dropList) {
+
+		WeightingSlave[] slaveObjects = new WeightingSlave[Constants.NTHREADS];
+		for (int counter = 0; counter < slaveObjects.length; counter++) {
+			slaveObjects[counter] = new WeightingSlave(global, this.theTopo, dropList);
+		}
+		int posCount = 0;
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
+			slaveObjects[posCount % Constants.NTHREADS].giveWork(tAS);
+			posCount++;
+		}
+
+		Thread[] threadSlaves = new Thread[Constants.NTHREADS];
+		for (int counter = 0; counter < threadSlaves.length; counter++) {
+			threadSlaves[counter] = new Thread(slaveObjects[counter]);
+			threadSlaves[counter].start();
+		}
+
+		try {
+			for (Thread tThread : threadSlaves) {
+				tThread.wait();
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			System.exit(-2);
+		}
+
 		/*
-		 * Step 1, build the sizes of these ASes, sort them
+		 * Merge results
 		 */
 		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			valueMap.put(tAS.getASN(), 0.0);
-		}
-		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
-			if (global || tAS.isWardenAS()) {
-				for (int tDestASN : this.theTopo.keySet()) {
-					BGPPath tPath = tAS.getPath(tDestASN);
-					if (tPath == null) {
-						continue;
-					}
-					if (dropList != null && tPath.containsAnyOf(dropList)) {
-						continue;
-					}
-
-					TIntIterator tIter = tPath.getPath().iterator();
-					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
-					while (tIter.hasNext()) {
-						int tHop = tIter.next();
-						if (valueMap.containsKey(tHop)) {
-							if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
-								valueMap.put(tHop, valueMap.get(tHop) + 1);
-							} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
-								valueMap.put(tHop, valueMap.get(tHop) + ipSize);
-							} else {
-								throw new RuntimeException("Bad AS ordering mode!");
-							}
-						}
-					}
+		for(WeightingSlave tSlave: slaveObjects){
+			HashMap<Integer, Double> tResult = tSlave.getResult();
+			for(int tASN: tResult.keySet()){
+				if(!valueMap.containsKey(tASN)){
+					valueMap.put(tASN, 0.0);
 				}
+				valueMap.put(tASN, valueMap.get(tASN) + tResult.get(tASN));
 			}
 		}
+		
 
 		/*
 		 * Strip out the wardens, strip out people we're suppose to ignore
@@ -652,26 +657,26 @@ public class EconomicEngine {
 		 * Build slave threads and hand out ASes
 		 */
 		LoggingSlave[] slaves = new LoggingSlave[Constants.NTHREADS];
-		for(int counter = 0; counter < Constants.NTHREADS; counter++){
+		for (int counter = 0; counter < Constants.NTHREADS; counter++) {
 			slaves[counter] = new LoggingSlave();
 		}
 		int pos = 0;
-		for(int tASN: this.theTopo.keySet()){
+		for (int tASN : this.theTopo.keySet()) {
 			slaves[pos % Constants.NTHREADS].giveNode(this.theTopo.get(tASN));
 			pos++;
 		}
-		
+
 		/*
 		 * Start them
 		 */
 		Thread[] logThreads = new Thread[Constants.NTHREADS];
-		for(int counter = 0; counter < Constants.NTHREADS; counter++){
+		for (int counter = 0; counter < Constants.NTHREADS; counter++) {
 			logThreads[counter] = new Thread(slaves[counter]);
 		}
-		for(Thread tThread: logThreads){
+		for (Thread tThread : logThreads) {
 			tThread.start();
 		}
-		
+
 		/*
 		 * Wait for them to wrap up
 		 */
