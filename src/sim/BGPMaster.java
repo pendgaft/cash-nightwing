@@ -31,13 +31,13 @@ public class BGPMaster {
 
 	@SuppressWarnings("unchecked")
 	public static TIntObjectMap<DecoyAS>[] buildBGPConnection(String wardenFile, AS.AvoidMode avoidMode,
-			AS.ReversePoisonMode poisonMode) throws IOException {
+			AS.ReversePoisonMode poisonMode, boolean largeMemEnv) throws IOException {
 
 		/*
 		 * Build AS map
 		 */
 		TIntObjectMap<DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile, avoidMode, poisonMode);
-		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap, largeMemEnv);
 
 		System.out.println("Live topo size: " + usefulASMap.size());
 		System.out.println("Pruned topo size: " + prunedASMap.size());

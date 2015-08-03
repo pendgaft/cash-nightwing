@@ -77,7 +77,7 @@ public class Nightwing implements Runnable {
 		 */
 		System.out.println("starting initial build of BGP topo");
 		TIntObjectMap<DecoyAS>[] topoArray = BGPMaster.buildBGPConnection(this.resistorFile, this.resistorStrat,
-				this.reverseStrat);
+				this.reverseStrat, this.largeMemoryEnv);
 		this.liveTopo = topoArray[0];
 		this.prunedTopo = topoArray[1];
 		System.out.println("Topo built and BGP converged.");

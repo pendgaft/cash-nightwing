@@ -54,8 +54,8 @@ public class ASTopoParser {
 	 *            of this call
 	 * @return - a mapping between ASN and AS object of PRUNED ASes
 	 */
-	public static TIntObjectMap<DecoyAS> doNetworkPrune(TIntObjectMap<DecoyAS> workingMap) {
-		return ASTopoParser.pruneNoCustomerAS(workingMap);
+	public static TIntObjectMap<DecoyAS> doNetworkPrune(TIntObjectMap<DecoyAS> workingMap, boolean largeMemEnv) {
+		return ASTopoParser.pruneNoCustomerAS(workingMap, largeMemEnv);
 	}
 
 	/**
@@ -259,7 +259,7 @@ public class ASTopoParser {
 	 *            - the unpruned AS map, will be altered as a side effect
 	 * @return - a mapping of ASN to AS object containing the PRUNED AS objects
 	 */
-	private static TIntObjectMap<DecoyAS> pruneNoCustomerAS(TIntObjectMap<DecoyAS> asMap) {
+	private static TIntObjectMap<DecoyAS> pruneNoCustomerAS(TIntObjectMap<DecoyAS> asMap, boolean largeMemEnv) {
 		TIntObjectMap<DecoyAS> purgeMap = null;
 
 		TIntObjectMap<DecoyAS> testAgressiveMap = new TIntObjectHashMap<DecoyAS>();
@@ -303,7 +303,7 @@ public class ASTopoParser {
 		if (asMap.size() - testNonAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
 			System.out.println("Selected NON-AGRESSIVE prune.");
 			purgeMap = testNonAgressiveMap;
-		} else if (asMap.size() - testAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+		} else if (largeMemEnv || asMap.size() - testAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
 			System.out.println("Selected AGRESSIVE prune.");
 			purgeMap = testAgressiveMap;
 		} else {
