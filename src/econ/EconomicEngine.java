@@ -246,12 +246,16 @@ public class EconomicEngine {
 	//TODO merege this code with targeted code, as they are basically identical
 	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
+		System.out.println("Starting weighting list build.");
+		this.perfLogger.resetTimer();
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, true);
 		} else {
 			rankList = this.buildSortedBase(endCount, true, null);
 		}
+		this.perfLogger.logTime("Weighting list build");
+		System.out.println("Done with weighting list build.");
 
 		/*
 		 * Actually do the sim now
@@ -330,6 +334,7 @@ public class EconomicEngine {
 		return retList;
 	}
 
+	//TODO make this parallel
 	private List<Integer> buildSortedBase(int goalSize, boolean global, Set<Integer> dropList) {
 		/*
 		 * Step 1, build the sizes of these ASes, sort them
@@ -397,12 +402,16 @@ public class EconomicEngine {
 
 	public void manageSortedWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
+		System.out.println("Starting build of weighting list");
+		this.perfLogger.resetTimer();
 		List<Integer> rankList = null;
 		if (coverage) {
 			rankList = this.buildSortedSetCoverage(endCount, false);
 		} else {
 			rankList = this.buildSortedBase(endCount, false, null);
 		}
+		this.perfLogger.logTime("weighting list build");
+		System.out.println("Finished with build of weighting list");
 
 		/*
 		 * Actually do the sim now
