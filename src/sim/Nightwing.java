@@ -39,7 +39,7 @@ public class Nightwing implements Runnable {
 	private SerializationMaster serialControl;
 
 	private boolean largeMemoryEnv;
-	private static long LARGE_MEM_THRESH = 1024 * 1024 * 1024 * 100;
+	private static long LARGE_MEM_THRESH = (long)1024 * (long)1024 * (long)1024 * (long)100;
 
 	public Nightwing(Namespace ns) throws IOException {
 
