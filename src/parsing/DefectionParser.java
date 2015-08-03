@@ -9,7 +9,8 @@ import scijava.stats.CDF;
 public class DefectionParser {
 
 	public static void main(String[] args) throws IOException {
-		File baseFolder = new File(MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX);
+		String fileBase = args[0];
+		File baseFolder = new File(fileBase + MaxParser.INPUT_SUFFIX);
 		File children[] = baseFolder.listFiles();
 
 		for (File child : children) {
@@ -28,24 +29,24 @@ public class DefectionParser {
 
 			String nonDefectionSuffix = defectionSuffix.replace("DEFECTION", "");
 
-			File outDir = new File(MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + defectionSuffix);
+			File outDir = new File(fileBase + MaxParser.OUTPUT_SUFFIX + defectionSuffix);
 			if (!outDir.exists()) {
 				outDir.mkdirs();
 			}
 
 			System.out.println("Working on: " + defectionSuffix);
-			String defectionTransitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + defectionSuffix
+			String defectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + defectionSuffix
 					+ "/transit.log";
-			String nonDefectionTransitFile = MaxParser.FILE_BASE + MaxParser.INPUT_SUFFIX + nonDefectionSuffix
+			String nonDefectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + nonDefectionSuffix
 					+ "/transit.log";
-			String baseDeployerFile = MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX + nonDefectionSuffix
+			String baseDeployerFile = fileBase + MaxParser.OUTPUT_SUFFIX + nonDefectionSuffix
 					+ "/deployers.log";
 
 			HashMap<Integer, Set<Integer>> deployerLists = DefectionParser.buildIndexedDeployment(MaxParser
 					.parseDeployerLog(baseDeployerFile));
 			HashMap<Integer, HashMap<Integer, Double>> baseLossesMap = DefectionParser
 					.parseBaseLosses(nonDefectionTransitFile);
-			DefectionParser.parseDefectionRealMoney(defectionTransitFile, MaxParser.FILE_BASE + MaxParser.OUTPUT_SUFFIX
+			DefectionParser.parseDefectionRealMoney(defectionTransitFile, fileBase + MaxParser.OUTPUT_SUFFIX
 					+ defectionSuffix + "/deployerCosts", baseLossesMap, deployerLists);
 		}
 
