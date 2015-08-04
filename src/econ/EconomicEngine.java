@@ -158,34 +158,21 @@ public class EconomicEngine {
 	}
 
 	public void manageDictatedDRSim(String drFile) {
-		List<Set<Integer>> roundConfigs = new LinkedList<Set<Integer>>();
+		Set<Integer> drSet = new HashSet<Integer>();
+		Set<Integer> configSet = new HashSet<Integer>();
 
 		/*
 		 * Parse the config file to load up each rounds DR deployment
 		 */
 		try {
 			BufferedReader drBuffer = new BufferedReader(new FileReader(drFile));
-			Set<Integer> currentRoundValues = new HashSet<Integer>();
 
 			while (drBuffer.ready()) {
 				String pollStr = drBuffer.readLine().trim();
-				/*
-				 * End of round will be signified by a line containing only
-				 * whitespace
-				 */
-				if (pollStr.length() == 0) {
-					roundConfigs.add(currentRoundValues);
-					currentRoundValues = new HashSet<Integer>();
-					continue;
+				if (pollStr.length() > 0) {
+					configSet.add(Integer.parseInt(pollStr));
 				}
-
-				currentRoundValues.add(Integer.parseInt(pollStr));
 			}
-
-			if (currentRoundValues.size() > 0) {
-				roundConfigs.add(currentRoundValues);
-			}
-
 			drBuffer.close();
 		} catch (IOException e) {
 			System.err.println("Error while parsing DR file.");
@@ -194,56 +181,38 @@ public class EconomicEngine {
 		}
 
 		/*
-		 * Do some bookkeeping for completion estimation
+		 * Intersect the active topo and the config, sadly since there is trove
+		 * vs java collections screwyness we can't just do a simple retainAll
 		 */
-		int sliceSize = roundConfigs.size() / 10;
-		int sampleCounter = 0;
-		int current = 1;
-		long startTime = System.currentTimeMillis();
+		for (int tASN : configSet) {
+			if (this.activeTopology.keySet().contains(tASN)) {
+				drSet.add(tASN);
+			}
+		}
 
 		/*
-		 * Actually do the sim now
+		 * Write the size terminators to logging files
 		 */
-		for (Set<Integer> drSet : roundConfigs) {
+		try {
+			this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
 
-			/*
-			 * Write the size terminators to logging files
-			 */
-			try {
-				this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
-				this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
-			} catch (IOException e) {
-				e.printStackTrace();
-				System.exit(-1);
-			}
-
-			/*
-			 * Actually do the sim rounds
-			 */
-			for (int counter = 0; counter < 3; counter++) {
-				this.trafficManger.runStat();
-				String roundHeader = null;
-				roundHeader = "" + drSet.size() + "," + counter;
-				this.driveEconomicTurn(roundHeader, drSet, counter);
-			}
-
-			/*
-			 * Do some progress tracking and logging
-			 */
-			sampleCounter++;
-			if (sampleCounter == sliceSize * current) {
-				long currentTime = System.currentTimeMillis();
-				System.out.println("" + current * 10 + "% complete, this slice took "
-						+ Long.toString((currentTime - startTime) / 60000) + " minutes.");
-				System.out.println("Estimated time to completion: "
-						+ Long.toString((10 - current) * (currentTime - startTime) / 60000) + " minutes.");
-				current++;
-				startTime = currentTime;
-			}
+		/*
+		 * Actually do the sim rounds
+		 */
+		for (int counter = 0; counter < 3; counter++) {
+			this.trafficManger.runStat();
+			String roundHeader = null;
+			roundHeader = "" + drSet.size() + "," + counter;
+			this.driveEconomicTurn(roundHeader, drSet, counter);
 		}
 	}
 
-	//TODO merege this code with targeted code, as they are basically identical
+	// TODO merege this code with targeted code, as they are basically identical
 	public void manageGlobalWardenSim(int startCount, int endCount, int step, boolean coverage, boolean defection) {
 
 		System.out.println("Starting weighting list build.");
@@ -334,7 +303,7 @@ public class EconomicEngine {
 		return retList;
 	}
 
-	//TODO make this parallel
+	// TODO make this parallel
 	private List<Integer> buildSortedBase(int goalSize, boolean global, Set<Integer> dropList) {
 
 		WeightingSlave[] slaveObjects = new WeightingSlave[Constants.NTHREADS];
@@ -366,16 +335,15 @@ public class EconomicEngine {
 		 * Merge results
 		 */
 		HashMap<Integer, Double> valueMap = new HashMap<Integer, Double>();
-		for(WeightingSlave tSlave: slaveObjects){
+		for (WeightingSlave tSlave : slaveObjects) {
 			HashMap<Integer, Double> tResult = tSlave.getResult();
-			for(int tASN: tResult.keySet()){
-				if(!valueMap.containsKey(tASN)){
+			for (int tASN : tResult.keySet()) {
+				if (!valueMap.containsKey(tASN)) {
 					valueMap.put(tASN, 0.0);
 				}
 				valueMap.put(tASN, valueMap.get(tASN) + tResult.get(tASN));
 			}
 		}
-		
 
 		/*
 		 * Strip out the wardens, strip out people we're suppose to ignore
