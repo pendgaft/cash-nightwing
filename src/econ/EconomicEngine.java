@@ -189,6 +189,7 @@ public class EconomicEngine {
 				drSet.add(tASN);
 			}
 		}
+		System.out.println("Retained " + drSet.size() + " of " + configSet.size() + " deployers");
 
 		/*
 		 * Write the size terminators to logging files
