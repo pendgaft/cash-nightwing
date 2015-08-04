@@ -67,7 +67,7 @@ public class BGPMaster {
 		 */
 		TIntObjectMap<DecoyAS> usefulASMap = ASTopoParser.doNetworkBuild(wardenFile, AS.AvoidMode.NONE,
 				AS.ReversePoisonMode.NONE);
-		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap);
+		TIntObjectMap<DecoyAS> prunedASMap = ASTopoParser.doNetworkPrune(usefulASMap, false);
 
 		TIntObjectMap<DecoyAS>[] retArray = new TIntObjectMap[2];
 		retArray[0] = usefulASMap;
