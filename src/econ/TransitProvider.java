@@ -29,7 +29,7 @@ public class TransitProvider extends EconomicAgent {
 	public TransitProvider(DecoyAS parentAS, Writer revLog, TIntObjectMap<DecoyAS> activeTopo,
 			TransitProvider.DECOY_STRAT strat, Writer pathLog) {
 		super(parentAS, revLog, activeTopo, pathLog);
-		this.moneyEarned = 0.0;
+		this.revenueEarned = 0.0;
 		this.myStrat = strat;
 		this.flipDecoyState = false;
 		this.lockIn = 0;
@@ -37,8 +37,8 @@ public class TransitProvider extends EconomicAgent {
 
 	public void doRoundLogging() {
 		try {
-			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + ","
-					+ this.parent.isDecoy() + ",false\n");
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.revenueEarned + ","
+					+ this.parent.isDecoy() + ",false," + this.profitEarned + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);

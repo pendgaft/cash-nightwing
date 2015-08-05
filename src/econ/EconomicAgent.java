@@ -24,7 +24,8 @@ public abstract class EconomicAgent implements TransitAgent {
 	protected Writer revenueLogStream;
 	protected Writer pathStream;
 	protected TIntObjectMap<DecoyAS> activeTopo;
-	protected double moneyEarned;
+	protected double revenueEarned;
+	protected double profitEarned;
 
 	public EconomicAgent(DecoyAS parentAS, Writer log, TIntObjectMap<DecoyAS> activeTopo, Writer pathLog){
 		this.parent = parentAS;
@@ -37,11 +38,12 @@ public abstract class EconomicAgent implements TransitAgent {
 	 * Method for pushing to the AS type object exactly how much money it made
 	 * or lost this round
 	 * 
-	 * @param moneyEarned
+	 * @param revenueEarned
 	 *            - the amount of money gained or lost this past round
 	 */
-	public void reportMoneyEarned(double moneyEarned) {
-		this.moneyEarned = moneyEarned;
+	public void reportMoneyEarned(double revenueEarned, double profitEarned) {
+		this.revenueEarned = revenueEarned;
+		this.profitEarned = profitEarned;
 	}
 
 	/**

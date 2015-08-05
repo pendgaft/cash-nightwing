@@ -117,8 +117,8 @@ public class WardenAgent extends EconomicAgent {
 		}
 
 		try {
-			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.moneyEarned + ","
-					+ this.parent.isDecoy() + ",true\n");
+			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.revenueEarned + ","
+					+ this.parent.isDecoy() + ",true" + this.profitEarned + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);

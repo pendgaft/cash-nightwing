@@ -25,7 +25,8 @@ public class EconomicEngine {
 	private HashMap<Integer, EconomicAgent> theTopo;
 	private TIntObjectMap<DecoyAS> activeTopology;
 	private ParallelTrafficStat trafficManger;
-	private HashMap<Integer, Double> cashForThisRound;
+	private HashMap<Integer, Double> revenueForThisRound;
+	private HashMap<Integer, Double> profitForThisRound;
 
 	private Writer wardenOut;
 	private Writer transitOut;
@@ -45,7 +46,8 @@ public class EconomicEngine {
 			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger,
 			boolean supressPathLogging, boolean parallelLogging) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
-		this.cashForThisRound = new HashMap<Integer, Double>();
+		this.revenueForThisRound = new HashMap<Integer, Double>();
+		this.profitForThisRound = new HashMap<Integer, Double>();
 		this.activeTopology = activeMap;
 		this.trafficManger = trafficManager;
 		this.parallelLogging = parallelLogging;
@@ -576,7 +578,8 @@ public class EconomicEngine {
 		 * Do money reporting
 		 */
 		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).reportMoneyEarned(this.cashForThisRound.get(tASN));
+			this.theTopo.get(tASN).reportMoneyEarned(this.revenueForThisRound.get(tASN),
+					this.profitForThisRound.get(tASN));
 		}
 
 		/*
@@ -693,9 +696,9 @@ public class EconomicEngine {
 
 				double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
 				if (relation == AS.PROIVDER_CODE) {
-					this.updateCashForThisRound(tASN, trafficVolume);
+					this.updateCashForThisRound(tASN, tNeighbor, trafficVolume);
 				} else if (relation == AS.CUSTOMER_CODE) {
-					this.updateCashForThisRound(tNeighbor, trafficVolume);
+					this.updateCashForThisRound(tNeighbor, tASN, trafficVolume);
 				} else {
 					throw new RuntimeException("Invalid relationship passed to EconomicEngine: " + relation);
 				}
@@ -704,14 +707,18 @@ public class EconomicEngine {
 	}
 
 	private void resetForNewRound() {
-		this.cashForThisRound.clear();
+		this.revenueForThisRound.clear();
+		this.profitForThisRound.clear();
 		for (int tASN : this.theTopo.keySet()) {
-			this.cashForThisRound.put(tASN, 0.0);
+			this.revenueForThisRound.put(tASN, 0.0);
+			this.profitForThisRound.put(tASN, 0.0);
 		}
 	}
 
-	private void updateCashForThisRound(int asn, double amount) {
-		this.cashForThisRound.put(asn, this.cashForThisRound.get(asn) + amount);
+	private void updateCashForThisRound(int provASN, int custASN, double amount) {
+		this.revenueForThisRound.put(provASN, this.revenueForThisRound.get(provASN) + amount);
+		this.profitForThisRound.put(provASN, this.profitForThisRound.get(provASN) + amount);
+		this.profitForThisRound.put(custASN, this.profitForThisRound.get(custASN) - amount);
 	}
 
 	private void makeAdjustmentHelper(int asn, Set<Integer> decoySet) {

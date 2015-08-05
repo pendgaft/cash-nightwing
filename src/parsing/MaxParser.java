@@ -19,7 +19,7 @@ public class MaxParser {
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
 	public static final Pattern WARDEN_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+)");
-	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),(.+),(.+)");
+	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+),([^,]+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
 
