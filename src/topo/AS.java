@@ -397,7 +397,7 @@ public abstract class AS implements TransitAgent {
 		 * (prevents the serial file from requiring all ASes to have a hole
 		 * punched route)
 		 */
-		if (this.isWardenAS() && Constants.REVERSE_POISON) {
+		if (this.isWardenAS() && this.poisonMode != AS.ReversePoisonMode.NONE) {
 			if (!this.locRib.containsKey(this.asn * -1)) {
 				this.advPath(new BGPPath(this.getASN() * -1));
 			} else {
