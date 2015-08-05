@@ -22,7 +22,7 @@ public class MaxParser {
 	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),(.+),(.+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
-	
+
 	private static final String DEPLOYER_LOG_ROUND_TERM = "###";
 
 	private static final int IP_REACHABILITY_COL = 2;
@@ -40,11 +40,11 @@ public class MaxParser {
 				continue;
 			}
 			String suffix = child.getName();
-			
+
 			/*
 			 * skip defection runs for parsing
 			 */
-			if(suffix.contains("DEFECTION")){
+			if (suffix.contains("DEFECTION")) {
 				System.out.println("skipping defection run: " + suffix);
 				continue;
 			}
@@ -60,18 +60,18 @@ public class MaxParser {
 			String pathFile = fileBase + MaxParser.INPUT_SUFFIX + suffix + "/path.log";
 
 			self.writeDeployerLog(transitFile, fileBase + OUTPUT_SUFFIX + suffix + "/deployers.log");
-			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv",
-					1, MaxParser.IP_REACHABILITY_COL);
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv", 1,
+					MaxParser.IP_REACHABILITY_COL);
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2,
 					MaxParser.IP_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv",
-					1, MaxParser.NC_REACHABILITY_COL);
-			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv",
-					2, MaxParser.NC_REACHABILITY_COL);
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv", 1,
+					MaxParser.NC_REACHABILITY_COL);
+			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2,
+					MaxParser.NC_REACHABILITY_COL);
 
 			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drProfitCDF.csv", true, false, 3);
+					+ "/drTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drProfitCDF.csv",
+					true, false, 3);
 			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/nonDRProfitCDF.csv", false, false, 3);
@@ -86,7 +86,8 @@ public class MaxParser {
 	}
 
 	public MaxParser(String ipFile) throws IOException {
-		//FIXME please make this handle ASes that don't show up in the IP count file
+		// FIXME please make this handle ASes that don't show up in the IP count
+		// file
 		this.asToIP = new HashMap<Integer, Double>();
 		BufferedReader fBuff = new BufferedReader(new FileReader(ipFile));
 		while (fBuff.ready()) {
@@ -135,7 +136,7 @@ public class MaxParser {
 		BufferedReader inBuff = new BufferedReader(new FileReader(wardenFile));
 		while (inBuff.ready()) {
 			String pollStr = inBuff.readLine().trim();
-			if(pollStr.equals("&&&")){
+			if (pollStr.equals("&&&")) {
 				continue;
 			}
 			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
@@ -288,23 +289,23 @@ public class MaxParser {
 		inBuff.close();
 		outBuff.close();
 	}
-	
-	public static List<Set<Integer>> parseDeployerLog(String deployerLog) throws IOException{
+
+	public static List<Set<Integer>> parseDeployerLog(String deployerLog) throws IOException {
 		List<Set<Integer>> retList = new LinkedList<Set<Integer>>();
 		BufferedReader inBuff = new BufferedReader(new FileReader(deployerLog));
-		while(inBuff.ready()){
+		while (inBuff.ready()) {
 			String pollString = inBuff.readLine().trim();
-			
-			if(pollString.length() > 0){
-				if(pollString.equals(MaxParser.DEPLOYER_LOG_ROUND_TERM)){
+
+			if (pollString.length() > 0) {
+				if (pollString.equals(MaxParser.DEPLOYER_LOG_ROUND_TERM)) {
 					retList.add(new HashSet<Integer>());
-				} else{
+				} else {
 					retList.get(retList.size() - 1).add(Integer.parseInt(pollString));
 				}
 			}
 		}
 		inBuff.close();
-		
+
 		return retList;
 	}
 
@@ -846,7 +847,8 @@ public class MaxParser {
 		return amount * 0.000000008154451706;
 	}
 
-	public void parsePathLength(String wardenFile, String pathLogFile, String outFile, boolean revWarn) throws IOException {
+	public void parsePathLength(String wardenFile, String pathLogFile, String outFile, boolean revWarn)
+			throws IOException {
 
 		boolean inParseRegion = false;
 		boolean inFirstRun = true;
@@ -914,17 +916,19 @@ public class MaxParser {
 
 				String pathKey = splits[0];
 				String pathStr = splits[1].trim();
-				
+
 				String[] srcDestPair = pathKey.split(":");
 				boolean fromWarden = wardenSet.contains(srcDestPair[0]);
 				boolean toWarden = wardenSet.contains(srcDestPair[1]);
-				
-				if(revWarn){
+
+				if (revWarn) {
 					String triggerStr = " " + srcDestPair[1] + " ";
 					String modPathStr = " " + pathStr;
 					int pos = modPathStr.indexOf(triggerStr);
-					String nonLyingPathStr = modPathStr.substring(0, pos + triggerStr.length());
-					pathStr = nonLyingPathStr.trim();
+					if (pos != -1) {
+						String nonLyingPathStr = modPathStr.substring(0, pos + triggerStr.length());
+						pathStr = nonLyingPathStr.trim();
+					}
 				}
 
 				if (inFirstRun) {
@@ -938,7 +942,7 @@ public class MaxParser {
 					if (toWarden) {
 						toResistDeltas.add(tempDelta);
 					}
-					if(!(fromWarden || toWarden)){
+					if (!(fromWarden || toWarden)) {
 						System.out.println("fuuuu " + pathKey);
 					}
 				}
