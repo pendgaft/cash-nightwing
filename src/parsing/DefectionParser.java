@@ -35,12 +35,9 @@ public class DefectionParser {
 			}
 
 			System.out.println("Working on: " + defectionSuffix);
-			String defectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + defectionSuffix
-					+ "/transit.log";
-			String nonDefectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + nonDefectionSuffix
-					+ "/transit.log";
-			String baseDeployerFile = fileBase + MaxParser.OUTPUT_SUFFIX + nonDefectionSuffix
-					+ "/deployers.log";
+			String defectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + defectionSuffix + "/transit.log";
+			String nonDefectionTransitFile = fileBase + MaxParser.INPUT_SUFFIX + nonDefectionSuffix + "/transit.log";
+			String baseDeployerFile = fileBase + MaxParser.OUTPUT_SUFFIX + nonDefectionSuffix + "/deployers.log";
 
 			HashMap<Integer, Set<Integer>> deployerLists = DefectionParser.buildIndexedDeployment(MaxParser
 					.parseDeployerLog(baseDeployerFile));
@@ -48,6 +45,8 @@ public class DefectionParser {
 					.parseBaseLosses(nonDefectionTransitFile);
 			DefectionParser.parseDefectionRealMoney(defectionTransitFile, fileBase + MaxParser.OUTPUT_SUFFIX
 					+ defectionSuffix + "/deployerCosts", baseLossesMap, deployerLists);
+			DefectionParser.parseResistorRealMoney(defectionTransitFile, fileBase + MaxParser.OUTPUT_SUFFIX
+					+ defectionSuffix + "/resistorCosts");
 		}
 
 	}
@@ -148,7 +147,7 @@ public class DefectionParser {
 			if (controlFlag) {
 				roundFlag = Integer.parseInt(controlMatcher.group(2));
 				sampleSize = Integer.parseInt(controlMatcher.group(1));
-				if(!roundResults.containsKey(sampleSize)){
+				if (!roundResults.containsKey(sampleSize)) {
 					roundResults.put(sampleSize, new HashMap<Integer, Double>());
 				}
 				currentSizeDeployers = deployerSets.get(sampleSize);
@@ -208,6 +207,101 @@ public class DefectionParser {
 		}
 
 		return retMapping;
+	}
+
+	public static void parseResistorRealMoney(String logFile, String outFile) throws IOException {
+
+		HashMap<Integer, List<HashMap<Integer, Double>>> roundResults = new HashMap<Integer, List<HashMap<Integer, Double>>>();
+
+		HashMap<Integer, Double> roundValues = null;
+		HashMap<Integer, Double> firstRoundValues = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
+		int roundFlag = 0;
+		int sampleSize = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0 && sampleSize != 0) {
+					firstRoundValues.clear();
+					if (!roundResults.containsKey(sampleSize)) {
+						roundResults.put(sampleSize, new LinkedList<HashMap<Integer, Double>>());
+					}
+					roundResults.get(sampleSize).add(roundValues);
+				}
+
+				roundValues = new HashMap<Integer, Double>();
+				sampleSize = newSampleSize;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+						if (roundFlag == 1) {
+							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(5)));
+						} else {
+							int asn = Integer.parseInt(dataMatch.group(1));
+							double delta = Double.parseDouble(dataMatch.group(5)) - firstRoundValues.get(asn);
+							double value = MaxParser.convertTrafficToDollars(delta);
+							if (value > 0.0) {
+								roundValues.put(asn, 0.0);
+							} else {
+								roundValues.put(asn, value);
+							}
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+		/*
+		 * Dont' forget to do the last round
+		 */
+		firstRoundValues.clear();
+		roundResults.get(sampleSize).add(roundValues);
+
+		List<Integer> roundSizes = new ArrayList<Integer>(roundResults.size());
+		roundSizes.addAll(roundResults.keySet());
+		Collections.sort(roundSizes);
+
+		/*
+		 * Output the total cost of each round
+		 */
+		List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
+		for (int size : roundSizes) {
+			double sum = 0;
+			for (HashMap<Integer, Double> subResults : roundResults.get(size)) {
+				for (Double tVal : subResults.values()) {
+					sum += tVal;
+				}
+			}
+			perRoundCost.add(sum / (double) roundResults.get(size).size());
+		}
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost.csv"));
+		for (int counter = 0; counter < perRoundCost.size(); counter++) {
+			outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
+		}
+		outBuff.close();
 	}
 
 }

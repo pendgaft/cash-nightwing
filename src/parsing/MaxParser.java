@@ -80,7 +80,7 @@ public class MaxParser {
 					+ "/resistorRevCDF.csv", false, true, 3);
 
 			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
-			self.parseDeployerRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/resistorCosts");
+			self.parseResistorRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/resistorCosts");
 			self.parsePathLength(wardenFile, pathFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/pathLenDeltas.csv", !pathFile.contains("NoRev"));
 		}
@@ -839,7 +839,7 @@ public class MaxParser {
 		outBuff.close();
 	}
 
-	public void parseDeployerRealMoney(String logFile, String outFile) throws IOException {
+	public void parseResistorRealMoney(String logFile, String outFile) throws IOException {
 
 		HashMap<Integer, HashMap<Integer, Double>> roundResults = new HashMap<Integer, HashMap<Integer, Double>>();
 
