@@ -69,17 +69,18 @@ public class MaxParser {
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2,
 					MaxParser.NC_REACHABILITY_COL);
 
-			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/drTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drProfitCDF.csv",
-					true, false, 3);
-			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRProfitCDF.csv", false, false, 3);
-			self.fullProfitDeltas(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/resistorTransitProfitDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/resistorProfitCDF.csv", false, true, 3);
+			self.fullRevenueDetails(transitFile,
+					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drTransitRevDelta.csv", fileBase
+							+ MaxParser.OUTPUT_SUFFIX + suffix + "/drRevCDF.csv", true, false, 3);
+			self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/nonDRTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRRevCDF.csv",
+					false, false, 3);
+			self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/resistorTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+					+ "/resistorRevCDF.csv", false, true, 3);
 
 			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
+			self.parseDeployerRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/resistorCosts");
 			self.parsePathLength(wardenFile, pathFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
 					+ "/pathLenDeltas.csv", !pathFile.contains("NoRev"));
 		}
@@ -103,7 +104,7 @@ public class MaxParser {
 		fBuff.close();
 	}
 
-	private void fullProfitDeltas(String inFile, String outFile, String cdfFile, boolean isDR, boolean isResistor,
+	private void fullRevenueDetails(String inFile, String outFile, String cdfFile, boolean isDR, boolean isResistor,
 			int column) throws IOException {
 		if (isDR && isResistor) {
 			throw new RuntimeException("can't be both dr and resistor");
@@ -795,6 +796,105 @@ public class MaxParser {
 							double delta = Double.parseDouble(dataMatch.group(2)) - firstRoundValues.get(asn);
 							double value = MaxParser.convertTrafficToDollars(delta);
 							roundValues.put(asn, value);
+						}
+					}
+				}
+			}
+		}
+		inBuff.close();
+		/*
+		 * Dont' forget to do the last round
+		 */
+		firstRoundValues.clear();
+		roundResults.put(sampleSize, roundValues);
+
+		List<Integer> roundSizes = new ArrayList<Integer>(roundResults.size());
+		roundSizes.addAll(roundResults.keySet());
+		Collections.sort(roundSizes);
+
+		/*
+		 * Output CDF of the costs for each round on a per AS basis
+		 */
+		List<Collection<Double>> cdfLists = new ArrayList<Collection<Double>>(roundSizes.size());
+		for (int tSize : roundSizes) {
+			cdfLists.add(roundResults.get(tSize).values());
+		}
+		CDF.printCDFs(cdfLists, outFile + "-CDF.csv");
+
+		/*
+		 * Output the total cost of each round
+		 */
+		List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
+		for (int size : roundSizes) {
+			double sum = 0;
+			for (Double tVal : roundResults.get(size).values()) {
+				sum += tVal;
+			}
+			perRoundCost.add(sum);
+		}
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost.csv"));
+		for (int counter = 0; counter < perRoundCost.size(); counter++) {
+			outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
+		}
+		outBuff.close();
+	}
+
+	public void parseDeployerRealMoney(String logFile, String outFile) throws IOException {
+
+		HashMap<Integer, HashMap<Integer, Double>> roundResults = new HashMap<Integer, HashMap<Integer, Double>>();
+
+		HashMap<Integer, Double> roundValues = null;
+		HashMap<Integer, Double> firstRoundValues = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
+		int roundFlag = 0;
+		int sampleSize = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				int newSampleSize = Integer.parseInt(controlMatcher.group(1));
+
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag == 0 && sampleSize != 0) {
+					firstRoundValues.clear();
+					roundResults.put(sampleSize, roundValues);
+				}
+
+				roundValues = new HashMap<Integer, Double>();
+				sampleSize = newSampleSize;
+				continue;
+			}
+
+			if (roundFlag != 0) {
+				Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+				if (dataMatch.find()) {
+					if (Boolean.parseBoolean(dataMatch.group(4)) == true) {
+						if (roundFlag == 1) {
+							firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
+									Double.parseDouble(dataMatch.group(5)));
+						} else {
+							int asn = Integer.parseInt(dataMatch.group(1));
+							double delta = Double.parseDouble(dataMatch.group(5)) - firstRoundValues.get(asn);
+							double value = MaxParser.convertTrafficToDollars(delta);
+							if (value > 0.0) {
+								roundValues.put(asn, 0.0);
+							} else {
+								roundValues.put(asn, value);
+							}
 						}
 					}
 				}
