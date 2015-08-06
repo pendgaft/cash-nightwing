@@ -159,7 +159,7 @@ public class EconomicEngine {
 		currentAS.addOnCustomerConeList(currentAS.getASN());
 	}
 
-	public void manageDictatedDRSim(String drFile) {
+	private Set<Integer> loadDictatedDeployerSet(String drFile) {
 		Set<Integer> drSet = new HashSet<Integer>();
 		Set<Integer> configSet = new HashSet<Integer>();
 
@@ -179,7 +179,7 @@ public class EconomicEngine {
 		} catch (IOException e) {
 			System.err.println("Error while parsing DR file.");
 			e.printStackTrace();
-			return;
+			System.exit(-1);
 		}
 
 		/*
@@ -192,26 +192,21 @@ public class EconomicEngine {
 			}
 		}
 		System.out.println("Retained " + drSet.size() + " of " + configSet.size() + " deployers");
+		return drSet;
+	}
 
-		/*
-		 * Write the size terminators to logging files
-		 */
-		try {
-			this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
-			this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(-1);
-		}
+	public void manageDictatedDRSim(String drFile, boolean defection) {
+		Set<Integer> drSet = this.loadDictatedDeployerSet(drFile);
 
-		/*
-		 * Actually do the sim rounds
-		 */
-		for (int counter = 0; counter < 3; counter++) {
-			this.trafficManger.runStat();
-			String roundHeader = null;
-			roundHeader = "" + drSet.size() + "," + counter;
-			this.driveEconomicTurn(roundHeader, drSet, counter);
+		if (defection) {
+			for(int tASN: drSet){
+				Set<Integer> subSet = new HashSet<Integer>();
+				subSet.addAll(drSet);
+				subSet.remove(tASN);
+				this.driveEconomicRound(subSet);
+			}
+		} else {
+			this.driveEconomicRound(drSet);
 		}
 	}
 
@@ -549,6 +544,29 @@ public class EconomicEngine {
 			System.out.println("Slice completed in " + timeDelta + " hours, estimated remaining sim time: "
 					+ estRemaining);
 			sliceCounter++;
+		}
+	}
+
+	private void driveEconomicRound(Set<Integer> drSet) {
+		/*
+		 * Write the size terminators to logging files
+		 */
+		try {
+			this.wardenOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+			this.transitOut.write(EconomicEngine.SAMPLESIZE_TERMINATOR + "\n");
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.exit(-1);
+		}
+
+		/*
+		 * Actually do the sim rounds
+		 */
+		for (int counter = 0; counter < 3; counter++) {
+			this.trafficManger.runStat();
+			String roundHeader = null;
+			roundHeader = "" + drSet.size() + "," + counter;
+			this.driveEconomicTurn(roundHeader, drSet, counter);
 		}
 	}
 

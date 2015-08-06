@@ -213,7 +213,7 @@ public class Nightwing implements Runnable {
 					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"),
 					this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.VS) {
-			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"));
+			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"), this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
 			this.econManager.manageRandomDeploySizeSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
