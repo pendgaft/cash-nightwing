@@ -72,12 +72,12 @@ public class MaxParser {
 			self.fullRevenueDetails(transitFile,
 					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drTransitRevDelta.csv", fileBase
 							+ MaxParser.OUTPUT_SUFFIX + suffix + "/drRevCDF.csv", true, false, 3);
-			self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/nonDRTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRRevCDF.csv",
-					false, false, 3);
-			self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/resistorTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/resistorRevCDF.csv", false, true, 3);
+			//self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+			//		+ "/nonDRTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRRevCDF.csv",
+			//		false, false, 3);
+			//self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+			//		+ "/resistorTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
+			//		+ "/resistorRevCDF.csv", false, true, 3);
 
 			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
 			self.parseResistorRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/resistorCosts");
@@ -252,7 +252,11 @@ public class MaxParser {
 		}
 		fullDeltas.add(listClone);
 		for (double tPercent : MaxParser.PERCENTILES) {
+		    if(sampleDeltas.size() > 0 ){
 			extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
+		    }else{
+			extractMap.put(tPercent, 0.0);
+		    }
 		}
 		results.put(oldSize, extractMap);
 		sampleDeltas.clear();
