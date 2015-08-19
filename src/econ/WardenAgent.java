@@ -117,6 +117,7 @@ public class WardenAgent extends EconomicAgent {
 		}
 
 		try {
+			//TODO after PETS deadline please add a "," after true and update regex
 			this.revenueLogStream.write("" + this.parent.getASN() + "," + this.revenueEarned + ","
 					+ this.parent.isDecoy() + ",true" + this.profitEarned + "\n");
 		} catch (IOException e) {
