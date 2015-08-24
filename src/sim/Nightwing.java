@@ -39,7 +39,7 @@ public class Nightwing implements Runnable {
 	private SerializationMaster serialControl;
 
 	private boolean largeMemoryEnv;
-	private static long LARGE_MEM_THRESH = (long)1024 * (long)1024 * (long)1024 * (long)100;
+	private static long LARGE_MEM_THRESH = (long) 1024 * (long) 1024 * (long) 1024 * (long) 100;
 
 	public Nightwing(Namespace ns) throws IOException {
 
@@ -50,7 +50,7 @@ public class Nightwing implements Runnable {
 
 		this.largeMemoryEnv = Runtime.getRuntime().maxMemory() >= Nightwing.LARGE_MEM_THRESH;
 		System.out.println("Large memory env: " + this.largeMemoryEnv);
-		if(ns.getBoolean("forceLowMem")){
+		if (ns.getBoolean("forceLowMem")) {
 			System.out.println("Overriding memory enviornment FORCING LOW");
 			this.largeMemoryEnv = false;
 		}
@@ -110,7 +110,7 @@ public class Nightwing implements Runnable {
 		this.trafficManager = new ParallelTrafficStat(this.liveTopo, this.prunedTopo, this.serialControl,
 				this.perfLogger);
 		this.econManager = new EconomicEngine(this.liveTopo, this.prunedTopo, this.trafficManager, this.logDirString,
-				this.perfLogger, ns.getBoolean("defection"), this.largeMemoryEnv);
+				this.perfLogger, ns.getBoolean("defection") || this.myMode == SimMode.VS, this.largeMemoryEnv);
 
 		/*
 		 * We're ready to simulate at this point
@@ -213,7 +213,8 @@ public class Nightwing implements Runnable {
 					Constants.DEFAULT_DEPLOY_STEP, this.myArgs.getBoolean("coverageOrdering"),
 					this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.VS) {
-			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"), this.myArgs.getBoolean("defection"));
+			this.econManager.manageDictatedDRSim(this.myArgs.getString("deployers"),
+					this.myArgs.getBoolean("defection"));
 		} else if (this.myMode == Nightwing.SimMode.RANDOMNUMBER) {
 			this.econManager.manageRandomDeploySizeSim(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
@@ -252,6 +253,8 @@ public class Nightwing implements Runnable {
 		argParse.addArgument("--randomCount").help("Random sample size").required(false).type(Integer.class)
 				.setDefault(Constants.RANDOM_SAMPLE_COUNT);
 		argParse.addArgument("--forceLowMem").help("Forces simulator into low mem enviornment").required(false)
+				.action(Arguments.storeTrue());
+		argParse.addArgument("--nopathlog").help("Turns off path logging.").required(false)
 				.action(Arguments.storeTrue());
 
 		/*
