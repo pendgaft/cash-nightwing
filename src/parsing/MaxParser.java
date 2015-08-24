@@ -52,6 +52,8 @@ public class MaxParser {
 			File outDir = new File(fileBase + OUTPUT_SUFFIX + suffix);
 			if (!outDir.exists()) {
 				outDir.mkdirs();
+			} else{
+				System.out.println("Skiping " + suffix + " since it's already done.");
 			}
 
 			System.out.println("Working on: " + suffix);
