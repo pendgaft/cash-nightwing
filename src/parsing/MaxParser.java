@@ -54,6 +54,7 @@ public class MaxParser {
 				outDir.mkdirs();
 			} else{
 				System.out.println("Skiping " + suffix + " since it's already done.");
+				continue;
 			}
 
 			System.out.println("Working on: " + suffix);
