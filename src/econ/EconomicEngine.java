@@ -172,7 +172,15 @@ public class EconomicEngine {
 			while (drBuffer.ready()) {
 				String pollStr = drBuffer.readLine().trim();
 				if (pollStr.length() > 0) {
-					configSet.add(Integer.parseInt(pollStr));
+					int loadedASN = Integer.parseInt(pollStr);
+					/*
+					 * Only actually load in active ASes, as all of the pruned
+					 * ASes will never be marked as deployers and it clutters up
+					 * lying RP and slows BGP processing
+					 */
+					if (this.activeTopology.containsKey(loadedASN)) {
+						configSet.add(Integer.parseInt(pollStr));
+					}
 				}
 			}
 			drBuffer.close();
@@ -199,7 +207,7 @@ public class EconomicEngine {
 		Set<Integer> drSet = this.loadDictatedDeployerSet(drFile);
 
 		if (defection) {
-			for(int tASN: drSet){
+			for (int tASN : drSet) {
 				Set<Integer> subSet = new HashSet<Integer>();
 				subSet.addAll(drSet);
 				subSet.remove(tASN);
@@ -618,7 +626,7 @@ public class EconomicEngine {
 		 * Have folks actually make their move
 		 */
 		FinalizeAdjustSlave[] tSlaves = new FinalizeAdjustSlave[Constants.NTHREADS];
-		for(int counter = 0; counter < tSlaves.length; counter++){
+		for (int counter = 0; counter < tSlaves.length; counter++) {
 			tSlaves[counter] = new FinalizeAdjustSlave();
 		}
 		int pos = 0;
@@ -627,13 +635,13 @@ public class EconomicEngine {
 			pos++;
 		}
 		Thread[] tThreads = new Thread[Constants.NTHREADS];
-		for(int counter = 0; counter < tSlaves.length; counter++){
+		for (int counter = 0; counter < tSlaves.length; counter++) {
 			tThreads[counter] = new Thread(tSlaves[counter]);
 		}
-		for(Thread tThread: tThreads){
+		for (Thread tThread : tThreads) {
 			tThread.start();
 		}
-		for(Thread tThread: tThreads){
+		for (Thread tThread : tThreads) {
 			try {
 				tThread.join();
 			} catch (InterruptedException e) {
