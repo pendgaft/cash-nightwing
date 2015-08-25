@@ -568,7 +568,14 @@ public class MaxParser {
 					Double ips = this.asToIP.get(Integer.parseInt(dataMatch.group(1)));
 					if (ips != null) {
 						double cleanness = Double.parseDouble(dataMatch.group(column));
-
+						
+						/*
+						 * Don't let NaN taint our measurements
+						 */
+						if(cleanness == Double.NaN){
+							continue;
+						}
+						
 						currentIPCount += ips;
 						currentIPCleanness += cleanness * ips;
 					}
