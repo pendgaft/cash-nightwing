@@ -617,8 +617,29 @@ public class EconomicEngine {
 		/*
 		 * Have folks actually make their move
 		 */
+		FinalizeAdjustSlave[] tSlaves = new FinalizeAdjustSlave[Constants.NTHREADS];
+		for(int counter = 0; counter < tSlaves.length; counter++){
+			tSlaves[counter] = new FinalizeAdjustSlave();
+		}
+		int pos = 0;
 		for (int tASN : this.theTopo.keySet()) {
-			this.theTopo.get(tASN).finalizeRoundAdjustments();
+			tSlaves[pos % Constants.NTHREADS].addWork(this.theTopo.get(tASN));
+			pos++;
+		}
+		Thread[] tThreads = new Thread[Constants.NTHREADS];
+		for(int counter = 0; counter < tSlaves.length; counter++){
+			tThreads[counter] = new Thread(tSlaves[counter]);
+		}
+		for(Thread tThread: tThreads){
+			tThread.start();
+		}
+		for(Thread tThread: tThreads){
+			try {
+				tThread.join();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+				System.exit(-2);
+			}
 		}
 
 		/*
