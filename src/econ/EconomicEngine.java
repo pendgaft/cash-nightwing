@@ -261,7 +261,8 @@ public class EconomicEngine {
 
 		if (lyingRedux < 0.0) {
 			try {
-				FileWriter fw = new FileWriter("lyingResult.txt", true);
+				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
+				System.out.println(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount());
 				fw.write(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount() + "\n");
 				fw.close();
 			} catch (IOException e) {
