@@ -227,7 +227,7 @@ public class Nightwing implements Runnable {
 			this.econManager.manageCustConeExploration(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
 		} else if (this.myMode == Nightwing.SimMode.HONESTEXPLORE) {
-
+			this.econManager.manageHonestExploreSim(this.myArgs.getString("deployers"));
 		} else {
 			System.out.println(this.myMode + " not implemented fully!");
 		}
