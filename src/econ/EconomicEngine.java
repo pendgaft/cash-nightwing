@@ -195,11 +195,86 @@ public class EconomicEngine {
 		return drSet;
 	}
 
+	public void manageHonestExploreSim(String deployerConfig) {
+		Set<Integer> drSet = this.loadDictatedDeployerSet(deployerConfig);
+
+		DecoyAS testAS = null;
+		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
+			if (tAS.isWardenAS()) {
+				testAS = tAS;
+				break;
+			}
+		}
+
+		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.NONE);
+		this.driveEconomicRound(drSet);
+		double baseProfit = this.sumDepProfit(drSet);
+
+		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
+		Set<Integer> candidates = testAS.getActiveNeighbors();
+		Set<Integer> current = new HashSet<Integer>();
+		double currentImprove = 0.0;
+
+		while (true) {
+			int currBest = -1;
+			double imp = 0.0;
+
+			for (int tASN : candidates) {
+				Set<AS> tempSet = new HashSet<AS>();
+				for (int curASN : current) {
+					tempSet.add(this.activeTopology.get(curASN));
+				}
+				tempSet.add(this.activeTopology.get(tASN));
+
+				testAS.updateHolepunchSet(tempSet);
+				this.driveEconomicRound(drSet);
+				double measureProfit = this.sumDepProfit(drSet);
+				double delta = measureProfit - baseProfit;
+				if (delta < imp) {
+					imp = delta;
+					currBest = tASN;
+				}
+			}
+
+			System.out.println("done with pass " + currentImprove + "," + imp);
+			if (currBest == -1) {
+				break;
+			} else {
+				current.add(currBest);
+				candidates.remove(currBest);
+				currentImprove = imp;
+			}
+			
+		}
+
+		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.LYING);
+		this.driveEconomicRound(drSet);
+		double lyingRedux = this.sumDepProfit(drSet) - baseProfit;
+
+		if (lyingRedux < 0.0) {
+			try {
+				FileWriter fw = new FileWriter("lyingResult.txt", true);
+				fw.write(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount() + "\n");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private double sumDepProfit(Set<Integer> drSet) {
+		double profitSum = 0.0;
+		for (int tASN : drSet) {
+			profitSum += this.revenueForThisRound.get(tASN);
+		}
+		return profitSum;
+	}
+
 	public void manageDictatedDRSim(String drFile, boolean defection) {
 		Set<Integer> drSet = this.loadDictatedDeployerSet(drFile);
 
 		if (defection) {
-			for(int tASN: drSet){
+			for (int tASN : drSet) {
 				Set<Integer> subSet = new HashSet<Integer>();
 				subSet.addAll(drSet);
 				subSet.remove(tASN);
@@ -618,7 +693,7 @@ public class EconomicEngine {
 		 * Have folks actually make their move
 		 */
 		FinalizeAdjustSlave[] tSlaves = new FinalizeAdjustSlave[Constants.NTHREADS];
-		for(int counter = 0; counter < tSlaves.length; counter++){
+		for (int counter = 0; counter < tSlaves.length; counter++) {
 			tSlaves[counter] = new FinalizeAdjustSlave();
 		}
 		int pos = 0;
@@ -627,13 +702,13 @@ public class EconomicEngine {
 			pos++;
 		}
 		Thread[] tThreads = new Thread[Constants.NTHREADS];
-		for(int counter = 0; counter < tSlaves.length; counter++){
+		for (int counter = 0; counter < tSlaves.length; counter++) {
 			tThreads[counter] = new Thread(tSlaves[counter]);
 		}
-		for(Thread tThread: tThreads){
+		for (Thread tThread : tThreads) {
 			tThread.start();
 		}
-		for(Thread tThread: tThreads){
+		for (Thread tThread : tThreads) {
 			try {
 				tThread.join();
 			} catch (InterruptedException e) {

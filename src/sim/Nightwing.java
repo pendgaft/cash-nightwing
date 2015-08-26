@@ -17,7 +17,7 @@ import gnu.trove.map.TIntObjectMap;
 public class Nightwing implements Runnable {
 
 	public enum SimMode {
-		DUMP, RANDOMNUMBER, RANDOMSIZE, ORDERED, GLOBAL, VS
+		DUMP, RANDOMNUMBER, RANDOMSIZE, ORDERED, GLOBAL, VS, HONESTEXPLORE
 	}
 
 	private Namespace myArgs;
@@ -110,7 +110,8 @@ public class Nightwing implements Runnable {
 		this.trafficManager = new ParallelTrafficStat(this.liveTopo, this.prunedTopo, this.serialControl,
 				this.perfLogger);
 		this.econManager = new EconomicEngine(this.liveTopo, this.prunedTopo, this.trafficManager, this.logDirString,
-				this.perfLogger, ns.getBoolean("defection") || this.myMode == SimMode.VS, this.largeMemoryEnv);
+				this.perfLogger, ns.getBoolean("defection") || this.myMode == SimMode.VS
+						|| this.myMode == SimMode.HONESTEXPLORE, this.largeMemoryEnv);
 
 		/*
 		 * We're ready to simulate at this point
@@ -155,6 +156,8 @@ public class Nightwing implements Runnable {
 			outStr += "RandomDeploySize";
 			outStr += Constants.DEFAULT_DEPLOY_START + "-" + Constants.DEFAULT_DEPLOY_STOP + "-"
 					+ Constants.DEFAULT_DEPLOY_STEP + "-" + Constants.DEFAULT_FIGURE_OF_MERIT;
+		} else if (this.myMode == Nightwing.SimMode.HONESTEXPLORE) {
+			outStr += "DELETEME";
 		}
 
 		/*
@@ -168,6 +171,8 @@ public class Nightwing implements Runnable {
 			outStr += "PathLen";
 		} else if (this.resistorStrat == AS.AvoidMode.TIEBREAK) {
 			outStr += "Tiebreak";
+		} else if (this.resistorStrat == AS.AvoidMode.NONE) {
+			outStr += "None";
 		}
 
 		/*
@@ -221,6 +226,8 @@ public class Nightwing implements Runnable {
 		} else if (this.myMode == Nightwing.SimMode.RANDOMSIZE) {
 			this.econManager.manageCustConeExploration(Constants.DEFAULT_DEPLOY_START, Constants.DEFAULT_DEPLOY_STOP,
 					Constants.DEFAULT_DEPLOY_STEP, Constants.RANDOM_SAMPLE_COUNT, Constants.DEFAULT_FIGURE_OF_MERIT);
+		} else if (this.myMode == Nightwing.SimMode.HONESTEXPLORE) {
+
 		} else {
 			System.out.println(this.myMode + " not implemented fully!");
 		}
