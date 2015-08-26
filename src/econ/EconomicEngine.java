@@ -172,7 +172,15 @@ public class EconomicEngine {
 			while (drBuffer.ready()) {
 				String pollStr = drBuffer.readLine().trim();
 				if (pollStr.length() > 0) {
-					configSet.add(Integer.parseInt(pollStr));
+					int loadedASN = Integer.parseInt(pollStr);
+					/*
+					 * Only actually load in active ASes, as all of the pruned
+					 * ASes will never be marked as deployers and it clutters up
+					 * lying RP and slows BGP processing
+					 */
+					if (this.activeTopology.containsKey(loadedASN)) {
+						configSet.add(Integer.parseInt(pollStr));
+					}
 				}
 			}
 			drBuffer.close();

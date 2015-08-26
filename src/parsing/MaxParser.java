@@ -3,6 +3,7 @@ package parsing;
 import java.io.*;
 import java.util.*;
 import java.util.regex.*;
+import java.lang.Double;
 
 import decoy.DecoyAS;
 import scijava.stats.CDF;
@@ -572,12 +573,10 @@ public class MaxParser {
 						/*
 						 * Don't let NaN taint our measurements
 						 */
-						if(cleanness == Double.NaN){
-							continue;
+						if(!Double.isNaN(cleanness)){
+						    currentIPCount += ips;
+						    currentIPCleanness += cleanness * ips;
 						}
-						
-						currentIPCount += ips;
-						currentIPCleanness += cleanness * ips;
 					}
 				}
 			}
