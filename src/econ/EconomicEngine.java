@@ -221,7 +221,6 @@ public class EconomicEngine {
 		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
 		Set<Integer> candidates = testAS.getActiveNeighbors();
 		Set<Integer> current = new HashSet<Integer>();
-		double currentImprove = 0.0;
 
 		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.LYING);
 		this.driveEconomicRound(drSet, true);
@@ -230,7 +229,6 @@ public class EconomicEngine {
 		if (lyingRedux == 0.0) {
 			try {
 				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
-				System.out.println(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount());
 				fw.write(testAS.getASN() + ",NaN," + testAS.getIPCount() + "\n");
 				fw.close();
 			} catch (IOException e) {
@@ -239,17 +237,18 @@ public class EconomicEngine {
 		} else {
 
 			HashMap<Integer, Double> reduceMap = new HashMap<Integer, Double>();
+			double currentPain = 0.0;
 			while (true) {
 				int currBest = -1;
-				double imp = 0.0;
+				double possNewBestPain = 0.0;
 
 				for (int tASN : candidates) {
-					if(reduceMap.containsKey(tASN)){
-						if(reduceMap.get(tASN) >= imp){
+					if (reduceMap.containsKey(tASN)) {
+						if (reduceMap.get(tASN) >= (possNewBestPain - currentPain)) {
 							continue;
 						}
 					}
-					
+
 					Set<AS> tempSet = new HashSet<AS>();
 					for (int curASN : current) {
 						tempSet.add(this.activeTopology.get(curASN));
@@ -259,32 +258,36 @@ public class EconomicEngine {
 					testAS.updateHolepunchSet(tempSet);
 					this.driveEconomicRound(drSet, true);
 					double measureProfit = this.sumDepProfit(drSet);
-					double delta = measureProfit - baseProfit;
-					reduceMap.put(tASN, delta);
-					if (delta < imp) {
-						imp = delta;
+					double newPain = measureProfit - baseProfit;
+					reduceMap.put(tASN, newPain - currentPain);
+					if (newPain < possNewBestPain) {
+						possNewBestPain = newPain;
 						currBest = tASN;
 					}
 				}
 
-				System.out.println("done with pass " + currentImprove + "," + imp);
+				System.out.println("done with pass " + currentPain + "," + possNewBestPain);
 				if (currBest == -1) {
 					break;
-				} else if(Math.abs(currentImprove - imp)/Math.abs(currentImprove) <= 0.15){
-					currentImprove = imp;
+				} else if (Math.abs(possNewBestPain - currentPain) / Math.abs(currentPain) <= 0.15) {
+					currentPain = possNewBestPain;
 					break;
-				}else {
+				} else if ((currentPain / lyingRedux) >= 0.9) {
+					currentPain = possNewBestPain;
+				} else {
 					current.add(currBest);
 					candidates.remove(currBest);
-					currentImprove = imp;
-					System.out.println(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount());
+					currentPain = possNewBestPain;
+					System.out.println(testAS.getASN() + "," + (currentPain / lyingRedux) + ","
+							+ testAS.getIPCount());
 				}
 			}
-			
+
 			try {
 				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
-				System.out.println("final " + testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount());
-				fw.write(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount() + "\n");
+				System.out.println("final " + testAS.getASN() + "," + (currentPain / lyingRedux) + ","
+						+ testAS.getIPCount());
+				fw.write(testAS.getASN() + "," + (currentPain / lyingRedux) + "," + testAS.getIPCount() + "\n");
 				fw.close();
 			} catch (IOException e) {
 				e.printStackTrace();
