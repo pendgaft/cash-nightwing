@@ -213,6 +213,17 @@ public class EconomicEngine {
 				break;
 			}
 		}
+		
+		if(testAS == null){
+			try {
+				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
+				fw.write(testAS.getASN() + ",NIT,0\n");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
 
 		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.NONE);
 		this.driveEconomicRound(drSet, true);
