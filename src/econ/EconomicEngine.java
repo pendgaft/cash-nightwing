@@ -218,10 +218,6 @@ public class EconomicEngine {
 		this.driveEconomicRound(drSet, true);
 		double baseProfit = this.sumDepProfit(drSet);
 
-		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
-		Set<Integer> candidates = testAS.getActiveNeighbors();
-		Set<Integer> current = new HashSet<Integer>();
-
 		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.LYING);
 		this.driveEconomicRound(drSet, true);
 		double lyingRedux = this.sumDepProfit(drSet) - baseProfit;
@@ -236,6 +232,10 @@ public class EconomicEngine {
 			}
 		} else {
 
+			testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
+			Set<Integer> candidates = testAS.getActiveNeighbors();
+			Set<Integer> current = new HashSet<Integer>();
+			
 			HashMap<Integer, Double> reduceMap = new HashMap<Integer, Double>();
 			double currentPain = 0.0;
 			while (true) {
