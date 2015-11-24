@@ -213,57 +213,92 @@ public class EconomicEngine {
 				break;
 			}
 		}
-
-		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.NONE);
-		this.driveEconomicRound(drSet);
-		double baseProfit = this.sumDepProfit(drSet);
-
-		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
-		Set<Integer> candidates = testAS.getActiveNeighbors();
-		Set<Integer> current = new HashSet<Integer>();
-		double currentImprove = 0.0;
-
-		while (true) {
-			int currBest = -1;
-			double imp = 0.0;
-
-			for (int tASN : candidates) {
-				Set<AS> tempSet = new HashSet<AS>();
-				for (int curASN : current) {
-					tempSet.add(this.activeTopology.get(curASN));
-				}
-				tempSet.add(this.activeTopology.get(tASN));
-
-				testAS.updateHolepunchSet(tempSet);
-				this.driveEconomicRound(drSet);
-				double measureProfit = this.sumDepProfit(drSet);
-				double delta = measureProfit - baseProfit;
-				if (delta < imp) {
-					imp = delta;
-					currBest = tASN;
-				}
-			}
-
-			System.out.println("done with pass " + currentImprove + "," + imp);
-			if (currBest == -1) {
-				break;
-			} else {
-				current.add(currBest);
-				candidates.remove(currBest);
-				currentImprove = imp;
-			}
-			
-		}
-
-		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.LYING);
-		this.driveEconomicRound(drSet);
-		double lyingRedux = this.sumDepProfit(drSet) - baseProfit;
-
-		if (lyingRedux < 0.0) {
+		
+		if(testAS == null){
 			try {
 				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
-				System.out.println(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount());
-				fw.write(testAS.getASN() + "," + (currentImprove / lyingRedux) + "," + testAS.getIPCount() + "\n");
+				fw.write(testAS.getASN() + ",NIT,0\n");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			return;
+		}
+
+		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.NONE);
+		this.driveEconomicRound(drSet, true);
+		double baseProfit = this.sumDepProfit(drSet);
+
+		testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.LYING);
+		this.driveEconomicRound(drSet, true);
+		double lyingRedux = this.sumDepProfit(drSet) - baseProfit;
+
+		if (lyingRedux == 0.0) {
+			try {
+				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
+				fw.write(testAS.getASN() + ",NaN," + testAS.getIPCount() + "\n");
+				fw.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+
+			testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
+			Set<Integer> candidates = testAS.getActiveNeighbors();
+			Set<Integer> current = new HashSet<Integer>();
+			
+			HashMap<Integer, Double> reduceMap = new HashMap<Integer, Double>();
+			double currentPain = 0.0;
+			while (true) {
+				int currBest = -1;
+				double possNewBestPain = 0.0;
+
+				for (int tASN : candidates) {
+					if (reduceMap.containsKey(tASN)) {
+						if (reduceMap.get(tASN) >= (possNewBestPain - currentPain)) {
+							continue;
+						}
+					}
+
+					Set<AS> tempSet = new HashSet<AS>();
+					for (int curASN : current) {
+						tempSet.add(this.activeTopology.get(curASN));
+					}
+					tempSet.add(this.activeTopology.get(tASN));
+
+					testAS.updateHolepunchSet(tempSet);
+					this.driveEconomicRound(drSet, true);
+					double measureProfit = this.sumDepProfit(drSet);
+					double newPain = measureProfit - baseProfit;
+					reduceMap.put(tASN, newPain - currentPain);
+					if (newPain < possNewBestPain) {
+						possNewBestPain = newPain;
+						currBest = tASN;
+					}
+				}
+
+				System.out.println("done with pass " + currentPain + "," + possNewBestPain);
+				if (currBest == -1) {
+					break;
+				} else if (Math.abs(possNewBestPain - currentPain) / Math.abs(currentPain) <= 0.15) {
+					currentPain = possNewBestPain;
+					break;
+				} else if ((currentPain / lyingRedux) >= 0.9) {
+					currentPain = possNewBestPain;
+				} else {
+					current.add(currBest);
+					candidates.remove(currBest);
+					currentPain = possNewBestPain;
+					System.out.println(testAS.getASN() + "," + (currentPain / lyingRedux) + ","
+							+ testAS.getIPCount());
+				}
+			}
+
+			try {
+				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
+				System.out.println("final " + testAS.getASN() + "," + (currentPain / lyingRedux) + ","
+						+ testAS.getIPCount());
+				fw.write(testAS.getASN() + "," + (currentPain / lyingRedux) + "," + testAS.getIPCount() + "\n");
 				fw.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -287,10 +322,10 @@ public class EconomicEngine {
 				Set<Integer> subSet = new HashSet<Integer>();
 				subSet.addAll(drSet);
 				subSet.remove(tASN);
-				this.driveEconomicRound(subSet);
+				this.driveEconomicRound(subSet, false);
 			}
 		} else {
-			this.driveEconomicRound(drSet);
+			this.driveEconomicRound(drSet, false);
 		}
 	}
 
@@ -355,7 +390,7 @@ public class EconomicEngine {
 						this.trafficManger.runStat();
 						String roundHeader = null;
 						roundHeader = "" + drCount + "," + counter;
-						this.driveEconomicTurn(roundHeader, drSubset, counter);
+						this.driveEconomicTurn(roundHeader, drSubset, counter, false);
 					}
 				}
 			} else {
@@ -366,7 +401,7 @@ public class EconomicEngine {
 					this.trafficManger.runStat();
 					String roundHeader = null;
 					roundHeader = "" + drCount + "," + counter;
-					this.driveEconomicTurn(roundHeader, drSet, counter);
+					this.driveEconomicTurn(roundHeader, drSet, counter, false);
 				}
 			}
 		}
@@ -515,7 +550,7 @@ public class EconomicEngine {
 						this.trafficManger.runStat();
 						String roundHeader = null;
 						roundHeader = "" + drCount + "," + counter;
-						this.driveEconomicTurn(roundHeader, drSubset, counter);
+						this.driveEconomicTurn(roundHeader, drSubset, counter, false);
 					}
 				}
 			} else {
@@ -526,7 +561,7 @@ public class EconomicEngine {
 					this.trafficManger.runStat();
 					String roundHeader = null;
 					roundHeader = "" + drCount + "," + counter;
-					this.driveEconomicTurn(roundHeader, drSet, counter);
+					this.driveEconomicTurn(roundHeader, drSet, counter, false);
 				}
 			}
 		}
@@ -618,7 +653,7 @@ public class EconomicEngine {
 					} else {
 						roundHeader = "" + drCount + "," + counter;
 					}
-					this.driveEconomicTurn(roundHeader, drSet, counter);
+					this.driveEconomicTurn(roundHeader, drSet, counter, false);
 				}
 			}
 
@@ -631,7 +666,7 @@ public class EconomicEngine {
 		}
 	}
 
-	private void driveEconomicRound(Set<Integer> drSet) {
+	private void driveEconomicRound(Set<Integer> drSet, boolean skipLogging) {
 		/*
 		 * Write the size terminators to logging files
 		 */
@@ -650,11 +685,11 @@ public class EconomicEngine {
 			this.trafficManger.runStat();
 			String roundHeader = null;
 			roundHeader = "" + drSet.size() + "," + counter;
-			this.driveEconomicTurn(roundHeader, drSet, counter);
+			this.driveEconomicTurn(roundHeader, drSet, counter, skipLogging);
 		}
 	}
 
-	private void driveEconomicTurn(String roundLeader, Set<Integer> drSet, int round) {
+	private void driveEconomicTurn(String roundLeader, Set<Integer> drSet, int round, boolean skipLogging) {
 		/*
 		 * Write the round terminators to logging files
 		 */
@@ -687,9 +722,11 @@ public class EconomicEngine {
 		/*
 		 * Time to do a bit of logging....
 		 */
-		this.perfLogger.resetTimer();
-		this.handleLogging();
-		this.perfLogger.logTime("logging");
+		if (!skipLogging) {
+			this.perfLogger.resetTimer();
+			this.handleLogging();
+			this.perfLogger.logTime("logging");
+		}
 
 		/*
 		 * Let the agents ponder their move
