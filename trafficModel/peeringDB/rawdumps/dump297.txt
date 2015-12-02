@@ -1,0 +1,409 @@
+<html>
+<head>
+<title>Peering Networks Search/List</title>
+<link rel="stylesheet" type="text/css" href="../Themes/Clear/Style.css">
+</head>
+<body bgcolor="#ffffff" link="#000099" alink="#ff0000" vlink="#000099" text="#000000" class="ClearPageBODY">
+<table width="100%">
+  <tr>
+    <td align="left" valign="top" width="130">
+      <table cellpadding="2" cellspacing="1" border="0" class="ClearFormTABLE" width="100%">
+        <tr>
+          <td class="ClearHeaderTD">Navigation</td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../private/index.php">Home Page</a> </td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../logout.php">Logout</a> </td> 
+        </tr>
+ 
+      </table>
+ <br>
+      <table cellpadding="2" cellspacing="1" border="0" class="ClearFormTABLE" width="100%">
+        <tr>
+          <td class="ClearHeaderTD">Your Records</td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD" nowrap><a href="../private/participant_maint.php">Peering
+            Record</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../private/user_maint.php">User Account</a></td> 
+        </tr>
+ 
+      </table>
+ <br>
+      <table cellpadding="2" cellspacing="1" border="0" class="ClearFormTABLE" width="100%">
+        <tr>
+          <td class="ClearHeaderTD">Search Records</td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD" nowrap><a href="../private/participant_list.php">Networks</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../private/exchange_list.php">Exchange Points</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../private/facility_list.php">Facilities</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../private/common_list.php">Common Points</a></td> 
+        </tr>
+ 
+      </table>
+ <br>
+      <table class="ClearFormTABLE" cellspacing="1" cellpadding="2" width="100%" border="0">
+        <tr>
+          <td class="ClearHeaderTD">Suggestions</td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../suggestions/comments.php">Comments</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../suggestions/suggest_exchange.php">New Exchange</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD"><a href="../suggestions/suggest_facility.php">New Facility</a></td> 
+        </tr>
+ 
+      </table>
+ <br>
+       &nbsp; 
+      <table cellpadding="2" cellspacing="1" border="0" class="ClearFormTABLE" width="100%">
+        <tr>
+          <td class="ClearHeaderTD">Help</td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD" nowrap><a href="../help/faq.php">FAQ</a></td> 
+        </tr>
+ 
+        <tr>
+          <td class="ClearFieldCaptionTD" nowrap><a href="../help/stats.php">Statistics</a></td> 
+        </tr>
+ 
+      </table>
+ </td> 
+    <td align="left" valign="top">
+      <!-- Header -->
+
+
+<form name="peerParticipantsSearch" action="participant_list.php?peerParticipantsPage=297&ccsForm=peerParticipantsSearch" method="post">
+  <table class="ClearFormTABLE" cellspacing="1" cellpadding="2" border="0" width="100%">
+    <tr>
+      <td class="ClearHeaderTD" colspan="4">Search Peering Networks</td> 
+    </tr>
+    
+    <tr>
+      <td class="ClearFieldCaptionTD">Company Name</td> 
+      <td class="ClearDataTD"><input class="ClearInput" size="35" value="" name="s_name"></td> 
+      <td class="ClearFieldCaptionTD">Primary ASN</td> 
+      <td class="ClearDataTD"><input class="ClearInput" maxlength="9" size="9" value="" name="s_asn"></td> 
+    </tr>
+ 
+    <tr>
+      <td class="ClearFieldCaptionTD" width="15%">Network&nbsp;Type</td> 
+      <td class="ClearDataTD">
+        <select name="s_info_type" class="ClearSelect">
+          <option value="" selected>Select Value</option>
+ <OPTION VALUE="Content">Content</OPTION>
+<OPTION VALUE="Cable/DSL">Cable/DSL</OPTION>
+<OPTION VALUE="NSP">NSP</OPTION>
+<OPTION VALUE="ISP">ISP</OPTION>
+ 
+        </select>
+ </td> 
+      <td class="ClearFieldCaptionTD" width="15%">IRR Macro</td> 
+      <td class="ClearDataTD"><input class="ClearInput" value="" name="s_irr_as_set"></td> 
+    </tr>
+ 
+    <tr>
+      <td class="ClearFieldCaptionTD">Traffic Levels</td> 
+      <td class="ClearDataTD" width="35%">
+        <select name="s_info_traffic" class="ClearSelect">
+          <option value="" selected>Select Value</option>
+ <OPTION VALUE="Not Disclosed">Not Disclosed</OPTION>
+<OPTION VALUE="0-20 Mbps">0-20 Mbps</OPTION>
+<OPTION VALUE="20-100Mbps">20-100 Mbps</OPTION>
+<OPTION VALUE="100-1000Mbps">100-1000 Mbps</OPTION>
+<OPTION VALUE="1-5Gbps">1-5 Gbps</OPTION>
+<OPTION VALUE="5-10Gbps">5-10 Gbps</OPTION>
+<OPTION VALUE="10-20Gbps">10-20 Gbps</OPTION>
+<OPTION VALUE="20-50 Gbps">20-50 Gbps</OPTION>
+<OPTION VALUE="50-100 Gbps">50-100 Gbps</OPTION>
+<OPTION VALUE="100+ Gbps">100+ Gbps</OPTION>
+ 
+        </select>
+ </td> 
+      <td class="ClearFieldCaptionTD">General Peering Policy</td> 
+      <td class="ClearDataTD">
+        <select name="s_policy_general" class="ClearSelect">
+          <option value="" selected>Select Value</option>
+ <OPTION VALUE="Open">Open</OPTION>
+<OPTION VALUE="Selective">Selective</OPTION>
+<OPTION VALUE="Restrictive">Restrictive</OPTION>
+ 
+        </select>
+ </td> 
+    </tr>
+ 
+    <tr>
+      <td class="ClearFieldCaptionTD">Traffic Ratio</td> 
+      <td class="ClearDataTD">
+        <select name="s_info_ratio" class="ClearSelect">
+          <option value="" selected>Select Value</option>
+ <OPTION VALUE="Heavy Outbound">Heavy Outbound</OPTION>
+<OPTION VALUE="Mostly Outbound">Mostly Outbound</OPTION>
+<OPTION VALUE="Balanced">Balanced</OPTION>
+<OPTION VALUE="Mostly Inbound">Mostly Inbound</OPTION>
+<OPTION VALUE="Heavy Inbound">Heavy Inbound</OPTION>
+ 
+        </select>
+ </td> 
+      <td class="ClearFieldCaptionTD">Geographic Scope</td> 
+      <td class="ClearDataTD" width="35%">
+        <select name="s_info_scope" class="ClearSelect">
+          <option value="" selected>Select Value</option>
+ <OPTION VALUE="Regional">Regional</OPTION>
+<OPTION VALUE="Global">Global</OPTION>
+<OPTION VALUE="Africa">Africa</OPTION>
+<OPTION VALUE="Asia Pacific">Asia Pacific</OPTION>
+<OPTION VALUE="Australia">Australia</OPTION>
+<OPTION VALUE="Europe">Europe</OPTION>
+<OPTION VALUE="Middle East">Middle East</OPTION>
+<OPTION VALUE="North America">North America</OPTION>
+<OPTION VALUE="South America">South America</OPTION>
+ 
+        </select>
+ </td> 
+    </tr>
+ 
+    <tr>
+      <td class="ClearFooterTD" nowrap align="right" colspan="4">
+        <input class="ClearButton" type="submit" value="Search" name="Button_DoSearch">&nbsp; </td> 
+    </tr>
+ 
+  </table>
+</form>
+<p></p>
+<p></p>
+<p>
+</p>
+<p>
+<table class="ClearFormTABLE" cellspacing="1" cellpadding="2" border="0" width="100%">
+  <tr>
+    <td class="ClearHeaderTD" nowrap colspan="8">Peering Networks Search Results</td> 
+  </tr>
+ 
+  <tr>
+    <td class="ClearColumnTD" nowrap>Company Name</td> 
+    <td class="ClearColumnTD" nowrap>
+      <a class="ClearSorterLink" href="participant_list.php?peerParticipantsOrder=Sorter_asn&peerParticipantsDir=ASC">ASN</a> 
+      
+      </td> 
+    <td class="ClearColumnTD" nowrap>
+      <a class="ClearSorterLink" href="participant_list.php?peerParticipantsOrder=Sorter_policy_general&peerParticipantsDir=ASC">General
+      Policy</a> 
+      
+      </td> 
+    <td class="ClearColumnTD" nowrap>
+      <a class="ClearSorterLink" href="participant_list.php?peerParticipantsOrder=Sorter_info_traffic&peerParticipantsDir=ASC">Traffic
+      Levels</a> 
+      
+      </td> 
+    <td class="ClearColumnTD" nowrap>
+      <a class="ClearSorterLink" href="participant_list.php?peerParticipantsOrder=Sorter_info_type&peerParticipantsDir=ASC">Network
+      Type</a> 
+      
+      </td> 
+    <td class="ClearColumnTD" nowrap>
+      <a class="ClearSorterLink" href="participant_list.php?peerParticipantsOrder=Sorter_policy_ratio&peerParticipantsDir=ASC">Network
+      Scope</a> 
+      
+      </td> 
+    <td class="ClearColumnTD" nowrap>Public Count</td> 
+    <td class="ClearColumnTD" nowrap>Private Count</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=8301">OpenWay</a></td> 
+    <td class="ClearDataTD">57670&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">100-1000Mbps&nbsp;</td> 
+    <td class="ClearDataTD">Cable/DSL/ISP&nbsp;</td> 
+    <td class="ClearDataTD">Regional</td> 
+    <td class="ClearDataTD" align="right">0</td> 
+    <td class="ClearDataTD" align="right">2</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=2780">Openwide Outsourcing</a></td> 
+    <td class="ClearDataTD">16073&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">100-1000Mbps&nbsp;</td> 
+    <td class="ClearDataTD">Content&nbsp;</td> 
+    <td class="ClearDataTD">Europe</td> 
+    <td class="ClearDataTD" align="right">2</td> 
+    <td class="ClearDataTD" align="right">2</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=3144">OpenX</a></td> 
+    <td class="ClearDataTD">36089&nbsp;</td> 
+    <td class="ClearDataTD">Selective</td> 
+    <td class="ClearDataTD">Not Disclosed&nbsp;</td> 
+    <td class="ClearDataTD">Content&nbsp;</td> 
+    <td class="ClearDataTD">Global</td> 
+    <td class="ClearDataTD" align="right">8</td> 
+    <td class="ClearDataTD" align="right">9</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=9071">OpenXS</a></td> 
+    <td class="ClearDataTD">3331&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">5-10Gbps&nbsp;</td> 
+    <td class="ClearDataTD">NSP&nbsp;</td> 
+    <td class="ClearDataTD">Regional</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=3863">Opera Software ASA</a></td> 
+    <td class="ClearDataTD">39832&nbsp;</td> 
+    <td class="ClearDataTD">Selective</td> 
+    <td class="ClearDataTD">Not Disclosed&nbsp;</td> 
+    <td class="ClearDataTD">Enterprise&nbsp;</td> 
+    <td class="ClearDataTD">Global</td> 
+    <td class="ClearDataTD" align="right">4</td> 
+    <td class="ClearDataTD" align="right">9</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=8323">Opex ehf</a></td> 
+    <td class="ClearDataTD">60690&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">1-5Gbps&nbsp;</td> 
+    <td class="ClearDataTD">Content&nbsp;</td> 
+    <td class="ClearDataTD">Europe</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+    <td class="ClearDataTD" align="right">0</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=7432">OPQNET (Pty) Ltd</a></td> 
+    <td class="ClearDataTD">33781&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">100-1000Mbps&nbsp;</td> 
+    <td class="ClearDataTD">Cable/DSL/ISP&nbsp;</td> 
+    <td class="ClearDataTD">Africa</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+    <td class="ClearDataTD" align="right">0</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=2250">Opteamax GmbH</a></td> 
+    <td class="ClearDataTD">48200&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">1-5Gbps&nbsp;</td> 
+    <td class="ClearDataTD">NSP&nbsp;</td> 
+    <td class="ClearDataTD">Global</td> 
+    <td class="ClearDataTD" align="right">7</td> 
+    <td class="ClearDataTD" align="right">3</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=5441">OPTIC TELECOM CHILE</a></td> 
+    <td class="ClearDataTD">52439&nbsp;</td> 
+    <td class="ClearDataTD">Selective</td> 
+    <td class="ClearDataTD">1-5Gbps&nbsp;</td> 
+    <td class="ClearDataTD">Cable/DSL/ISP&nbsp;</td> 
+    <td class="ClearDataTD">South America</td> 
+    <td class="ClearDataTD" align="right">0</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=8290">OPTICAL TECHNOLOGIES</a></td> 
+    <td class="ClearDataTD">27843&nbsp;</td> 
+    <td class="ClearDataTD">Selective</td> 
+    <td class="ClearDataTD">Not Disclosed&nbsp;</td> 
+    <td class="ClearDataTD">NSP&nbsp;</td> 
+    <td class="ClearDataTD">South America</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+    <td class="ClearDataTD" align="right">0</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=1527">Optilian</a></td> 
+    <td class="ClearDataTD">29246&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">Not Disclosed&nbsp;</td> 
+    <td class="ClearDataTD">NSP&nbsp;</td> 
+    <td class="ClearDataTD">Europe</td> 
+    <td class="ClearDataTD" align="right">2</td> 
+    <td class="ClearDataTD" align="right">2</td> 
+  </tr>
+  
+  <tr>
+    <td class="ClearDataTD"><a class="ClearDataLink" href="participant_view.php?id=5514">Optima Italia</a></td> 
+    <td class="ClearDataTD">44513&nbsp;</td> 
+    <td class="ClearDataTD">Open</td> 
+    <td class="ClearDataTD">100-1000Mbps&nbsp;</td> 
+    <td class="ClearDataTD">Cable/DSL/ISP&nbsp;</td> 
+    <td class="ClearDataTD">Regional</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+    <td class="ClearDataTD" align="right">1</td> 
+  </tr>
+  
+  
+  <tr>
+    <td class="ClearFooterTD" nowrap align="center" colspan="8">
+      
+      <a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=1"><img src="../Themes/Clear/FirstOn.gif" border="0"></a> 
+      <a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=296"><img src="../Themes/Clear/PrevOn.gif" border="0"></a> &nbsp; 
+      <a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=293">293</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=294">294</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=295">295</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=296">296</a>&nbsp;297&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=298">298</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=299">299</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=300">300</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=301">301</a>&nbsp;<a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=302">302</a>&nbsp;of
+      464&nbsp; 
+      <a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=298"><img src="../Themes/Clear/NextOn.gif" border="0"></a> 
+      <a class="ClearNavigatorLink" href="participant_list.php?peerParticipantsPage=464"><img src="../Themes/Clear/LastOn.gif" border="0"></a> </td> 
+  </tr>
+</table>
+</p>
+<p></p>
+<p></td>
+</tr>
+<tr>
+  <td></td> 
+  <td><br>
+<b>NOTE: Sending Unsolicited Commercial Emails to contacts mined from 
+PeeringDB will result in a ban and public embarrassment.</b><br>
+<h1 style="color: red; animation: blink 1s step-end infinite;">PPS: PeeringDB is preparing for version 2, see <a href="https://beta.peeringdb.com/docs/">https://beta.peeringdb.com/docs/</a> for details. We'd like you to become involved with our new organization, see <a href="http://gov.peeringdb.com/">http://gov.peeringdb.com/</a>.</h1>
+(c) 2004-2015 PeeringDB, All Rights Reserved. Please contact
+support@peeringdb.com with questions/problems.</td>
+</tr>
+</table>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-11927043-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</p>
+</body>
+</html>
