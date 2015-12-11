@@ -41,6 +41,7 @@ public class ASTopoParser {
 				Constants.SUPER_AS_FILE, avoidMode, poisonMode);
 		System.out.println("Raw topo size is: " + asMap.size());
 		ASTopoParser.parseIPScoreFile(asMap, Constants.IP_COUNT_FILE);
+		ASTopoParser.parseTrafficWeightFile(asMap, Constants.TRAFFIC_MODEL_FILE);
 
 		return asMap;
 	}
@@ -228,6 +229,36 @@ public class ASTopoParser {
 
 		System.out.println(unMatchedAS + " times AS records were not found in IP seeding.");
 		System.out.println(lostIPs + " IP addresses lost as a result.");
+	}
+
+	private static void parseTrafficWeightFile(TIntObjectMap<DecoyAS> asMap, String trafficWeightsFile)
+			throws IOException {
+		BufferedReader inBuff = new BufferedReader(new FileReader(trafficWeightsFile));
+		int marked = 0;
+		int lost = 0;
+		while (inBuff.ready()) {
+			String pollString = inBuff.readLine().trim();
+			if (pollString.length() == 0) {
+				continue;
+			}
+
+			StringTokenizer tokens = new StringTokenizer(pollString, ",");
+			int tASN = Integer.parseInt(tokens.nextToken());
+			double upFrac = Double.parseDouble(tokens.nextToken());
+			double downFrac = Double.parseDouble(tokens.nextToken());
+			double baseFrac = Double.parseDouble(tokens.nextToken());
+			if (asMap.containsKey(tASN)) {
+				asMap.get(tASN).setTrafficFactors(upFrac, downFrac, baseFrac);
+				marked++;
+			} else {
+				lost++;
+			}
+		}
+		inBuff.close();
+
+		System.out.println("No traffic factor ASes: " + (asMap.size() - marked) + "("
+				+ ((float) marked / (float) asMap.size()) + " good)");
+		System.out.println("Lost traffic factors: " + lost);
 	}
 
 	public static void validateRelexive(HashMap<Integer, AS> asMap) {
