@@ -49,7 +49,11 @@ public abstract class AS implements TransitAgent {
 	private ReversePoisonMode poisonMode;
 
 	private int numberOfIPs;
+	private double upTrafficFactor;
+	private double downTrafficFactor;
+	private double baseTrafficFactor;
 	private long sizeOfCustomerIPCone;
+	private double sizeOfTrafficCustomerCone;
 	/** the percentage of ip count in the all normal ASes */
 	private double ipPercentage;
 	/** the amount of traffic sent from each super AS */
@@ -85,6 +89,9 @@ public abstract class AS implements TransitAgent {
 
 	public AS(int myASN) {
 		this.asn = myASN;
+		this.upTrafficFactor = 0.0;
+		this.downTrafficFactor = 0.0;
+		this.baseTrafficFactor = 0.0;
 		this.ipPercentage = 0;
 		this.trafficFromSuperAS = 0;
 		this.wardenAS = false;
@@ -177,7 +184,25 @@ public abstract class AS implements TransitAgent {
 		serialOut.writeObject(this.volatileDestinations);
 
 	}
+	
+	public void setTrafficFactors(double upFactor, double downFactor, double baseFactor){
+		this.upTrafficFactor = upFactor;
+		this.downTrafficFactor = downFactor;
+		this.baseTrafficFactor = baseFactor;
+	}
 
+	public double getUpTrafficFactor(){
+		return this.upTrafficFactor;
+	}
+	
+	public double getDownTrafficFactor(){
+		return this.downTrafficFactor;
+	}
+	
+	public double getBaseTrafficFactor(){
+		return this.baseTrafficFactor;
+	}
+	
 	/**
 	 * Sets the ip count, as it is not parsed at the point of AS object
 	 * creation.
@@ -1197,5 +1222,13 @@ public abstract class AS implements TransitAgent {
 
 	public long getIPCustomerCone() {
 		return this.sizeOfCustomerIPCone;
+	}
+	
+	public void setCusomterTrafficCone(double custTrafficCone){
+		this.sizeOfTrafficCustomerCone = custTrafficCone;
+	}
+	
+	public double getTrafficCustomerCone(){
+		return this.sizeOfTrafficCustomerCone;
 	}
 }
