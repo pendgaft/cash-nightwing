@@ -208,11 +208,13 @@ public class ParallelTrafficStat {
 			/*
 			 * Run the super AS traffic flow
 			 */
-			this.statTrafficFromSuperAS();
-			superAS = System.currentTimeMillis();
-			if (ParallelTrafficStat.REPORT_TIMING) {
-				System.out.println("Traffic flowing from super ASes done, this took: " + (superAS - ptpNetwork) / 60000
-						+ " minutes.");
+			if (this.superASRatio != 0.0) {
+				this.statTrafficFromSuperAS();
+				superAS = System.currentTimeMillis();
+				if (ParallelTrafficStat.REPORT_TIMING) {
+					System.out.println("Traffic flowing from super ASes done, this took: "
+							+ (superAS - ptpNetwork) / 60000 + " minutes.");
+				}
 			}
 		}
 
