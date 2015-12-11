@@ -351,13 +351,17 @@ public class ParallelTrafficStat {
 	 * @return
 	 */
 	private double addTrafficToPath(BGPPath thePath, DecoyAS srcAS, DecoyAS destAS, boolean fromSuperAS,
-			boolean isVolatile) {
+			boolean isVolatile, boolean srcIsClient) {
 
 		double amountOfTraffic = 0;
 		if (fromSuperAS) {
 			amountOfTraffic = destAS.getTrafficFromEachSuperAS();
 		} else {
-			amountOfTraffic = srcAS.getIPCount() * destAS.getIPCount();
+			if (srcIsClient) {
+				amountOfTraffic = srcAS.getUpTrafficFactor() * destAS.getBaseTrafficFactor();
+			} else {
+				amountOfTraffic = srcAS.getBaseTrafficFactor() * destAS.getDownTrafficFactor();
+			}
 		}
 
 		/*
@@ -398,9 +402,9 @@ public class ParallelTrafficStat {
 	 * @param destAS
 	 */
 	private void addTrafficToPathAndLastHop(BGPPath thePath, DecoyAS srcAS, DecoyAS destAS, boolean fromSuperAS,
-			boolean isVolatile) {
+			boolean isVolatile, boolean srcIsClient) {
 
-		double amountOfTraffic = this.addTrafficToPath(thePath, srcAS, destAS, fromSuperAS, isVolatile);
+		double amountOfTraffic = this.addTrafficToPath(thePath, srcAS, destAS, fromSuperAS, isVolatile, srcIsClient);
 
 		TIntList pathList = thePath.getPath();
 		DecoyAS lastASInRealPath = this.fullTopology.get(pathList.get(pathList.size() - 1));
@@ -510,7 +514,8 @@ public class ParallelTrafficStat {
 			/*
 			 * Actually add the traffic to the AS objects
 			 */
-			this.addTrafficToPath(usedPath, srcActiveAS, destAS, false, isVolatile);
+			this.addTrafficToPath(usedPath, srcActiveAS, destAS, false, isVolatile, true);
+			this.addTrafficToPath(usedPath, srcActiveAS, destAS, false, isVolatile, false);
 		}
 	}
 
@@ -552,7 +557,8 @@ public class ParallelTrafficStat {
 				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic, isVolatile);
 				continue;
 			}
-			this.addTrafficToPathAndLastHop(tpath, srcActiveAS, tdestPurgedAS, false, isVolatile);
+			this.addTrafficToPathAndLastHop(tpath, srcActiveAS, tdestPurgedAS, false, isVolatile, true);
+			this.addTrafficToPathAndLastHop(tpath, srcActiveAS, tdestPurgedAS, false, isVolatile, false);
 		}
 	}
 
@@ -604,7 +610,8 @@ public class ParallelTrafficStat {
 				isVolatile = true;
 			}
 
-			this.addTrafficToPath(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN), false, isVolatile);
+			this.addTrafficToPath(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN), false, isVolatile, true);
+			this.addTrafficToPath(tpath, srcPurgedAS, this.fullTopology.get(tdestActiveASN), false, isVolatile, false);
 			bestPathMapping.put(tdestActiveASN, tpath);
 		}
 
@@ -661,7 +668,9 @@ public class ParallelTrafficStat {
 			}
 
 			this.addTrafficToPathAndLastHop(tpath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN), false,
-					isVolatile);
+					isVolatile, true);
+			this.addTrafficToPathAndLastHop(tpath, srcPurgedAS, this.fullTopology.get(tdestPurgedASN), false,
+					isVolatile, false);
 		}
 	}
 
@@ -783,7 +792,7 @@ public class ParallelTrafficStat {
 			}
 
 			/* if the path exists, do the statistic */
-			this.addTrafficToPath(tpath, srcSuperAS, tDestActiveAS, true, isVolatile);
+			this.addTrafficToPath(tpath, srcSuperAS, tDestActiveAS, true, isVolatile, true);
 		}
 
 	}
@@ -829,7 +838,7 @@ public class ParallelTrafficStat {
 				srcSuperAS.updateTrafficOverOneNeighbor(tDestPurgedAS.getASN(), amountOfTraffic, volatilePath);
 				continue;
 			}
-			this.addTrafficToPathAndLastHop(tpath, srcSuperAS, tDestPurgedAS, true, isVolatile);
+			this.addTrafficToPathAndLastHop(tpath, srcSuperAS, tDestPurgedAS, true, isVolatile, true);
 		}
 	}
 
