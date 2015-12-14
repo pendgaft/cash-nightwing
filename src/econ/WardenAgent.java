@@ -14,8 +14,8 @@ public class WardenAgent extends EconomicAgent {
 	private TIntObjectMap<DecoyAS> prunedTopo;
 	private Writer cleannessLog;
 
-	public WardenAgent(DecoyAS parentObject, Writer revLog, Writer cleanLog,
-			TIntObjectMap<DecoyAS> activeTopo, TIntObjectMap<DecoyAS> prunedTopo, Writer pathLog) {
+	public WardenAgent(DecoyAS parentObject, Writer revLog, Writer cleanLog, TIntObjectMap<DecoyAS> activeTopo,
+			TIntObjectMap<DecoyAS> prunedTopo, Writer pathLog) {
 		super(parentObject, revLog, activeTopo, pathLog);
 		this.cleannessLog = cleanLog;
 		if (!parentObject.isWardenAS()) {
@@ -37,6 +37,10 @@ public class WardenAgent extends EconomicAgent {
 		double cleanIPCount = 0.0;
 		double totalNonCoopIPCount = 0.0;
 		double cleanNonCoopIPCount = 0.0;
+		double totalTFCount = 0.0;
+		double cleanTFCount = 0.0;
+		double totalNonCoopTFCount = 0.0;
+		double cleanNonCoopTFCount = 0.0;
 		double totalASCount = 0.0;
 		double cleanASCount = 0.0;
 
@@ -61,19 +65,24 @@ public class WardenAgent extends EconomicAgent {
 			}
 
 			int ipCount = this.activeTopo.get(tDest).getIPCount();
+			double tf = this.activeTopo.get(tDest).getBaseTrafficFactor();
 			if (!tPath.containsAnyOf(decoySet)) {
+				cleanTFCount += tf;
 				cleanIPCount += ipCount;
 				cleanASCount += 1;
 
 				if (!this.activeTopo.get(tDest).isDecoy()) {
 					cleanNonCoopIPCount += ipCount;
+					cleanNonCoopTFCount += tf;
 				}
 			}
 
+			totalTFCount += tf;
 			totalIPCount += ipCount;
 			totalASCount += 1;
 			if (!this.activeTopo.get(tDest).isDecoy()) {
 				totalNonCoopIPCount += ipCount;
+				totalNonCoopTFCount += tf;
 			}
 		}
 
@@ -98,19 +107,25 @@ public class WardenAgent extends EconomicAgent {
 			}
 
 			int ipCount = this.prunedTopo.get(tDest).getIPCount();
+			double tf = this.prunedTopo.get(tDest).getBaseTrafficFactor();
 			if (!tPath.containsAnyOf(decoySet)) {
+				cleanTFCount += tf;
 				cleanIPCount += ipCount;
 				cleanASCount += 1;
+				cleanNonCoopTFCount += tf;
 				cleanNonCoopIPCount += ipCount;
 			}
+			totalTFCount += tf;
 			totalIPCount += ipCount;
 			totalASCount += 1;
+			totalNonCoopTFCount += tf;
 			totalNonCoopIPCount += ipCount;
 		}
 
 		try {
-			this.cleannessLog.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + "," + cleanASCount
-					/ totalASCount + "," + cleanNonCoopIPCount / totalNonCoopIPCount + "\n");
+			this.cleannessLog.write("" + this.parent.getASN() + "," + cleanIPCount / totalIPCount + ","
+					+ cleanASCount / totalASCount + "," + cleanNonCoopIPCount / totalNonCoopIPCount + ","
+					+ cleanTFCount / totalTFCount + "," + cleanNonCoopTFCount / totalNonCoopTFCount + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);

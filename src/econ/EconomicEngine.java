@@ -19,7 +19,7 @@ import topo.BGPPath;
 public class EconomicEngine {
 
 	public enum OrderMode {
-		PathAppearance, IPWeighted;
+		PathAppearance, IPWeighted, TrafficWeighted;
 	}
 
 	private HashMap<Integer, EconomicAgent> theTopo;
@@ -116,10 +116,13 @@ public class EconomicEngine {
 			EconomicEngine.buildIndividualCustomerCone(tAgent.parent);
 
 			long ipCCSize = 0;
+			double trafficFactorCC = 0.0;
 			for (int tASN : tAgent.parent.getCustomerConeASList()) {
 				ipCCSize += this.theTopo.get(tASN).parent.getIPCount();
+				trafficFactorCC += this.theTopo.get(tASN).parent.getBaseTrafficFactor();
 			}
 			tAgent.parent.setCustomerIPCone(ipCCSize);
+			tAgent.parent.setCusomterTrafficCone(trafficFactorCC);
 		}
 		if (Constants.DEBUG) {
 			for (DecoyAS tAS : this.activeTopology.valueCollection()) {

@@ -82,13 +82,13 @@ public class ParallelTrafficStat {
 		for (int tASN : this.activeMap.keys()) {
 			this.fullTopology.put(tASN, this.activeMap.get(tASN));
 			/* only need AS which has IP count */
-			if (this.activeMap.get(tASN).getIPCount() != 0) {
+			if (this.activeMap.get(tASN).getBaseTrafficFactor() != 0) {
 				this.validASNList.add(tASN);
 			}
 		}
 		for (int tASN : this.purgedMap.keys()) {
 			this.fullTopology.put(tASN, this.purgedMap.get(tASN));
-			if (this.purgedMap.get(tASN).getIPCount() != 0) {
+			if (this.purgedMap.get(tASN).getBaseTrafficFactor() != 0) {
 				this.validASNList.add(tASN);
 			}
 		}
@@ -553,8 +553,9 @@ public class ParallelTrafficStat {
 			}
 
 			if (tdestPurgedAS.getProviders().contains(srcActiveAS)) {
-				double amountOfTraffic = srcActiveAS.getIPCount() * tdestPurgedAS.getIPCount();
-				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), amountOfTraffic, isVolatile);
+				double a1 = srcActiveAS.getUpTrafficFactor() * tdestPurgedAS.getBaseTrafficFactor();
+				double a2 = srcActiveAS.getBaseTrafficFactor() * tdestPurgedAS.getDownTrafficFactor();
+				srcActiveAS.updateTrafficOverOneNeighbor(tdestPurgedAS.getASN(), a1 + a2, isVolatile);
 				continue;
 			}
 			this.addTrafficToPathAndLastHop(tpath, srcActiveAS, tdestPurgedAS, false, isVolatile, true);
@@ -680,6 +681,7 @@ public class ParallelTrafficStat {
 	 * 
 	 * @throws IOException
 	 */
+	//FIXME super incorrect right now, but not used
 	private void statTotalP2PTraffic() {
 
 		int ips[] = new int[this.activeMap.size() + this.purgedMap.size()];
@@ -711,6 +713,11 @@ public class ParallelTrafficStat {
 	 * 
 	 * @param totalTrafficFromSuperASes
 	 */
+	/*
+	 * TODO this is a hazard since super ASes are not used anymore, so dead
+	 * code lying around, stop and think about what you're doing before you
+	 * edit/use this!
+	 */
 	private void groupASesAndCalcTrafficForNormalAS(double totalTrafficFromSuperASes) {
 		int superASNum = 0;
 		double totalIPCounts = 0;
@@ -735,10 +742,13 @@ public class ParallelTrafficStat {
 
 		/* calculate the percentage */
 		double trafficFromOneSuperAS = totalTrafficFromSuperASes / superASNum;
-		for (DecoyAS tAS : this.normalASList) {
+		for (DecoyAS tAS : this.normalASList)
+
+		{
 			tAS.setIPPercentage(tAS.getIPCount() / totalIPCounts);
 			tAS.setTrafficFromEachSuperAS(tAS.getIPCount() / totalIPCounts * trafficFromOneSuperAS);
 		}
+
 	}
 
 	/**

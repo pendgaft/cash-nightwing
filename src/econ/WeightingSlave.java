@@ -45,7 +45,6 @@ public class WeightingSlave implements Runnable {
 					}
 
 					TIntIterator tIter = tPath.getPath().iterator();
-					double ipSize = this.theTopo.get(tDestASN).parent.getIPCount();
 					while (tIter.hasNext()) {
 						int tHop = tIter.next();
 						if (!this.resultMap.containsKey(tHop)) {
@@ -55,7 +54,11 @@ public class WeightingSlave implements Runnable {
 						if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.PathAppearance) {
 							this.resultMap.put(tHop, this.resultMap.get(tHop) + 1);
 						} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.IPWeighted) {
-							this.resultMap.put(tHop, this.resultMap.get(tHop) + ipSize);
+							this.resultMap.put(tHop,
+									this.resultMap.get(tHop) + this.theTopo.get(tDestASN).parent.getIPCount());
+						} else if (Constants.DEFAULT_ORDER_MODE == EconomicEngine.OrderMode.TrafficWeighted) {
+							this.resultMap.put(tHop, this.resultMap.get(tHop)
+									+ this.theTopo.get(tDestASN).parent.getBaseTrafficFactor());
 						} else {
 							throw new RuntimeException("Bad AS ordering mode!");
 						}
