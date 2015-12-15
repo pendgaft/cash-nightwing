@@ -32,7 +32,6 @@ public class MaxParser {
 	public static void main(String[] args) throws IOException {
 		String fileBase = args[0];
 		MaxParser self = new MaxParser(IP_FILE);
-
 		File baseFolder = new File(fileBase + INPUT_SUFFIX);
 		File children[] = baseFolder.listFiles();
 
@@ -956,8 +955,10 @@ public class MaxParser {
 		 * Currently units of milUSD / sim units Source:
 		 * https://www.telegeography
 		 * .com/research-services/ip-transit-forecast-service/index.html
+		 * 
+		 * Based on 4.6 billion total revenue from telegeo in 2014
 		 */
-		return amount * 0.000000008154451706;
+		return amount * 1.6665178048188795e-20;
 	}
 
 	public void parsePathLength(String wardenFile, String pathLogFile, String outFile, boolean revWarn)
