@@ -89,8 +89,8 @@ public class EconomicEngine {
 		}
 		for (DecoyAS tAS : activeMap.valueCollection()) {
 			if (tAS.isWardenAS()) {
-				this.theTopo.put(tAS.getASN(), new WardenAgent(tAS, this.transitOut, this.wardenOut, activeMap,
-						prunedMap, this.pathOut));
+				this.theTopo.put(tAS.getASN(),
+						new WardenAgent(tAS, this.transitOut, this.wardenOut, activeMap, prunedMap, this.pathOut));
 			} else {
 				this.theTopo.put(tAS.getASN(), new TransitProvider(tAS, this.transitOut, activeMap,
 						TransitProvider.DECOY_STRAT.DICTATED, this.pathOut));
@@ -216,8 +216,8 @@ public class EconomicEngine {
 				break;
 			}
 		}
-		
-		if(testAS == null){
+
+		if (testAS == null) {
 			try {
 				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
 				fw.write(testAS.getASN() + ",NIT,0\n");
@@ -249,7 +249,7 @@ public class EconomicEngine {
 			testAS.toggleWardenAS(AS.AvoidMode.NONE, AS.ReversePoisonMode.HONEST);
 			Set<Integer> candidates = testAS.getActiveNeighbors();
 			Set<Integer> current = new HashSet<Integer>();
-			
+
 			HashMap<Integer, Double> reduceMap = new HashMap<Integer, Double>();
 			double currentPain = 0.0;
 			while (true) {
@@ -292,15 +292,14 @@ public class EconomicEngine {
 					current.add(currBest);
 					candidates.remove(currBest);
 					currentPain = possNewBestPain;
-					System.out.println(testAS.getASN() + "," + (currentPain / lyingRedux) + ","
-							+ testAS.getIPCount());
+					System.out.println(testAS.getASN() + "," + (currentPain / lyingRedux) + "," + testAS.getIPCount());
 				}
 			}
 
 			try {
 				FileWriter fw = new FileWriter("/scratch/minerva2/schuch/lyingResult.txt", true);
-				System.out.println("final " + testAS.getASN() + "," + (currentPain / lyingRedux) + ","
-						+ testAS.getIPCount());
+				System.out.println(
+						"final " + testAS.getASN() + "," + (currentPain / lyingRedux) + "," + testAS.getIPCount());
 				fw.write(testAS.getASN() + "," + (currentPain / lyingRedux) + "," + testAS.getIPCount() + "\n");
 				fw.close();
 			} catch (IOException e) {
@@ -368,7 +367,7 @@ public class EconomicEngine {
 			 */
 			Set<Integer> drSet = new HashSet<Integer>();
 			int listPos = 0;
-			while (drSet.size() != drCount) {
+			while (drSet.size() != drCount && rankList.size() > listPos) {
 				drSet.add(rankList.get(listPos));
 				listPos++;
 			}
@@ -416,8 +415,10 @@ public class EconomicEngine {
 		Set<Integer> usedSet = new HashSet<Integer>();
 		for (int counter = 0; counter < size; counter++) {
 			List<Integer> tmpList = this.buildSortedBase(1, global, usedSet);
-			retList.add(tmpList.get(0));
-			usedSet.add(tmpList.get(0));
+			if (tmpList.size() > 0) {
+				retList.add(tmpList.get(0));
+				usedSet.add(tmpList.get(0));
+			}
 		}
 
 		return retList;
@@ -486,7 +487,7 @@ public class EconomicEngine {
 		Collections.sort(rankList);
 
 		List<Integer> retList = new ArrayList<Integer>();
-		for (int counter = 0; counter < goalSize; counter++) {
+		for (int counter = 0; counter < goalSize && rankList.size() > counter; counter++) {
 			retList.add(rankList.get(rankList.size() - (counter + 1)).getASN());
 		}
 
@@ -528,7 +529,7 @@ public class EconomicEngine {
 			 */
 			Set<Integer> drSet = new HashSet<Integer>();
 			int listPos = 0;
-			while (drSet.size() != drCount) {
+			while (drSet.size() != drCount  && rankList.size() > listPos) {
 				drSet.add(rankList.get(listPos));
 				listPos++;
 			}
@@ -591,7 +592,8 @@ public class EconomicEngine {
 	 *            : only use the ASes whose ccNum is greater and equal to
 	 *            randomType
 	 */
-	private void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize, boolean logMinCCSize) {
+	private void manageFixedNumberSim(int start, int end, int step, int trialCount, int minCCSize,
+			boolean logMinCCSize) {
 		ArrayList<Integer> validDecoyASes = new ArrayList<Integer>();
 
 		for (DecoyAS tAS : this.activeTopology.valueCollection()) {
@@ -663,8 +665,8 @@ public class EconomicEngine {
 			long sliceEndTime = System.currentTimeMillis();
 			long timeDelta = (sliceEndTime - sliceStartTime) / 3600000;
 			long estRemaining = timeDelta * (numberOfTrials - sliceCounter);
-			System.out.println("Slice completed in " + timeDelta + " hours, estimated remaining sim time: "
-					+ estRemaining);
+			System.out.println(
+					"Slice completed in " + timeDelta + " hours, estimated remaining sim time: " + estRemaining);
 			sliceCounter++;
 		}
 	}
