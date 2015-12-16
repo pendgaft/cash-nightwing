@@ -19,7 +19,7 @@ public class MaxParser {
 
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
-	public static final Pattern WARDEN_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+)");
+	public static final Pattern WARDEN_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)");
 	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([a-zA-Z]+),?([E\\d\\.\\-]+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
@@ -28,6 +28,9 @@ public class MaxParser {
 
 	private static final int IP_REACHABILITY_COL = 2;
 	private static final int NC_REACHABILITY_COL = 4;
+	private static final int TRAFFIC_REACHABILITY_COL = 5;
+	private static final int NC_TRAFFIC_REACH_COL = 6;
+	
 
 	public static void main(String[] args) throws IOException {
 		String fileBase = args[0];
@@ -64,13 +67,13 @@ public class MaxParser {
 
 			self.writeDeployerLog(transitFile, fileBase + OUTPUT_SUFFIX + suffix + "/deployers.log");
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanBefore.csv", 1,
-					MaxParser.IP_REACHABILITY_COL);
+					MaxParser.TRAFFIC_REACHABILITY_COL);
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/wardenCleanAfter.csv", 2,
-					MaxParser.IP_REACHABILITY_COL);
+					MaxParser.TRAFFIC_REACHABILITY_COL);
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanBefore.csv", 1,
-					MaxParser.NC_REACHABILITY_COL);
+					MaxParser.NC_TRAFFIC_REACH_COL);
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2,
-					MaxParser.NC_REACHABILITY_COL);
+					MaxParser.NC_TRAFFIC_REACH_COL);
 
 			self.fullRevenueDetails(transitFile,
 					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drTransitRevDelta.csv", fileBase
