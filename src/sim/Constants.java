@@ -10,7 +10,7 @@ public class Constants {
 	public static final String SUPER_AS_FILE = "cash-nightwing/superAS.txt";
 	public static final String TRAFFIC_SPLIT_FILE = "cash-nightwing/trafficSplit.csv";
 	
-	public static final String BASE_LOG_DIR = "/scratch/minerva2/schuch/nightwingData/rawLogs/";
+	public static final String BASE_LOG_DIR = "/export/scratch2/schuch/nightwingData/rawLogs/";
 	
 	//TODO tune me please?
 	public static final int MAX_LIVE_TOPO_SIZE = 7800;
@@ -30,12 +30,12 @@ public class Constants {
 	public static final boolean DONT_MAKE_SERIAL = false;
 	
 	
-	public static final int NTHREADS = 10;
+	public static final int NTHREADS = 28;
 	
 	public static int RANDOM_SAMPLE_COUNT = 100;
 	
 	public static boolean REVERSE_POISON = false;
-	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.IPWeighted;
+	public static final EconomicEngine.OrderMode DEFAULT_ORDER_MODE = EconomicEngine.OrderMode.TrafficWeighted;
 	
 	public static final boolean REFUSE_DIRTY_TRAFFIC = false;
 	
