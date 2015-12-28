@@ -331,10 +331,10 @@ public class ASTopoParser {
 		 * Choose which we want, agressive or non-agressive, based on resulting
 		 * size of active topo
 		 */
-		if (asMap.size() - testNonAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+		if (asMap.size() - testNonAgressiveMap.size() <= Constants.MAX_NON_AGRESSIVE_TOPO) {
 			System.out.println("Selected NON-AGRESSIVE prune.");
 			purgeMap = testNonAgressiveMap;
-		} else if (largeMemEnv || asMap.size() - testAgressiveMap.size() <= Constants.MAX_LIVE_TOPO_SIZE) {
+		} else if (largeMemEnv || asMap.size() - testAgressiveMap.size() <= Constants.TOPO_CEIL) {
 			System.out.println("Selected AGRESSIVE prune.");
 			purgeMap = testAgressiveMap;
 		} else {

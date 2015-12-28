@@ -13,7 +13,8 @@ public class Constants {
 	public static final String BASE_LOG_DIR = "/export/scratch2/schuch/nightwingData/rawLogs/";
 	
 	//TODO tune me please?
-	public static final int MAX_LIVE_TOPO_SIZE = 7800;
+	public static final int MAX_NON_AGRESSIVE_TOPO = 7800;
+	public static final int TOPO_CEIL = 10000;
 	
 	
 //	public static final String AS_REL_FILE = "topo1Test/as-rel.txt";
