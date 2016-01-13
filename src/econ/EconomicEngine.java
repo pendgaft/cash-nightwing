@@ -329,11 +329,45 @@ public class EconomicEngine {
 		return profitSum;
 	}
 
-	public void manageDictatedDRSim(String drFile, boolean defection) {
+	public void manageDictatedDRSim(String drFile, boolean defection, boolean partialDefection) {
+		if (partialDefection && !defection) {
+			throw new RuntimeException("can't have partial defection turned on without defection");
+		}
+
 		Set<Integer> drSet = this.loadDictatedDeployerSet(drFile);
 
 		if (defection) {
-			for (int tASN : drSet) {
+			Set<Integer> skipSet = null;
+
+			if (partialDefection) {
+				Set<Integer> testSet = new HashSet<Integer>();
+				for (int counter = 0; counter < 100; counter++) {
+					int largestASN = -1;
+					int largestDeg = -1;
+					for (int tASN : this.activeTopology.keys()) {
+						if (testSet.contains(tASN) || !drSet.contains(tASN)) {
+							continue;
+						}
+						if (largestDeg < this.activeTopology.get(tASN).getDegree()) {
+							largestDeg = this.activeTopology.get(tASN).getDegree();
+							largestASN = tASN;
+						}
+					}
+					testSet.add(largestASN);
+				}
+
+				List<Integer> traffic100 = this.buildSortedBase(100, true, null);
+				for (int tASN : traffic100) {
+					if (drSet.contains(tASN)) {
+						testSet.add(tASN);
+					}
+				}
+				skipSet = testSet;
+			} else {
+				skipSet = drSet;
+			}
+
+			for (int tASN : skipSet) {
 				Set<Integer> subSet = new HashSet<Integer>();
 				subSet.addAll(drSet);
 				subSet.remove(tASN);
@@ -864,7 +898,7 @@ public class EconomicEngine {
 					e1.printStackTrace();
 					System.exit(-1);
 				}
-				
+
 				int relation = 0;
 				try {
 					relation = tAgent.getRelationship(tNeighbor);
