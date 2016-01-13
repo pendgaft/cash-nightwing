@@ -110,8 +110,9 @@ public class Nightwing implements Runnable {
 		this.trafficManager = new ParallelTrafficStat(this.liveTopo, this.prunedTopo, this.serialControl,
 				this.perfLogger);
 		this.econManager = new EconomicEngine(this.liveTopo, this.prunedTopo, this.trafficManager, this.logDirString,
-				this.perfLogger, ns.getBoolean("defection") || this.myMode == SimMode.VS
-						|| this.myMode == SimMode.HONESTEXPLORE, this.largeMemoryEnv);
+				this.perfLogger,
+				ns.getBoolean("defection") || this.myMode == SimMode.VS || this.myMode == SimMode.HONESTEXPLORE,
+				this.largeMemoryEnv, ns.getBoolean("linklog"));
 
 		/*
 		 * We're ready to simulate at this point
@@ -262,6 +263,8 @@ public class Nightwing implements Runnable {
 		argParse.addArgument("--forceLowMem").help("Forces simulator into low mem enviornment").required(false)
 				.action(Arguments.storeTrue());
 		argParse.addArgument("--nopathlog").help("Turns off path logging.").required(false)
+				.action(Arguments.storeTrue());
+		argParse.addArgument("--linklog").help("Turns on link load logging.").required(false)
 				.action(Arguments.storeTrue());
 
 		/*

@@ -31,6 +31,7 @@ public class EconomicEngine {
 	private Writer wardenOut;
 	private Writer transitOut;
 	private Writer pathOut;
+	private Writer linkOut;
 
 	private double maxIPCount;
 
@@ -44,7 +45,7 @@ public class EconomicEngine {
 
 	public EconomicEngine(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> prunedMap,
 			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger,
-			boolean supressPathLogging, boolean parallelLogging) {
+			boolean supressPathLogging, boolean parallelLogging, boolean supressLinkLogging) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.revenueForThisRound = new HashMap<Integer, Double>();
 		this.profitForThisRound = new HashMap<Integer, Double>();
@@ -75,6 +76,18 @@ public class EconomicEngine {
 					pathOutThread.start();
 				} else {
 					this.pathOut = new BufferedWriter(new FileWriter(loggingDir + "path.log"));
+				}
+			}
+
+			if (supressLinkLogging) {
+				this.linkOut = new NullOutputWriter();
+			} else {
+				if (this.parallelLogging) {
+					this.linkOut = new ThreadedWriter(loggingDir + "link.log");
+					Thread linkOutThread = new Thread((ThreadedWriter) this.linkOut, "Link Output Thread");
+					linkOutThread.start();
+				} else {
+					this.linkOut = new BufferedWriter(new FileWriter(loggingDir + "link.log"));
 				}
 			}
 		} catch (IOException e) {
@@ -529,7 +542,7 @@ public class EconomicEngine {
 			 */
 			Set<Integer> drSet = new HashSet<Integer>();
 			int listPos = 0;
-			while (drSet.size() != drCount  && rankList.size() > listPos) {
+			while (drSet.size() != drCount && rankList.size() > listPos) {
 				drSet.add(rankList.get(listPos));
 				listPos++;
 			}
@@ -708,6 +721,7 @@ public class EconomicEngine {
 			this.wardenOut.write(terminator + roundLeader + "\n");
 			this.transitOut.write(terminator + roundLeader + "\n");
 			this.pathOut.write(terminator + roundLeader + "\n");
+			this.linkOut.write(terminator + roundLeader + "\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -832,6 +846,7 @@ public class EconomicEngine {
 			this.wardenOut.close();
 			this.transitOut.close();
 			this.pathOut.close();
+			this.linkOut.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(-1);
@@ -842,7 +857,14 @@ public class EconomicEngine {
 		for (Integer tASN : this.theTopo.keySet()) {
 			EconomicAgent tAgent = this.theTopo.get(tASN);
 			for (int tNeighbor : tAgent.getNeighbors()) {
-
+				double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
+				try {
+					this.linkOut.write(tASN + "," + tNeighbor + "," + trafficVolume + "\n");
+				} catch (IOException e1) {
+					e1.printStackTrace();
+					System.exit(-1);
+				}
+				
 				int relation = 0;
 				try {
 					relation = tAgent.getRelationship(tNeighbor);
@@ -859,7 +881,6 @@ public class EconomicEngine {
 					continue;
 				}
 
-				double trafficVolume = tAgent.getTrafficOverLinkBetween(tNeighbor);
 				if (relation == AS.PROIVDER_CODE) {
 					this.updateCashForThisRound(tASN, tNeighbor, trafficVolume);
 				} else if (relation == AS.CUSTOMER_CODE) {
