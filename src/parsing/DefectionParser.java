@@ -151,6 +151,21 @@ public class DefectionParser {
 					roundResults.put(sampleSize, new HashMap<Integer, Double>());
 				}
 				currentSizeDeployers = deployerSets.get(sampleSize);
+				if(currentSizeDeployers == null){
+					int best = -1;
+					int delta = Integer.MAX_VALUE;
+					for(int tDepCount: deployerSets.keySet()){
+						int tempDelta = sampleSize - tDepCount;
+						if(tempDelta > 0 && delta > tempDelta){
+							best = tDepCount;
+							delta = tempDelta;
+						}
+					}
+					
+					System.out.println("Handling missing deployers " + sampleSize + " to " + best);
+					currentSizeDeployers = deployerSets.get(best);
+				}
+				
 				continue;
 			}
 
