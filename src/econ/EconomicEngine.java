@@ -45,7 +45,7 @@ public class EconomicEngine {
 
 	public EconomicEngine(TIntObjectMap<DecoyAS> activeMap, TIntObjectMap<DecoyAS> prunedMap,
 			ParallelTrafficStat trafficManager, String loggingDir, PerformanceLogger perfLogger,
-			boolean supressPathLogging, boolean parallelLogging, boolean supressLinkLogging) {
+			boolean supressPathLogging, boolean parallelLogging, boolean turnOnLinkLogging) {
 		this.theTopo = new HashMap<Integer, EconomicAgent>();
 		this.revenueForThisRound = new HashMap<Integer, Double>();
 		this.profitForThisRound = new HashMap<Integer, Double>();
@@ -79,7 +79,7 @@ public class EconomicEngine {
 				}
 			}
 
-			if (supressLinkLogging) {
+			if (!turnOnLinkLogging) {
 				this.linkOut = new NullOutputWriter();
 			} else {
 				if (this.parallelLogging) {
