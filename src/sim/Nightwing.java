@@ -110,8 +110,8 @@ public class Nightwing implements Runnable {
 		this.trafficManager = new ParallelTrafficStat(this.liveTopo, this.prunedTopo, this.serialControl,
 				this.perfLogger);
 		this.econManager = new EconomicEngine(this.liveTopo, this.prunedTopo, this.trafficManager, this.logDirString,
-				this.perfLogger,
-				ns.getBoolean("defection") || this.myMode == SimMode.VS || this.myMode == SimMode.HONESTEXPLORE,
+				this.perfLogger, ns.getBoolean("defection") || this.myMode == SimMode.VS
+						|| this.myMode == SimMode.HONESTEXPLORE || ns.getBoolean("nopathlog"),
 				this.largeMemoryEnv, ns.getBoolean("linklog"));
 
 		/*
