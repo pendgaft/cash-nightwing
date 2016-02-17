@@ -129,15 +129,25 @@ public class LinkIncreaseParsing {
 		BufferedWriter meanOut = new BufferedWriter(new FileWriter(meanFile));
 		meanOut.write("size,mean,median\n");
 		for (int dep : depSizes) {
-			double mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
-			double meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
+			double mean = -1.0;
+			double meadian = -1.0;
+			if (increaseMap.get(dep).size() == 0) {
+				mean = 0.0;
+				meadian = 0.0;
+			} else {
+				mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
+				meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
+			}
+
 			meanOut.write("" + dep + "," + mean + "," + meadian + "\n");
 		}
 		meanOut.close();
-		
+
 		List<Collection<Double>> increaseList = new ArrayList<Collection<Double>>(depSizes.size());
-		for(int dep: depSizes){
-			increaseList.add(increaseMap.get(dep));
+		for (int dep : depSizes) {
+			if (increaseMap.get(dep).size() > 0) {
+				increaseList.add(increaseMap.get(dep));
+			}
 		}
 		CDF.printCDFs(increaseList, cdfFile.getAbsolutePath());
 	}
