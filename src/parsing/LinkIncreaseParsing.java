@@ -5,6 +5,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import scijava.stats.BasicStats;
+import scijava.stats.CDF;
+
 public class LinkIncreaseParsing {
 
 	public static final String OUTPUT_SUFFIX = "parsedLogs/";
@@ -109,13 +112,37 @@ public class LinkIncreaseParsing {
 		List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap);
 		increaseMap.put(curDep, increases);
 		inBuffer.close();
-		
+
 		/*
-		 * At this point increaseMap should be filled correctly, time to do some outputs
+		 * At this point increaseMap should be filled correctly, time to do some
+		 * outputs
 		 */
+		// TODO build outputs
+
+		/*
+		 * Build dep sizes in increasing order
+		 */
+		List<Integer> depSizes = new ArrayList<Integer>(increaseMap.size());
+		depSizes.addAll(increaseMap.keySet());
+		Collections.sort(depSizes);
+
+		BufferedWriter meanOut = new BufferedWriter(new FileWriter(meanFile));
+		meanOut.write("size,mean,median\n");
+		for (int dep : depSizes) {
+			double mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
+			double meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
+			meanOut.write("" + dep + "," + mean + "," + meadian + "\n");
+		}
+		meanOut.close();
 		
+		List<Collection<Double>> increaseList = new ArrayList<Collection<Double>>(depSizes.size());
+		for(int dep: depSizes){
+			increaseList.add(increaseMap.get(dep));
+		}
+		CDF.printCDFs(increaseList, cdfFile.getAbsolutePath());
 	}
 
+	// XXX do we want a way to only return increases?
 	private static List<Double> compareLoads(HashMap<String, Double> before, HashMap<String, Double> after) {
 		List<Double> retList = new ArrayList<Double>(before.size());
 
