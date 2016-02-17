@@ -143,13 +143,13 @@ public class LinkIncreaseParsing {
 		}
 		meanOut.close();
 
-		List<Collection<Double>> increaseList = new ArrayList<Collection<Double>>(depSizes.size());
-		for (int dep : depSizes) {
-			if (increaseMap.get(dep).size() > 0) {
-				increaseList.add(increaseMap.get(dep));
-			}
-		}
-		CDF.printCDFs(increaseList, cdfFile.getAbsolutePath());
+//		List<Collection<Double>> increaseList = new ArrayList<Collection<Double>>(depSizes.size());
+//		for (int dep : depSizes) {
+//			if (increaseMap.get(dep).size() > 0) {
+//				increaseList.add(increaseMap.get(dep));
+//			}
+//		}
+//		CDF.printCDFs(increaseList, cdfFile.getAbsolutePath());
 	}
 
 	// XXX do we want a way to only return increases?
