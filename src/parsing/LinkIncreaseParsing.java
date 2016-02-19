@@ -16,7 +16,7 @@ public class LinkIncreaseParsing {
 	public static final String LINK_FILE_NAME = "link.log";
 
 	public static final Pattern ROUND_PATTERN = Pattern.compile("[\\*#]{3}(\\d+),(\\d+)");
-	
+
 	public static void main(String[] args) throws IOException {
 		String fileBase = args[0];
 		File baseFolder = new File(fileBase + INPUT_SUFFIX);
@@ -53,20 +53,27 @@ public class LinkIncreaseParsing {
 			File onlyWardenFile = new File(outDir, "mean-link-inc-warden.csv");
 			File allFileCDF = new File(outDir, "mean-link-inc-all-cdf.csv");
 			File onlyWardenCDF = new File(outDir, "mean-link-inc-warden-cdf.csv");
+			File onlyWardenNZ = new File(outDir, "nz-mean-link-inc-warden.csv");
+			File onlyWardenNZCDF = new File(outDir, "nz-mean-link-inc-warden-cdf.csv");
+			File onlyWardenAboveFile = new File(outDir, "above.csv");
 			String wardenFile = AS_FILE_PREFIX + suffix.substring(0, 2) + wardenFileSuffix;
 			Set<String> wardenSet = LinkIncreaseParsing.loadWardenASes(wardenFile);
-			LinkIncreaseParsing.runParse(linkFile, allFileCDF, allFile, null);
-			LinkIncreaseParsing.runParse(linkFile, onlyWardenCDF, onlyWardenFile, wardenSet);
+			LinkIncreaseParsing.runParse(linkFile, allFileCDF, allFile, null, null, true);
+			LinkIncreaseParsing.runParse(linkFile, onlyWardenCDF, onlyWardenFile, null, wardenSet, true);
+			LinkIncreaseParsing.runParse(linkFile, onlyWardenNZCDF, onlyWardenNZ, onlyWardenAboveFile, wardenSet, false);
 		}
 	}
 
-	private static void runParse(File linkFile, File cdfFile, File meanFile, Set<String> screenSet) throws IOException {
+	private static void runParse(File linkFile, File cdfFile, File meanFile, File fracAboveFile, Set<String> screenSet,
+			boolean includeZeros) throws IOException {
 		BufferedReader inBuffer = new BufferedReader(new FileReader(linkFile));
 
 		HashMap<Integer, List<Double>> increaseMap = new HashMap<Integer, List<Double>>();
 		HashMap<String, Double> beforeMap = new HashMap<String, Double>();
 		HashMap<String, Double> afterMap = new HashMap<String, Double>();
 		HashMap<String, Double> curMap = null;
+		List<List<Double>> fracAboveLists = new LinkedList<List<Double>>();
+
 		int curDep = 0;
 		int curRound = 0;
 		while (inBuffer.ready()) {
@@ -75,8 +82,9 @@ public class LinkIncreaseParsing {
 			if (cmdMatch.find()) {
 				if (curDep != Integer.parseInt(cmdMatch.group(1))) {
 					if (curDep != 0) {
-						List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap);
+						List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap, includeZeros);
 						increaseMap.put(curDep, increases);
+						fracAboveLists.add(LinkIncreaseParsing.fracMovedDriver(beforeMap, afterMap));
 					}
 					curDep = Integer.parseInt(cmdMatch.group(1));
 					beforeMap.clear();
@@ -111,8 +119,9 @@ public class LinkIncreaseParsing {
 				}
 			}
 		}
-		List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap);
+		List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap, includeZeros);
 		increaseMap.put(curDep, increases);
+		fracAboveLists.add(LinkIncreaseParsing.fracMovedDriver(beforeMap, afterMap));
 		inBuffer.close();
 
 		/*
@@ -145,6 +154,24 @@ public class LinkIncreaseParsing {
 		}
 		meanOut.close();
 
+		if (fracAboveFile != null) {
+			BufferedWriter aboveOut = new BufferedWriter(new FileWriter(fracAboveFile));
+
+			aboveOut.write("depSize,0.1,0.5,1.0,10.0\n");
+			for (int counter = 0; counter < fracAboveLists.size(); counter++) {
+				StringBuilder outStr = new StringBuilder();
+				outStr.append(depSizes.get(counter));
+				for (int innerCounter = 0; innerCounter < fracAboveLists.get(counter).size(); innerCounter++) {
+					outStr.append(",");	
+					outStr.append(fracAboveLists.get(counter).get(innerCounter));
+				}
+				outStr.append("\n");
+				aboveOut.write(outStr.toString());
+			}
+
+			aboveOut.close();
+		}
+
 		List<Collection<Double>> increaseList = new ArrayList<Collection<Double>>(depSizes.size());
 		for (int dep : depSizes) {
 			if (increaseMap.get(dep).size() > 0) {
@@ -155,19 +182,51 @@ public class LinkIncreaseParsing {
 	}
 
 	// XXX do we want a way to only return increases?
-	private static List<Double> compareLoads(HashMap<String, Double> before, HashMap<String, Double> after) {
+	private static List<Double> compareLoads(HashMap<String, Double> before, HashMap<String, Double> after,
+			boolean includeZeros) {
 		List<Double> retList = new ArrayList<Double>(before.size());
 
 		for (String tLink : before.keySet()) {
 			if (after.containsKey(tLink)) {
 				double delta = (after.get(tLink) - before.get(tLink)) / Math.abs(before.get(tLink));
-				if (delta >= 0.0) {
+				if (delta > 0.0 || (delta == 0.0 && includeZeros)) {
 					retList.add(delta);
 				}
 			}
 		}
 
 		return retList;
+	}
+
+	private static List<Double> fracMovedDriver(HashMap<String, Double> before, HashMap<String, Double> after) {
+		List<Double> retList = new ArrayList<Double>();
+		retList.add(LinkIncreaseParsing.fractionMovedTrafficAbove(before, after, 0.1));
+		retList.add(LinkIncreaseParsing.fractionMovedTrafficAbove(before, after, 0.5));
+		retList.add(LinkIncreaseParsing.fractionMovedTrafficAbove(before, after, 1.0));
+		retList.add(LinkIncreaseParsing.fractionMovedTrafficAbove(before, after, 10.0));
+		return retList;
+	}
+
+	private static double fractionMovedTrafficAbove(HashMap<String, Double> before, HashMap<String, Double> after,
+			double thresh) {
+
+		double totalMoved = 0.0;
+		double aboveMoved = 0.0;
+
+		for (String tLink : before.keySet()) {
+			if (after.containsKey(tLink)) {
+				double delta = (after.get(tLink) - before.get(tLink)) / Math.abs(before.get(tLink));
+				if (delta > 0.0) {
+					double moved = after.get(tLink) - before.get(tLink);
+					totalMoved += moved;
+					if (delta >= thresh) {
+						aboveMoved += moved;
+					}
+				}
+			}
+		}
+
+		return aboveMoved / totalMoved;
 	}
 
 	private static Set<String> loadWardenASes(String filePath) throws IOException {
