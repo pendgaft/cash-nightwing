@@ -15,6 +15,8 @@ public class LinkIncreaseParsing {
 	public static final String AS_FILE_PREFIX = "cash-nightwing/countryMappings/";
 	public static final String LINK_FILE_NAME = "link.log";
 
+	public static final Pattern ROUND_PATTERN = Pattern.compile("[\\*#]{3}(\\d+),(\\d+)");
+	
 	public static void main(String[] args) throws IOException {
 		String fileBase = args[0];
 		File baseFolder = new File(fileBase + INPUT_SUFFIX);
@@ -69,7 +71,7 @@ public class LinkIncreaseParsing {
 		int curRound = 0;
 		while (inBuffer.ready()) {
 			String readStr = inBuffer.readLine().trim();
-			Matcher cmdMatch = MaxParser.SAMPLE_PATTERN.matcher(readStr);
+			Matcher cmdMatch = LinkIncreaseParsing.ROUND_PATTERN.matcher(readStr);
 			if (cmdMatch.find()) {
 				if (curDep != Integer.parseInt(cmdMatch.group(1))) {
 					if (curDep != 0) {
