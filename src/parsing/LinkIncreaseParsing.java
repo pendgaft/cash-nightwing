@@ -158,6 +158,7 @@ public class LinkIncreaseParsing {
 				perc95 = 0.0;
 			} else {
 				List<Double> curList = increaseMap.get(dep);
+				Collections.sort(curList);
 				mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
 				meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
 				stddev = BasicStats.stdDevOfDoubles(increaseMap.get(dep));
