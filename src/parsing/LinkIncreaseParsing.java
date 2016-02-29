@@ -142,15 +142,18 @@ public class LinkIncreaseParsing {
 		for (int dep : depSizes) {
 			double mean = -1.0;
 			double meadian = -1.0;
+			double stddev = -1.0;
 			if (increaseMap.get(dep).size() == 0) {
 				mean = 0.0;
 				meadian = 0.0;
+				stddev = 0.0;
 			} else {
 				mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
 				meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
+				stddev = BasicStats.stdDevOfDoubles(increaseMap.get(dep));
 			}
 
-			meanOut.write("" + dep + "," + mean + "," + meadian + "\n");
+			meanOut.write("" + dep + "," + mean + "," + stddev + "," + meadian + "\n");
 		}
 		meanOut.close();
 
@@ -189,7 +192,7 @@ public class LinkIncreaseParsing {
 		for (String tLink : before.keySet()) {
 			if (after.containsKey(tLink)) {
 				double delta = (after.get(tLink) - before.get(tLink)) / Math.abs(before.get(tLink));
-				if (delta > 0.0 || (delta == 0.0 && includeZeros)) {
+				if ((delta > 0.0 || (delta == 0.0 && includeZeros)) && delta < Double.POSITIVE_INFINITY) {
 					retList.add(delta);
 				}
 			}
@@ -197,6 +200,8 @@ public class LinkIncreaseParsing {
 
 		return retList;
 	}
+	
+	
 
 	private static List<Double> fracMovedDriver(HashMap<String, Double> before, HashMap<String, Double> after) {
 		List<Double> retList = new ArrayList<Double>();
