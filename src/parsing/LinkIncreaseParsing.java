@@ -73,6 +73,7 @@ public class LinkIncreaseParsing {
 		HashMap<String, Double> afterMap = new HashMap<String, Double>();
 		HashMap<String, Double> curMap = null;
 		List<List<Double>> fracAboveLists = new LinkedList<List<Double>>();
+		HashMap<Integer, Double> waMap = new HashMap<Integer, Double>();
 
 		int curDep = 0;
 		int curRound = 0;
@@ -83,6 +84,7 @@ public class LinkIncreaseParsing {
 				if (curDep != Integer.parseInt(cmdMatch.group(1))) {
 					if (curDep != 0) {
 						List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap, includeZeros);
+						waMap.put(curDep, LinkIncreaseParsing.weightedAverage(beforeMap, afterMap));
 						increaseMap.put(curDep, increases);
 						fracAboveLists.add(LinkIncreaseParsing.fracMovedDriver(beforeMap, afterMap));
 					}
@@ -121,6 +123,7 @@ public class LinkIncreaseParsing {
 		}
 		List<Double> increases = LinkIncreaseParsing.compareLoads(beforeMap, afterMap, includeZeros);
 		increaseMap.put(curDep, increases);
+		waMap.put(curDep, LinkIncreaseParsing.weightedAverage(beforeMap, afterMap));
 		fracAboveLists.add(LinkIncreaseParsing.fracMovedDriver(beforeMap, afterMap));
 		inBuffer.close();
 
@@ -143,17 +146,20 @@ public class LinkIncreaseParsing {
 			double mean = -1.0;
 			double meadian = -1.0;
 			double stddev = -1.0;
+			double wa = -1.0;
 			if (increaseMap.get(dep).size() == 0) {
 				mean = 0.0;
 				meadian = 0.0;
 				stddev = 0.0;
+				wa = 0.0;
 			} else {
 				mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
 				meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
 				stddev = BasicStats.stdDevOfDoubles(increaseMap.get(dep));
+				wa = waMap.get(dep);
 			}
 
-			meanOut.write("" + dep + "," + mean + "," + stddev + "," + meadian + "\n");
+			meanOut.write("" + dep + "," + mean + "," + stddev + "," + meadian + "," + wa + "\n");
 		}
 		meanOut.close();
 
@@ -182,6 +188,26 @@ public class LinkIncreaseParsing {
 			}
 		}
 		CDF.printCDFs(increaseList, cdfFile.getAbsolutePath());
+	}
+	
+	private static double weightedAverage(HashMap<String, Double> before, HashMap<String, Double> after){
+		double weightedSum = 0.0;
+		double totalWeight = 0.0;
+		
+		for(String tLink: before.keySet()){
+			if(after.containsKey(tLink)){
+				double deflected = after.get(tLink) - before.get(tLink);
+				if(deflected > 0.0){
+					double delta = deflected / Math.abs(before.get(tLink));
+					if(delta < Double.POSITIVE_INFINITY){
+						totalWeight += deflected;
+						weightedSum += deflected * delta;
+					}
+				}
+			}
+		}
+		
+		return weightedSum / totalWeight;
 	}
 
 	// XXX do we want a way to only return increases?
