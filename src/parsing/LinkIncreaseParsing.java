@@ -147,19 +147,26 @@ public class LinkIncreaseParsing {
 			double meadian = -1.0;
 			double stddev = -1.0;
 			double wa = -1.0;
+			double perc90 = -1.0;
+			double perc95 = -1.0;
 			if (increaseMap.get(dep).size() == 0) {
 				mean = 0.0;
 				meadian = 0.0;
 				stddev = 0.0;
 				wa = 0.0;
+				perc90 = 0.0;
+				perc95 = 0.0;
 			} else {
+				List<Double> curList = increaseMap.get(dep);
 				mean = BasicStats.meanOfDoubles(increaseMap.get(dep));
 				meadian = BasicStats.medianOfDoubles(increaseMap.get(dep));
 				stddev = BasicStats.stdDevOfDoubles(increaseMap.get(dep));
 				wa = waMap.get(dep);
+				perc90 = curList.get((int)Math.floor(curList.size() * 0.9));
+				perc95 = curList.get((int)Math.floor(curList.size() * 0.95));
 			}
 
-			meanOut.write("" + dep + "," + mean + "," + stddev + "," + meadian + "," + wa + "\n");
+			meanOut.write("" + dep + "," + mean + "," + stddev + "," + wa + "," + meadian + "," + perc90 + "," + perc95 + "\n");
 		}
 		meanOut.close();
 
