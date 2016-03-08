@@ -10,97 +10,112 @@ public class ValidRouteParse {
 	private static final String SIM_DELIM = ",";
 
 	private static final Pattern PATH_PATTERN = Pattern.compile("ASPATH: (.+)");
-	
+
 	public static final Pattern ROUND_PATTERN = Pattern.compile("[\\*#]{3}(\\d+),(\\d+)");
 
 	public static void main(String[] args) throws Exception {
 
-	    validCheck("countryMappings/CN-as.txt", "/export/scratch2/schuch/nightwingData/pathStuff/rawLogs/CN-asOrderedCoveragePathLenNoRev/path.log", "CN-pl-valid.csv");
+		validCheck("realTopo/int-as.txt",
+				"/export/scratch2/schuch/nightwingData/pathStuff/rawLogs/CN-asOrderedCoveragePathLenNoRev/path.log",
+				"CN-pl-valid.csv");
 	}
-	
-	private static void validCheck(String resistorFile, String pathFile, String outFile) throws Exception{
-		double globalTotal = 0.0;
-		double onlyResistTotal = 0.0;
-		double globalSeen = 0.0;
-		double onlyResistSeen = 0.0;
-		
+
+	private static void validCheck(String intFile, String pathFile, String outFile) throws Exception {
+		double preTotal = 0.0;
+		double postTotal = 0.0;
+		double intTotal = 0.0;
+
+		double preSeen = 0.0;
+		double postSeen = 0.0;
+		double intSeen = 0.0;
+
 		HashSet<String> tested = new HashSet<String>();
 		ObjectInputStream objIn = new ObjectInputStream(new FileInputStream("mergedTree"));
-		HashMap baseTree = (HashMap)objIn.readObject();
+		HashMap baseTree = (HashMap) objIn.readObject();
 		objIn.close();
-		
-		HashSet<String> resistorAS = new HashSet<String>();
-		BufferedReader inBuff = new BufferedReader(new FileReader(resistorFile));
-		while(inBuff.ready()){
+
+		HashSet<String> intAS = new HashSet<String>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(intFile));
+		while (inBuff.ready()) {
 			String line = inBuff.readLine().trim();
-			if(line.length() > 0){
-				resistorAS.add(line);
+			if (line.length() > 0) {
+				intAS.add(line);
 			}
 		}
 		inBuff.close();
-		
+
 		inBuff = new BufferedReader(new FileReader(pathFile));
-		while(inBuff.ready()){
+		boolean currentlyPre = true;
+		while (inBuff.ready()) {
 			String line = inBuff.readLine().trim();
-			if(line.length() == 0){
+			if (line.length() == 0) {
 				continue;
 			}
 
 			Matcher roundMatch = ValidRouteParse.ROUND_PATTERN.matcher(line);
-			if(roundMatch.find()){
+			if (roundMatch.find()) {
+				currentlyPre = Integer.parseInt(roundMatch.group(2)) == 0;
 				continue;
 			}
-			
+
 			/*
 			 * If we have not already tested do so
 			 */
 			String[] splits = line.split(",");
 			String[] toFrom = splits[0].split(":");
 			String pathStr = splits[1].trim();
-			if(!tested.contains(pathStr)){
-				
-				boolean resistorEnd = resistorAS.contains(toFrom[0]) || resistorAS.contains(toFrom[1]);
-				
-				globalTotal += 1.0;
-				if(resistorEnd){
-					onlyResistTotal += 1.0;
+			if (!tested.contains(pathStr)) {
+
+				boolean interesting = intAS.contains(toFrom[0]) && intAS.contains(toFrom[1]);
+
+				if (currentlyPre) {
+					preTotal += 1.0;
+				} else {
+					postTotal += 1.0;
 				}
-				
-				
+
+				if (interesting) {
+					intTotal += 1.0;
+				}
+
 				String[] hops = pathStr.split(" ");
-				
-				if(isValid(baseTree, hops)){
-					globalSeen += 1.0;
-					if(resistorEnd){
-						onlyResistSeen += 1.0;
+
+				if (isValid(baseTree, hops)) {
+					if (currentlyPre) {
+						preSeen += 1.0;
+					} else {
+						postSeen += 1.0;
+					}
+
+					if (interesting) {
+						intSeen += 1.0;
 					}
 				}
-				
+
 				tested.add(pathStr);
 			}
 		}
 		inBuff.close();
-		
-		
+
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		outBuff.write("global,resist\n");
-		outBuff.write("" + (globalSeen / globalTotal) + "," + (onlyResistSeen / onlyResistTotal) + "\n");
+		outBuff.write("global,resist,interesting\n");
+		outBuff.write("" + (preSeen / preTotal) + "," + (postSeen / postTotal) + "," + (intSeen / intTotal) + "\n");
 		outBuff.close();
 	}
-	
-	private static boolean isValid(HashMap theTree, String[] path){
-		for(int i = 0; i < path.length; i++){
-			if(theTree.containsKey(path[i])){
-				theTree = (HashMap)theTree.get(path[i]);
-			}else{
+
+	private static boolean isValid(HashMap theTree, String[] path) {
+		for (int i = 0; i < path.length; i++) {
+			if (theTree.containsKey(path[i])) {
+				theTree = (HashMap) theTree.get(path[i]);
+			} else {
 				return false;
 			}
 		}
-		
+
 		return true;
 	}
-	
-	private static void fetch() throws Exception{
+
+	private static void fetch() throws Exception {
 		HashMap baseMap = new HashMap();
 		long startTime = System.currentTimeMillis();
 
@@ -132,8 +147,8 @@ public class ValidRouteParse {
 		obOut.close();
 		System.out.println("dump took " + (System.currentTimeMillis() - startTime));
 	}
-	
-	private static void doFullMerge() throws Exception{
+
+	private static void doFullMerge() throws Exception {
 		HashMap baseMap = new HashMap();
 		mergeMap(baseMap, "theTree-2014.1");
 		mergeMap(baseMap, "theTree-2014.2");
@@ -142,7 +157,7 @@ public class ValidRouteParse {
 		mergeMap(baseMap, "theTree-2015.3");
 		mergeMap(baseMap, "theTree-2015.4");
 		mergeMap(baseMap, "theTree-201601");
-		
+
 		ObjectOutputStream obOut = new ObjectOutputStream(new FileOutputStream("mergedTree"));
 		obOut.writeObject(baseMap);
 		obOut.close();
