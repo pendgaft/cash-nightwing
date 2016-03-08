@@ -10,10 +10,94 @@ public class ValidRouteParse {
 	private static final String SIM_DELIM = ",";
 
 	private static final Pattern PATH_PATTERN = Pattern.compile("ASPATH: (.+)");
+	
+	public static final Pattern ROUND_PATTERN = Pattern.compile("[\\*#]{3}(\\d+),(\\d+)");
 
 	public static void main(String[] args) throws Exception {
 
-		doFullMerge();
+		validCheck("res", "path", "out");
+	}
+	
+	private static void validCheck(String resistorFile, String pathFile, String outFile) throws Exception{
+		double globalTotal = 0.0;
+		double onlyResistTotal = 0.0;
+		double globalSeen = 0.0;
+		double onlyResistSeen = 0.0;
+		
+		HashSet<String> tested = new HashSet<String>();
+		ObjectInputStream objIn = new ObjectInputStream(new FileInputStream("mergedTree"));
+		HashMap baseTree = (HashMap)objIn.readObject();
+		objIn.close();
+		
+		HashSet<String> resistorAS = new HashSet<String>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(resistorFile));
+		while(inBuff.ready()){
+			String line = inBuff.readLine().trim();
+			if(line.length() > 0){
+				resistorAS.add(line);
+			}
+		}
+		inBuff.close();
+		
+		inBuff = new BufferedReader(new FileReader(pathFile));
+		while(inBuff.ready()){
+			String line = inBuff.readLine().trim();
+			if(line.length() == 0){
+				continue;
+			}
+
+			Matcher roundMatch = ValidRouteParse.ROUND_PATTERN.matcher(line);
+			if(roundMatch.find()){
+				continue;
+			}
+			
+			/*
+			 * If we have not already tested do so
+			 */
+			String[] splits = line.split(",");
+			String[] toFrom = splits[0].split(":");
+			String pathStr = splits[1].trim();
+			if(!tested.contains(pathStr)){
+				
+				boolean resistorEnd = resistorAS.contains(toFrom[0]) || resistorAS.contains(toFrom[1]);
+				
+				globalTotal += 1.0;
+				if(resistorEnd){
+					onlyResistTotal += 1.0;
+				}
+				
+				
+				String[] hops = pathStr.split(" ");
+				
+				if(isValid(baseTree, hops)){
+					globalSeen += 1.0;
+					if(resistorEnd){
+						onlyResistSeen += 1.0;
+					}
+				}
+				
+				tested.add(pathStr);
+			}
+		}
+		inBuff.close();
+		
+		
+		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
+		outBuff.write("global,resist\n");
+		outBuff.write("" + (globalSeen / globalTotal) + "," + (onlyResistSeen / onlyResistTotal) + "\n");
+		outBuff.close();
+	}
+	
+	private static boolean isValid(HashMap theTree, String[] path){
+		for(int i = 0; i < path.length; i++){
+			if(theTree.containsKey(path[i])){
+				theTree = (HashMap)theTree.get(path[i]);
+			}else{
+				return false;
+			}
+		}
+		
+		return true;
 	}
 	
 	private static void fetch() throws Exception{
