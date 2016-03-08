@@ -15,19 +15,18 @@ public class ValidRouteParse {
 
 	public static void main(String[] args) throws Exception {
 
-		validCheck("realTopo/int-as.txt",
-				"/export/scratch2/schuch/nightwingData/pathStuff/rawLogs/CN-asOrderedCoveragePathLenNoRev/path.log",
-				"CN-pl-valid.csv");
+		fetch();
+//		validCheck("realTopo/int-as.txt",
+//				"/export/scratch2/schuch/nightwingData/pathStuff/rawLogs/CN-asOrderedCoveragePathLenNoRev/path.log",
+//				"CN-pl-valid.csv");
 	}
 
 	private static void validCheck(String intFile, String pathFile, String outFile) throws Exception {
 		double preTotal = 0.0;
 		double postTotal = 0.0;
-		double intTotal = 0.0;
 
 		double preSeen = 0.0;
 		double postSeen = 0.0;
-		double intSeen = 0.0;
 
 		HashSet<String> tested = new HashSet<String>();
 		ObjectInputStream objIn = new ObjectInputStream(new FileInputStream("mergedTree"));
@@ -67,6 +66,9 @@ public class ValidRouteParse {
 			if (!tested.contains(pathStr)) {
 
 				boolean interesting = intAS.contains(toFrom[0]) && intAS.contains(toFrom[1]);
+				if(!interesting){
+					continue;
+				}
 
 				if (currentlyPre) {
 					preTotal += 1.0;
@@ -74,9 +76,6 @@ public class ValidRouteParse {
 					postTotal += 1.0;
 				}
 
-				if (interesting) {
-					intTotal += 1.0;
-				}
 
 				String[] hops = pathStr.split(" ");
 
@@ -87,9 +86,6 @@ public class ValidRouteParse {
 						postSeen += 1.0;
 					}
 
-					if (interesting) {
-						intSeen += 1.0;
-					}
 				}
 
 				tested.add(pathStr);
@@ -98,8 +94,8 @@ public class ValidRouteParse {
 		inBuff.close();
 
 		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile));
-		outBuff.write("global,resist,interesting\n");
-		outBuff.write("" + (preSeen / preTotal) + "," + (postSeen / postTotal) + "," + (intSeen / intTotal) + "\n");
+		outBuff.write("pre,post\n");
+		outBuff.write("" + (preSeen / preTotal) + "," + (postSeen / postTotal) + "\n");
 		outBuff.close();
 	}
 
@@ -185,7 +181,7 @@ public class ValidRouteParse {
 	private static void handleFile(HashMap currentTree, String stubURL, String fileURL)
 			throws IOException, InterruptedException {
 		System.out.println("on " + fileURL);
-		String baseURL = "http://data.ris.ripe.net/rrc03/";
+		String baseURL = "http://data.ris.ripe.net/rrc06/";
 
 		/*
 		 * Fetch the URL
