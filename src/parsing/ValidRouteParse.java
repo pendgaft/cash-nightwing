@@ -15,7 +15,7 @@ public class ValidRouteParse {
 
 	public static void main(String[] args) throws Exception {
 
-		validCheck("res", "path", "out");
+	    validCheck("countryMappings/CN-as.txt", "/export/scratch2/schuch/nightwingData/pathStuff/rawLogs/CN-asOrderedCoveragePathLenNoRev/path.log", "CN-pl-valid.csv");
 	}
 	
 	private static void validCheck(String resistorFile, String pathFile, String outFile) throws Exception{
