@@ -340,7 +340,14 @@ public class EconomicEngine {
 			Set<Integer> skipSet = null;
 
 			if (partialDefection) {
-				Set<Integer> testSet = new HashSet<Integer>();
+				skipSet = new HashSet<Integer>();
+				Integer[] drArr = (Integer[])drSet.toArray();
+				Random rng = new Random();
+				while(skipSet.size() < 24){
+					skipSet.add(drArr[rng.nextInt(drArr.length)]);
+				}
+				
+				/*Set<Integer> testSet = new HashSet<Integer>();
 				for (int counter = 0; counter < 100; counter++) {
 					int largestASN = -1;
 					int largestDeg = -1;
@@ -362,7 +369,7 @@ public class EconomicEngine {
 						testSet.add(tASN);
 					}
 				}
-				skipSet = testSet;
+				skipSet = testSet;*/
 			} else {
 				skipSet = drSet;
 			}
