@@ -341,7 +341,8 @@ public class EconomicEngine {
 
 			if (partialDefection) {
 				skipSet = new HashSet<Integer>();
-				Integer[] drArr = (Integer[])drSet.toArray();
+				Integer[] drArr = new Integer[drSet.size()];
+				drArr = drSet.toArray(drArr);
 				Random rng = new Random();
 				while(skipSet.size() < 24){
 					skipSet.add(drArr[rng.nextInt(drArr.length)]);
