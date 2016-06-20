@@ -20,7 +20,8 @@ public class MaxParser {
 	public static final Pattern ROUND_PATTERN = Pattern.compile("\\*\\*\\*(\\d+),(\\d+)");
 	public static final Pattern SAMPLE_PATTERN = Pattern.compile("###(\\d+),(\\d+)");
 	public static final Pattern WARDEN_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)");
-	public static final Pattern TRANSIT_PATTERN = Pattern.compile("(\\d+),([^,]+),([^,]+),([a-zA-Z]+),?([E\\d\\.\\-]+)");
+	public static final Pattern TRANSIT_PATTERN = Pattern
+			.compile("(\\d+),([^,]+),([^,]+),([a-zA-Z]+),?([E\\d\\.\\-]+)");
 
 	private static double[] PERCENTILES = { 0.10, 0.25, 0.50, 0.75, 0.90 };
 
@@ -30,7 +31,6 @@ public class MaxParser {
 	private static final int NC_REACHABILITY_COL = 4;
 	private static final int TRAFFIC_REACHABILITY_COL = 5;
 	private static final int NC_TRAFFIC_REACH_COL = 6;
-	
 
 	public static void main(String[] args) throws IOException {
 		String fileBase = args[0];
@@ -55,7 +55,7 @@ public class MaxParser {
 			File outDir = new File(fileBase + OUTPUT_SUFFIX + suffix);
 			if (!outDir.exists()) {
 				outDir.mkdirs();
-			} else{
+			} else {
 				System.out.println("Skiping " + suffix + " since it's already done.");
 				continue;
 			}
@@ -75,20 +75,23 @@ public class MaxParser {
 			self.fullReachabilty(wardenFile, fileBase + OUTPUT_SUFFIX + suffix + "/nonCoopCleanAfter.csv", 2,
 					MaxParser.NC_TRAFFIC_REACH_COL);
 
-			self.fullRevenueDetails(transitFile,
-					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drTransitRevDelta.csv", fileBase
-							+ MaxParser.OUTPUT_SUFFIX + suffix + "/drRevCDF.csv", true, false, 3);
-			//self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-			//		+ "/nonDRTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/nonDRRevCDF.csv",
-			//		false, false, 3);
-			//self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-			//		+ "/resistorTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-			//		+ "/resistorRevCDF.csv", false, true, 3);
+			self.fullRevenueDetails(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drTransitRevDelta.csv",
+					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/drRevCDF.csv", true, false, 3);
+			// self.fullRevenueDetails(transitFile, fileBase +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/nonDRTransitRevDelta.csv", fileBase + MaxParser.OUTPUT_SUFFIX
+			// + suffix + "/nonDRRevCDF.csv",
+			// false, false, 3);
+			// self.fullRevenueDetails(transitFile, fileBase +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/resistorTransitRevDelta.csv", fileBase +
+			// MaxParser.OUTPUT_SUFFIX + suffix
+			// + "/resistorRevCDF.csv", false, true, 3);
 
-			self.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
+			MaxParser.parseRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/deployerCosts");
 			self.parseResistorRealMoney(transitFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/resistorCosts");
-			self.parsePathLength(wardenFile, pathFile, fileBase + MaxParser.OUTPUT_SUFFIX + suffix
-					+ "/pathLenDeltas.csv", !pathFile.contains("NoRev"));
+			self.parsePathLength(wardenFile, pathFile,
+					fileBase + MaxParser.OUTPUT_SUFFIX + suffix + "/pathLenDeltas.csv", !pathFile.contains("NoRev"));
 		}
 	}
 
@@ -258,11 +261,11 @@ public class MaxParser {
 		}
 		fullDeltas.add(listClone);
 		for (double tPercent : MaxParser.PERCENTILES) {
-		    if(sampleDeltas.size() > 0 ){
-			extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
-		    }else{
-			extractMap.put(tPercent, 0.0);
-		    }
+			if (sampleDeltas.size() > 0) {
+				extractMap.put(tPercent, this.extractValue(sampleDeltas, tPercent));
+			} else {
+				extractMap.put(tPercent, 0.0);
+			}
 		}
 		results.put(oldSize, extractMap);
 		sampleDeltas.clear();
@@ -415,8 +418,8 @@ public class MaxParser {
 							deltasForThisSample.add(Double.parseDouble(dataMatch.group(column))
 									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1))));
 						} else {
-							deltasForThisSample.add((Double.parseDouble(dataMatch.group(column)) - firstRoundValue
-									.get(Integer.parseInt(dataMatch.group(1))))
+							deltasForThisSample.add((Double.parseDouble(dataMatch.group(column))
+									- firstRoundValue.get(Integer.parseInt(dataMatch.group(1))))
 									/ (1.0 - firstRoundValue.get(Integer.parseInt(dataMatch.group(1)))) * 100.0);
 						}
 					}
@@ -571,13 +574,13 @@ public class MaxParser {
 					Double ips = this.asToIP.get(Integer.parseInt(dataMatch.group(1)));
 					if (ips != null) {
 						double cleanness = Double.parseDouble(dataMatch.group(column));
-						
+
 						/*
 						 * Don't let NaN taint our measurements
 						 */
-						if(!Double.isNaN(cleanness)){
-						    currentIPCount += ips;
-						    currentIPCleanness += cleanness * ips;
+						if (!Double.isNaN(cleanness)) {
+							currentIPCount += ips;
+							currentIPCleanness += cleanness * ips;
 						}
 					}
 				}
@@ -759,7 +762,49 @@ public class MaxParser {
 		outBuff.close();
 	}
 
-	public void parseRealMoney(String logFile, String outFile) throws IOException {
+	public static HashMap<Integer, Double> parseRealMoneyStarting(String logFile) throws IOException {
+
+		HashMap<Integer, Double> firstRoundValues = new HashMap<Integer, Double>();
+		BufferedReader inBuff = new BufferedReader(new FileReader(logFile));
+		int roundFlag = 0;
+		while (inBuff.ready()) {
+			String pollStr = inBuff.readLine().trim();
+
+			Matcher controlMatcher = MaxParser.ROUND_PATTERN.matcher(pollStr);
+			boolean controlFlag = false;
+			if (controlMatcher.find()) {
+				controlFlag = true;
+			} else {
+				controlMatcher = MaxParser.SAMPLE_PATTERN.matcher(pollStr);
+				if (controlMatcher.find()) {
+					controlFlag = true;
+				}
+			}
+
+			if (controlFlag) {
+				roundFlag = Integer.parseInt(controlMatcher.group(2));
+				/*
+				 * We're ready to actually extract deltas
+				 */
+				if (roundFlag != 0) {
+					break;
+				}
+				continue;
+			}
+
+			Matcher dataMatch = MaxParser.TRANSIT_PATTERN.matcher(pollStr);
+			if (dataMatch.find()) {
+					firstRoundValues.put(Integer.parseInt(dataMatch.group(1)),
+							MaxParser.convertTrafficToDollars(Double.parseDouble(dataMatch.group(2))));
+			}
+		}
+		inBuff.close();
+
+		return firstRoundValues;
+	}
+
+	public static HashMap<Integer, HashMap<Integer, Double>> parseRealMoney(String logFile, String outFile)
+			throws IOException {
 
 		HashMap<Integer, HashMap<Integer, Double>> roundResults = new HashMap<Integer, HashMap<Integer, Double>>();
 
@@ -828,30 +873,39 @@ public class MaxParser {
 		Collections.sort(roundSizes);
 
 		/*
-		 * Output CDF of the costs for each round on a per AS basis
+		 * In some parsing scenarios we just actually want roundResults, which
+		 * we'll do additional parsing on, if outFile isn't null then we
+		 * actually want the results
 		 */
-		List<Collection<Double>> cdfLists = new ArrayList<Collection<Double>>(roundSizes.size());
-		for (int tSize : roundSizes) {
-			cdfLists.add(roundResults.get(tSize).values());
-		}
-		CDF.printCDFs(cdfLists, outFile + "-CDF.csv");
-
-		/*
-		 * Output the total cost of each round
-		 */
-		List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
-		for (int size : roundSizes) {
-			double sum = 0;
-			for (Double tVal : roundResults.get(size).values()) {
-				sum += tVal;
+		if (outFile != null) {
+			/*
+			 * Output CDF of the costs for each round on a per AS basis
+			 */
+			List<Collection<Double>> cdfLists = new ArrayList<Collection<Double>>(roundSizes.size());
+			for (int tSize : roundSizes) {
+				cdfLists.add(roundResults.get(tSize).values());
 			}
-			perRoundCost.add(sum);
+			CDF.printCDFs(cdfLists, outFile + "-CDF.csv");
+
+			/*
+			 * Output the total cost of each round
+			 */
+			List<Double> perRoundCost = new ArrayList<Double>(roundResults.size());
+			for (int size : roundSizes) {
+				double sum = 0;
+				for (Double tVal : roundResults.get(size).values()) {
+					sum += tVal;
+				}
+				perRoundCost.add(sum);
+			}
+			BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost.csv"));
+			for (int counter = 0; counter < perRoundCost.size(); counter++) {
+				outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
+			}
+			outBuff.close();
 		}
-		BufferedWriter outBuff = new BufferedWriter(new FileWriter(outFile + "-totalCost.csv"));
-		for (int counter = 0; counter < perRoundCost.size(); counter++) {
-			outBuff.write("" + roundSizes.get(counter) + "," + perRoundCost.get(counter) + "\n");
-		}
-		outBuff.close();
+
+		return roundResults;
 	}
 
 	public void parseResistorRealMoney(String logFile, String outFile) throws IOException {
@@ -1013,11 +1067,11 @@ public class MaxParser {
 						double fromMedian = MaxParser.getMedian(fromResistDeltas);
 						double toMedian = MaxParser.getMedian(toResistDeltas);
 
-						fromResistBuffer.write(sampleSize + "," + fromMean + "," + fromMedian + ","
-								+ fromResistDeltas.size() + "\n");
+						fromResistBuffer.write(
+								sampleSize + "," + fromMean + "," + fromMedian + "," + fromResistDeltas.size() + "\n");
 						fromResistDeltas.clear();
-						toResistBuffer.write(sampleSize + "," + toMean + "," + toMedian + "," + toResistDeltas.size()
-								+ "\n");
+						toResistBuffer
+								.write(sampleSize + "," + toMean + "," + toMedian + "," + toResistDeltas.size() + "\n");
 						toResistDeltas.clear();
 					}
 					inParseRegion = false;
