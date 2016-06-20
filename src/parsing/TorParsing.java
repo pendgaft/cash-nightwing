@@ -22,6 +22,7 @@ public class TorParsing {
 		File[] runs = startingDir.listFiles();
 		for (File tRun : runs) {
 			if (TorParsing.isTorRelatedDir(tRun)) {
+				System.out.println("on " + tRun.toString());
 				TorParsing parser = new TorParsing(tRun, new File(outDir, tRun.getName()));
 				parser.lossByValue();
 			}
@@ -105,7 +106,7 @@ public class TorParsing {
 		if (baseFile.contains("All") || baseFile.contains("full")) {
 			return "cash-nightwing/tor-asn/asBW-all.csv";
 		} else if (baseFile.contains("Exit") || baseFile.contains("exit")) {
-			return "cash-nightwing/tor-asn/asBW-exit.csv";
+			return "cash-nightwing/tor-asn/asBW-exits.csv";
 		} else if (baseFile.contains("guard")) {
 			return "cash-nightwing/tor-asn/asBW-guard.csv";
 		}
