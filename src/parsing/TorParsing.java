@@ -12,7 +12,7 @@ public class TorParsing {
 	private HashMap<Integer, Double> startingRev;
 
 	private double sumTotalBW;
-	
+
 	private File outputDir;
 
 	public static void main(String[] args) throws IOException {
@@ -84,10 +84,16 @@ public class TorParsing {
 	public void lossByValue() throws IOException {
 		List<ASRanker> lossList = new ArrayList<ASRanker>();
 		int lostBW = 0;
+		int missing = 0;
 		for (int tASN : this.losses.keySet()) {
 			lossList.add(new ASRanker(tASN, -1.0 * this.losses.get(tASN)));
-			lostBW += this.asToBW.get(tASN);
+			if (this.asToBW.containsKey(tASN)) {
+				lostBW += this.asToBW.get(tASN);
+			} else {
+				missing++;
+			}
 		}
+		System.out.println("Missing " + missing + "," + lossList.size());
 		Collections.sort(lossList);
 
 		File outFile = new File(this.outputDir, "lossBySize.csv");

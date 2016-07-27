@@ -32,6 +32,7 @@ public class ValidRouteParse {
 		ObjectInputStream objIn = new ObjectInputStream(new FileInputStream("mergedTree"));
 		HashMap baseTree = (HashMap) objIn.readObject();
 		objIn.close();
+		Set<String> seenASes = getViewedSet(baseTree);
 
 		HashSet<String> intAS = new HashSet<String>();
 		BufferedReader inBuff = new BufferedReader(new FileReader(intFile));
@@ -70,6 +71,13 @@ public class ValidRouteParse {
 					continue;
 				}
 
+				String[] hops = pathStr.split(" ");
+				for(String tHop: hops){
+					if(!seenASes.contains(tHop)){
+						continue;
+					}
+				}
+				
 				if (currentlyPre) {
 					preTotal += 1.0;
 				} else {
@@ -77,8 +85,8 @@ public class ValidRouteParse {
 				}
 
 
-				String[] hops = pathStr.split(" ");
-
+		
+				
 				if (isValid(baseTree, hops)) {
 					if (currentlyPre) {
 						preSeen += 1.0;
@@ -98,6 +106,21 @@ public class ValidRouteParse {
 		outBuff.write("" + (preSeen / preTotal) + "," + (postSeen / postTotal) + "\n");
 		outBuff.close();
 	}
+	
+	private static Set<String> getViewedSet(HashMap theMap){
+		Set<String> totalSet = new HashSet<String>();
+		for(String tKey: (Set<String>)theMap.keySet()){
+			HashMap innerMap = (HashMap)theMap.get(tKey);
+			
+			if(innerMap.size() > 0){
+				Set<String> innerView = getViewedSet(innerMap);
+				totalSet.addAll(innerView);
+			}
+			
+			totalSet.add(tKey);
+		}
+		return totalSet;
+	}
 
 	private static boolean isValid(HashMap theTree, String[] path) {
 		for (int i = 0; i < path.length; i++) {
@@ -115,24 +138,18 @@ public class ValidRouteParse {
 		HashMap baseMap = new HashMap();
 		long startTime = System.currentTimeMillis();
 
-		for (int month = 4; month < 8; month++) {
+		for (int month = 1; month < 7; month++) {
 			String monthStr = String.format("%02d", month);
-			for (int day = 1; day < 32; day++) {
-				String dayStr = String.format("%02d", day);
-				if (month == 2 && day > 28) {
-					break;
-				}
-				if ((month == 9 || month == 4 || month == 6 || month == 11) && day > 30) {
-					break;
-				}
-				for (int hourCounter = 0; hourCounter < 24; hourCounter++) {
-					for (int minuteCounter = 0; minuteCounter < 60; minuteCounter += 5) {
-						String hourStr = String.format("%04d", (hourCounter * 100 + minuteCounter));
-						ValidRouteParse.handleFile(baseMap, "2015." + monthStr,
-								"updates.2015" + monthStr + dayStr + "." + hourStr + ".gz");
-					}
-				}
-			}
+			Random rng = new Random();
+
+			int day = 2;
+			    
+			    String dayStr = String.format("%02d", day);
+
+				String hourStr = "1200";
+				ValidRouteParse.handleFile(baseMap, "2015." + monthStr,
+							   "rib.2015" + monthStr + dayStr + "." + hourStr + ".bz2");
+
 		}
 		System.out.println("size is " + baseMap.size());
 		System.out.println("took " + (System.currentTimeMillis() - startTime));
@@ -181,30 +198,30 @@ public class ValidRouteParse {
 	private static void handleFile(HashMap currentTree, String stubURL, String fileURL)
 			throws IOException, InterruptedException {
 		System.out.println("on " + fileURL);
-		String baseURL = "http://data.ris.ripe.net/rrc06/";
+		String baseURL = "http://archive.routeviews.org/bgpdata/";
 
 		/*
 		 * Fetch the URL
 		 */
-		String fetchCmd = "wget " + baseURL + stubURL + "/" + fileURL;
-		Process p = Runtime.getRuntime().exec(fetchCmd);
-		p.waitFor();
+		String fetchCmd = "wget " + baseURL + stubURL + "/RIBS/" + fileURL;
+		//Process p = Runtime.getRuntime().exec(fetchCmd);
+		//p.waitFor();
 
 		/*
 		 * Unzip the file and delete the zip
 		 */
-		String unzipCmd = "gunzip " + fileURL;
-		p = Runtime.getRuntime().exec(unzipCmd);
-		p.waitFor();
+		String unzipCmd = "bunzip2 " + fileURL;
+		//p = Runtime.getRuntime().exec(unzipCmd);
+		//p.waitFor();
 		File tmpFile = new File(fileURL);
-		tmpFile.delete();
+		//tmpFile.delete();
 
 		/*
 		 * Invoke BGP dump, hunting for paths and then feeding them into our
 		 * current tree
 		 */
-		String bgpdumpCmd = "bgpdump " + fileURL.substring(0, fileURL.length() - 3);
-		p = Runtime.getRuntime().exec(bgpdumpCmd);
+		String bgpdumpCmd = "bgpdump " + fileURL.substring(0, fileURL.length() - 4);
+		Process p = Runtime.getRuntime().exec(bgpdumpCmd);
 		BufferedReader outBuffer = new BufferedReader(new InputStreamReader(p.getInputStream()));
 		String line = null;
 		while ((line = outBuffer.readLine()) != null) {
